@@ -5,12 +5,9 @@
 **Universidades:** Universidad Complutense de Madrid (UCM) y Universidad Politécnica de Madrid (UPM)  
 **Curso académico:** 2025–2026  
 
-## Autor
-Salma El Kasouari Qessouri
-
-## Directores del trabajo
-Clara María Segura Díaz
-Jorge Blázquez Saborido
+## Colaboradores
+**Autor:** Salma El Kasouari Qessouri  
+**Directores:** Clara María Segura Díaz y Jorge Blázquez Saborido  
 
 ## Requisitos
 Para compilar y verificar se recomienda usar **Visual Studio Code** con la extensión oficial de Dafny para facilitar la edición, verificación y navegación del código.
