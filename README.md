@@ -1,4 +1,4 @@
-# Trabajo de Fin de Máster – Verificación de algoritmos de ramificación y poda en Dafny
+# Trabajo de Fin de Máster
 
 **Título:** Verificación de algoritmos de ramificación y poda en Dafny  
 **Programa:** Máster Interuniversitario en Métodos Formales en Ingeniería Informática  
