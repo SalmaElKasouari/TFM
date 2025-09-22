@@ -1,5 +1,5 @@
 /*
- * Función: dado una matriz de tipo T (array2<T>) y un número de filas k, devuelve una secuencia de k secuencias de 
+ * Function: dado una matriz de tipo T (array2<T>) y un número de filas k, devuelve una secuencia de k secuencias de 
  * tipo T (seq<seq<T>>).
  */
 function Array2ToSeqSeq<T>(a : array2<T>, k : int) : seq<seq<T>>
@@ -16,7 +16,7 @@ function Array2ToSeqSeq<T>(a : array2<T>, k : int) : seq<seq<T>>
   }
 
 /*
- * Función: dado una matriz de tipo T (array2<T>), una fila k-esima y un numero de columnas j, transforma la fila k
+ * Function: dado una matriz de tipo T (array2<T>), una fila k-esima y un numero de columnas j, transforma la fila k
  * del array2 en una secuencia de j elementos de tipo T (seq<T>).
  */
   function Array2ToSeq<T>(a : array2<T>, k : int, j : int) : seq<T>

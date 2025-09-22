@@ -8,7 +8,7 @@ Estructura del fichero:
   - items: secuencia de objetos que tenemos a nuestra disposición (elementos de tipo ItemData).
   - maxWeight: peso máximo de la mochila.
   
-  Predicados
+  Predicates
     - Valid: una entrada es válida.
 
 -----------------------------------------------------------------------------------------------------------------------*/
@@ -19,10 +19,10 @@ include "ItemData.dfy"
 
 datatype InputData = InputData(items: seq<ItemData>, maxWeight: real) {
   
-  /* Predicados */
+  /* Predicates */
 
   /* 
-  Predicado: verifica que la entrada sea válida, es decir: 
+  Predicate: verifica que la entrada sea válida, es decir: 
     - todos los objetos son válidos, es decir, tienen valor y peso positivos.
     - el peso máximo de la mochila no es negativo.
   */

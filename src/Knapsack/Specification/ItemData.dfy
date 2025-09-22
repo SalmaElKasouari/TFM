@@ -8,16 +8,16 @@ Estructura del fichero:
   - weight: peso del objeto.
   - value: valor del objeto.
   
-  Predicados
+  Predicates
     - Valid: un objeto es válido.
 
 -----------------------------------------------------------------------------------------------------------------------*/
 
 datatype ItemData = ItemData(weight: real, value: real) {
-  /* Predicados */
+  /* Predicates */
 
   /* 
-  Predicado: verifica que el objeto es válido, es decir, que tiene valor y peso positivos.
+  Predicate: verifica que el objeto es válido, es decir, que tiene valor y peso positivos.
   */
   ghost predicate Valid() {
     weight > 0.0 && value > 0.0
