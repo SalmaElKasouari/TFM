@@ -147,7 +147,5 @@ module Q {
             ensures this.IsHeap()
         
 
-
-        
     }
 }
