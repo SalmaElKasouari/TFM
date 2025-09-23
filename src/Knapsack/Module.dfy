@@ -122,6 +122,16 @@ module Q {
             requires 0 < this.count <= this.arr.Length
             requires forall i | 0 < i < this.count - 1 :: this.arr[(i-1)/2].priority <= this.arr[i].priority
             ensures this.IsHeap()
+        // {
+        //     var j := this.count - 1;
+        //     while j > 0 && this.arr[(j-1)/2].priority > this.arr[j].priority
+        //         invariant 0 <= j <= this.count - 1 < this.arr.Length
+        //         invariant forall i | 0 < i < this.count :: i != j ==> this.arr[(i-1)/2].priority <= this.arr[i].priority
+        //     {
+        //         this.arr[(j-1)/2], this.arr[j] := this.arr[j], this.arr[(j-1)/2];
+        //         j := (j-1)/2;
+        //     }
+        // }
         
 
 
