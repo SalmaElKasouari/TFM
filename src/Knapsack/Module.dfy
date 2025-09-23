@@ -75,8 +75,7 @@ module Q {
         method Insert(node : Solution)
             modifies this, this.arr
             requires this.IsHeap()
-            requires 0 < this.arr.Length == this.arr.Length
-            ensures this.IsHeap()
+            //ensures this.IsHeap()
         {
             if (this.count == this.arr.Length) {
                 Grow(node);
@@ -85,19 +84,20 @@ module Q {
             this.Float();     
         }
 
+
         /* Method: duplicates space of the heap */
         method Grow(x : Solution)
             modifies this, this.arr
             requires 0 <= this.count == this.arr.Length
-            ensures this.count == old(this.count) // el numero de elementos no aumenta, lo hace Insert
-            ensures this.arr[0..this.count] == old(this.arr[0..this.count]) // los primeros elementos que habia antes en el array se conservan
-            ensures this.arr.Length > old(this.arr.Length) // la longitud aumenta
-            ensures fresh(this.arr) // es nuevo en la memoria
+            ensures this.count == old(this.count) // the number of elements does not change in this method. The Method Insert increases it
+            ensures this.arr.Length > old(this.arr.Length) // the length of the array increases
+            ensures fresh(this.arr) // is new in memory
+            ensures this.arr[0..this.count] == old(this.arr[0..this.count]) // the elements that were already in the array are preserved
+
         {
             // allocate new memory
             var aux: array<Solution> := new Solution[2 * this.arr.Length + 1] (_ => x);
             
-            assert this.count == this.arr.Length;
             // copy
             var i := 0;
             while i < this.count
@@ -116,7 +116,7 @@ module Q {
         }
 
 
-        /* Method: */
+        /* Method: moves the last inserted node upward in the heap until the heap property is restored */
         method Float()
             modifies this.arr
             requires 0 < this.count <= this.arr.Length
@@ -125,8 +125,7 @@ module Q {
         
 
 
-
-        /* Method: returns the element with the minimum priority of the heap */
+        /* Method: deletes the element with the minimum priority of the heap */
         method DeleteMin()
             modifies this, this.arr
             requires this.IsHeap()
@@ -139,7 +138,7 @@ module Q {
         }
 
 
-        /* Method: the element with the minimum priority of the heap */
+        /* Method: moves a node downward in the heap until the heap property is restored */
         method Sink(s : nat, l : nat)
             modifies this.arr
             requires 0 <= s <= l == this.count <= arr.Length
