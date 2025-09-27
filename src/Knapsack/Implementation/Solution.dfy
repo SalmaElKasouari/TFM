@@ -127,6 +127,16 @@ class Solution {
   }
 
 
+  /*
+  Function: devuelve la prioridad del nodo.
+  */
+  ghost function Priority() : real
+    reads this
+  {
+    this.priority
+  }
+
+
 
   /* Methods */
 
