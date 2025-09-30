@@ -36,8 +36,9 @@ Estructura del fichero:
 include "Item.dfy"
 include "../Specification/SolutionData.dfy"
 include "Input.dfy"
+include "KnapsackPQ.dfy"
 
-class Solution {
+class Solution { // extends KnapsackPQ.Solution
 
   /* Atributos y constructor */
 
@@ -104,6 +105,13 @@ class Solution {
   }
 
 
+  // ghost predicate UpperBound(ps : SolutionData, input : InputData)
+  //   requires input.Valid()
+  //   requires this.Valid(input)
+  // {
+  //   forall s : SolutionData | s.Valid(input) && s.OptimalExtension(ps, input) :: s.TotalValue(input.items) <= this.priority 
+  // }
+
 
   /* Functions */
 
@@ -115,6 +123,7 @@ class Solution {
   {
     SolutionData(itemsAssign[..], k)
   }
+
 
   /*
   Function: calcula el número de etapas restantes en la solución parcial. Es la Function de bound del Method algorítmico

@@ -181,6 +181,14 @@ datatype SolutionData = SolutionData(itemsAssign: seq<bool>, k: nat) {
   }
 
 
+  // ghost predicate UpperBound(ps : SolutionData, input : InputData)
+  //   requires input.Valid()
+  //   requires this.Valid(input)
+  // {
+  //   forall s : SolutionData | s.Valid(input) && s.OptimalExtension(ps, input) :: s.TotalValue(input.items) <= this.priority
+  // }
+
+
 
   /* Lemas */
 
