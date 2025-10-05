@@ -76,6 +76,7 @@ class Solution { // extends KnapsackPQ.Solution
 
   {
     && 0 <= this.k <= this.itemsAssign.Length
+    //su prioridad es cota superior, llamar a upperbound
     && Model().Partial(input.Model())
     && Model().TotalWeight(input.Model().items) == totalWeight
     && Model().TotalValue(input.Model().items) == totalValue
@@ -105,12 +106,13 @@ class Solution { // extends KnapsackPQ.Solution
   }
 
 
-  // ghost predicate UpperBound(ps : SolutionData, input : InputData)
-  //   requires input.Valid()
-  //   requires this.Valid(input)
-  // {
-  //   forall s : SolutionData | s.Valid(input) && s.OptimalExtension(ps, input) :: s.TotalValue(input.items) <= this.priority 
-  // }
+  ghost predicate IsUpperBound(ps : SolutionData, input : Input)
+    reads this, this.itemsAssign, input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+    requires input.Valid()
+    requires this.Valid(input)
+  {
+    Model().IsUpperBound(this.priority, input.Model())
+  }
 
 
   /* Functions */

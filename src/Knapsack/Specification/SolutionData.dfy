@@ -180,13 +180,15 @@ datatype SolutionData = SolutionData(itemsAssign: seq<bool>, k: nat) {
     && forall i | 0 <= i < this.k :: this.itemsAssign[i] == s.itemsAssign[i]
   }
 
-
-  // ghost predicate UpperBound(ps : SolutionData, input : InputData)
-  //   requires input.Valid()
-  //   requires this.Valid(input)
-  // {
-  //   forall s : SolutionData | s.Valid(input) && s.OptimalExtension(ps, input) :: s.TotalValue(input.items) <= this.priority
-  // }
+  /*
+    Predicate: 
+  */
+  ghost predicate IsUpperBound(priority : real, input : InputData)
+    requires input.Valid()
+    requires this.Valid(input)
+  {
+    forall s : SolutionData | s.Valid(input) && s.OptimalExtension(this, input) :: s.TotalValue(input.items) <= priority 
+  }
 
 
 

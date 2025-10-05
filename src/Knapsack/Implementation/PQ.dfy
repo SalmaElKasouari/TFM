@@ -16,7 +16,7 @@ abstract module PQ {
 
 
     constructor PriorityQueue(size: int)
-      //ensures Valid()
+      ensures Valid()
     {
       this.arr := new Solution[0];
       this.count := 0;
@@ -26,33 +26,34 @@ abstract module PQ {
     /* Predicates */
 
     /* Predicate: true if the segment [x, y) of the array satisfies the heap property*/
-    predicate IsHeap(x : int, y : int)
+    ghost predicate IsHeap(x : int, y : int)
       reads this, this.arr, set i | 0 <= i < this.arr.Length :: arr[i]
     {
       && 0 <= x <= y <= arr.Length
-      && (forall i | x < i < y :: this.arr[(i-1)/2].priority < this.arr[i].priority)
+      && (forall i | 2*x < i < y :: this.arr[(i-1)/2].priority <= this.arr[i].priority)
     }
 
     /* Predicate: true if the array satisfies the heap property */
-    predicate Valid()
+    ghost predicate Valid()
       reads this, this.arr, set i | 0 <= i < this.arr.Length :: arr[i]
     {
-      IsHeap(0, this.count)
+      && IsHeap(0, this.count)
+      && this.count <= this.arr.Length
     }
 
 
     /* Predicate: true if the heap has no elements */
-    predicate IsEmpty()
+    ghost predicate IsEmpty()
       reads this
     {
-      this.count == 0
+      this.count == 0 // model es vacio
     }
 
 
     /* Predicate: true if m is the node with the minimum priority in the heap, i.e., no other node in the heap has a lower priority. */
-    predicate IsMin(m : Solution)
-      reads this, this.arr, m, set i | i in Model()
-      requires this.arr.Length == this.count
+    ghost predicate IsMin(m : Solution)
+      reads this, this.arr, m, set i | i in Model(),  set i | 0 <= i < this.arr.Length :: arr[i]
+      requires Valid()
       requires !IsEmpty()
     {
       && m in Model() // m belongs to the model
@@ -63,14 +64,25 @@ abstract module PQ {
     /* Functions */
 
     /* Function: returns the model of the heap */
-    function Model() : set<Solution>
-      reads this, this.arr
-      requires !IsEmpty()
-      requires this.arr.Length == this.count
+    ghost function Model() : set<Solution>
+      reads this, this.arr, set i | 0 <= i < this.arr.Length :: arr[i]
+      requires Valid()
       ensures forall i : Solution | i in Model() :: (exists j | 0 <= j < this.count :: i == this.arr[j])
     {
       set j | 0 <= j < this.count :: this.arr[j]
     }
+
+    /* Function: returns the element with the minimum priority in the heap */
+    function Min() : Solution
+      reads this, this.arr, set i | i in Model(), set i | 0 <= i < this.arr.Length :: arr[i]
+      requires !IsEmpty()
+      requires Valid()
+      ensures Valid()
+      // ensures IsMin(Min())
+    {
+      this.arr[0]
+    }
+    
 
 
     /* Methods */
@@ -79,38 +91,24 @@ abstract module PQ {
     // method Min() returns (node : Solution)
     //   requires !IsEmpty()
     //   requires Valid()
-    //   requires this.arr.Length == this.count
     //   ensures IsMin(node)
-    // {
-    //   return this.arr[0];
-    // }
+    //   ensures Valid()
+    // // {
+    // //   node := this.arr[0];
+    // // }
+
+
 
 
     /* Method: returns the current number of elements in the heap */
     method Size() returns (c : int)
+      requires Valid()
+      ensures Valid()
+      //ensures c == tamaño modelo
     {
       return this.count;
     }
 
-
-    /* Method: returns the model of the heap */
-    method Model2() returns (s: set<Solution>)
-      requires !IsEmpty()
-      requires this.arr.Length == this.count
-      ensures forall i : Solution | i in s :: (exists j | 0 <= j < this.count :: i == this.arr[j])
-    {
-      var aux: set<Solution> := {};
-      var j := 0;
-      while j < this.count
-        decreases this.count - j
-        invariant 0 <= j <= this.count
-        invariant forall i : Solution | i in aux :: (exists k | 0 <= k < j :: i == this.arr[k])
-      {
-        aux := aux + {this.arr[j]};
-        j := j + 1;
-      }
-      s := aux;
-    }
 
 
     /* Method: inserts an element to the heap */
@@ -118,23 +116,22 @@ abstract module PQ {
       modifies this, this.arr
       requires Valid()
       ensures Valid()
-      ensures !IsEmpty()
-      //ensures IsMin(this.arr[0])
-    {
-      if (this.IsEmpty()) {
-        var aux: array<Solution> := new Solution[1][node];
-        this.arr := aux;
-      }
-      else if (this.count < this.arr.Length) { // array is not full
-        this.arr[this.count] := node;
-      }
-      else { // array is full
-        Grow();
-        this.arr[this.count] := node;
-      }
-      this.count := this.count + 1;
-      this.Float();
-    }
+      // ensures que node pertenezca al modelo y que el modelo es el de antes mas el nodo nuevo
+    // {
+    //   if (this.IsEmpty()) {
+    //     var aux: array<Solution> := new Solution[1][node];
+    //     this.arr := aux;
+    //   }
+    //   else if (this.count < this.arr.Length) { // array is not full
+    //     this.arr[this.count] := node;
+    //   }
+    //   else { // array is full
+    //     Grow();
+    //     this.arr[this.count] := node;
+    //   }
+    //   this.count := this.count + 1;
+    //   this.Float();
+    // }
 
 
     /* Method: duplicates space of the heap */
@@ -170,7 +167,7 @@ abstract module PQ {
     /* Method: moves the last inserted node upward in the heap until the heap property is restored */
     method Float()
       modifies this.arr
-      requires 0 < this.count <= this.arr.Length
+      requires Valid()
       requires forall i | 0 < i < this.count - 1 :: this.arr[(i-1)/2].priority <= this.arr[i].priority
       ensures Valid()
     // {
@@ -189,14 +186,14 @@ abstract module PQ {
     /* Method: deletes the element with the minimum priority of the heap */
     method DeleteMin()
       modifies this, this.arr
-      requires Valid()
       requires !IsEmpty()
+      requires Valid()
+      ensures Valid()
       //ensures Model() == old(Model()) - {Min()}
-      //ensures Valid()
     {
       this.arr[0] := this.arr[this.count - 1];
       this.count := this.count - 1;
-      //Sink(0, this.count);
+      Sink(0, this.count);
     }
 
 
