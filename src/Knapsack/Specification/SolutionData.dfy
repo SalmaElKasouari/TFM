@@ -132,6 +132,16 @@ module SolutionData {
 
 
     /*
+      Predicate: 
+    */
+    ghost predicate IsUpperBound(priority : real, input : InputData)
+      requires input.Valid()
+    {
+      forall s : SolutionData | s.Valid(input) && s.OptimalExtension(this, input) :: s.TotalValue(input.items) <= priority
+    }
+    
+
+    /*
       Predicate: asegura que una solución válida (this) sea óptima, es decir, que no exista ninguna otra solución 
       válida con un mayor valor total.
     */
@@ -180,16 +190,6 @@ module SolutionData {
     {
       && this.k == s.k
       && forall i | 0 <= i < this.k :: this.itemsAssign[i] == s.itemsAssign[i]
-    }
-
-    /*
-      Predicate: 
-    */
-    ghost predicate IsUpperBound(priority : real, input : InputData)
-      requires input.Valid()
-      requires this.Valid(input)
-    {
-      forall s : SolutionData | s.Valid(input) && s.OptimalExtension(this, input) :: s.TotalValue(input.items) <= priority
     }
 
 

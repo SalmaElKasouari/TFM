@@ -3,12 +3,12 @@ include "Item.dfy"
 include "../Specification/SolutionData.dfy"
 include "Input.dfy"
 
-module KnapsackPQ refines PQ { 
+module KnapsackPQ refines PQ {
 
-  import opened Input  
+  import opened Input
   import opened SolutionData
-  
-  class Solution ... {    
+
+  class Solution ... {
 
     /* Atributos y constructor */
 
@@ -41,7 +41,7 @@ module KnapsackPQ refines PQ {
     has a priority less than or equal to the other. This predicate is defined in 
     terms of 'lt', so that this.le(other) <==> Not(other.lt(this)).
     */
-    predicate le(other : Solution)
+    predicate le (other : Solution)
     {
       !other.lt(this)
     }
@@ -51,10 +51,68 @@ module KnapsackPQ refines PQ {
     Predicate: defines the strict ordering (<) between two solutions. Returns true if this solution 
     has a strictly lower priority than the other.
     */
-    predicate lt(other : Solution)
+    predicate lt (other : Solution)
+      ensures !other.lt(other)
     {
       this.priority < other.priority
     }
+
+    /* 
+    Predicate: no element is related to itself, not(x < x) 
+    */
+    predicate Irreflexive (x : Solution)
+      reads x
+    {
+      !x.lt(x)
+    }
+
+    /* 
+    Predicate: if a < b, then not b < a 
+    */
+    predicate Asymmetric (x : Solution, y : Solution)
+      reads x, y
+    {
+      x.lt(y) ==> !y.lt(x)
+    }
+
+    /* 
+    Predicate: if a < b and b < c, then a < c
+    */
+    predicate Transitive (x : Solution, y : Solution, z : Solution)
+      reads x, y, z
+    {
+      x.lt(y) && y.lt(z) ==> x.lt(z)
+    }
+
+    /* 
+    Predicate: weak ordering — if neither a < b nor b < a, they are equivalent
+    */
+    predicate WeakOrder(x : Solution, y : Solution)
+      reads x, y
+    {
+      (!x.lt(y) && !y.lt(x)) ==> x.priority == y.priority
+    }
+
+    /* Lemma: proof that lt is irreflexive */
+    lemma LtIrreflexive()
+      ensures forall x : Solution :: Irreflexive(x)
+    {}
+
+    /* Lemma: proof that lt is asymmetric */
+    lemma LtAsymmetric()
+      ensures forall x, y : Solution :: Asymmetric(x, y)
+    {}
+
+    /* Lemma: proof that lt is transitive */
+    lemma LtTransitive()
+      ensures forall x, y, z : Solution :: Transitive(x, y, z)
+    {}
+
+    /* Lemma: proof that lt satisfies weak order */
+    lemma LtWeakOrder()
+      ensures forall x, y : Solution :: WeakOrder(x, y)
+    {}
+
 
     /* 
     Predicate: verifica que una solución parcial sea válida, es decir, que su modelo sea válido y que el peso y el valor de los 
@@ -63,14 +121,27 @@ module KnapsackPQ refines PQ {
     ghost predicate Partial (input : Input)
       reads this, this.itemsAssign, input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
       requires input.Valid()
-
     {
       && 0 <= this.k <= this.itemsAssign.Length
-      //su prioridad es cota superior, llamar a upperbound
+      && IsUpperBound(input)
       && Model().Partial(input.Model())
       && Model().TotalWeight(input.Model().items) == totalWeight
       && Model().TotalValue(input.Model().items) == totalValue
     }
+
+
+    /* 
+    Predicate: checks whether the solution represents a valid upper bound for the problem model defined 
+    by the given input.
+    */
+    ghost predicate IsUpperBound(input : Input)
+      reads this, this.itemsAssign, input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      requires input.Valid()
+      //requires this.Valid(input)
+    {
+      Model().IsUpperBound(this.priority, input.Model())
+    }
+
 
     /* 
     Predicate: verifica si la solución es válida y completa (todos los objetos han sido tratados (k == itemsAssign.Length).
@@ -84,6 +155,7 @@ module KnapsackPQ refines PQ {
       && Partial(input)
     }
 
+
     /* 
     Predicate: garantiza que una solución válida sea óptima en relación con el modelo del problema.
     */
@@ -95,14 +167,6 @@ module KnapsackPQ refines PQ {
       this.Model().Optimal(input.Model())
     }
 
-
-    ghost predicate IsUpperBound(ps : SolutionData, input : Input)
-      reads this, this.itemsAssign, input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
-      requires input.Valid()
-      requires this.Valid(input)
-    {
-      Model().IsUpperBound(this.priority, input.Model())
-    }
 
 
     /* Functions */

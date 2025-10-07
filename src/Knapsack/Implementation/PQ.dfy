@@ -6,14 +6,15 @@ abstract module PQ {
     Predicate: defines the non-strict order relation between two solutions.
     Must be implemented by refined modules to define the comparison criterion.
     */
-    predicate le(other : Solution)
+    predicate le (other : Solution)
       reads this, other
+
 
     /* 
     Predicate: defines the strict order relation between two solutions.
     Must be implemented by refined modules to define the comparison criterion.
     */
-    predicate lt(other: Solution)
+    predicate lt (other: Solution)
       reads this, other
 
   }
@@ -127,10 +128,10 @@ abstract module PQ {
       ensures IsInModel(node)
       ensures Model() == old(Model()) + {node}
       ensures !old(IsEmpty()) && old(Min()).lt(node) ==> Min() == old(Min())
-    // {
-    //   if (this.IsEmpty()) {
-    //     var aux: array<Solution> := new Solution[1][node];
-    //     this.arr := aux;
+    // {      
+    //   if (this.IsEmpty()) {        
+    //       var aux: array<Solution> := new Solution[1][node];
+    //       this.arr := aux;
     //   }
     //   else if (this.count < this.arr.Length) { // array is not full
     //     this.arr[this.count] := node;
@@ -149,7 +150,6 @@ abstract module PQ {
       modifies this, this.arr
       requires Valid()
       requires !IsEmpty()
-      requires this.count <= this.arr.Length
       ensures this.count == old(this.count) // the number of elements does not change in this method. The Method Insert increases it
       ensures this.arr.Length > old(this.arr.Length) // the length of the array increases
       ensures fresh(this.arr) // is new in memory
@@ -178,9 +178,8 @@ abstract module PQ {
     /* Method: moves the last inserted node upward in the heap until the heap property is restored */
     method Float()
       modifies this.arr
-      requires Valid()
+      requires this.count <= this.arr.Length
       requires forall i | 0 < i < this.count - 1 :: arr[(i-1)/2].le(arr[i])
-
       ensures Valid()
     // {
     //     var j := this.count - 1;
