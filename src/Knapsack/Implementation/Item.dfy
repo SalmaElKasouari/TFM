@@ -19,53 +19,58 @@ Estructura del fichero:
 
 include "../Specification/ItemData.dfy"
 
-class Item {
+module Item {
+  
+  import  opened ItemData
 
-  /* Atributos y constructor */
-  const weight: real
-  const value:  real
+  class Item {
 
-  constructor(w: real, v: real)
-    ensures this.weight == w
-    ensures this.value == v
-  {
-    this.weight := w;
-    this.value := v;
+    /* Atributos y constructor */
+    const weight: real
+    const value:  real
+
+    constructor(w: real, v: real)
+      ensures this.weight == w
+      ensures this.value == v
+    {
+      this.weight := w;
+      this.value := v;
+    }
+
+
+    /* Predicates */
+
+    /*
+    Predicate: verifica si un Item es válido.
+    */
+    ghost predicate Valid()
+      reads this
+    {
+      this.weight > 0.0 && this.value > 0.0
+    }
+
+
+    /* Functions */
+
+    /*
+    Function: devuelve un ItemData, el modelo de un Item.
+    */
+    ghost function Model() : ItemData
+      reads this
+    {
+      ItemData(this.weight, this.value)
+    }
+
+
+    /*
+    Function: devuelve el valor por unidad de peso.
+    */
+    ghost function ValuePerWeight() : real
+      reads this
+      requires this.Valid()
+    {
+      this.value/this.weight
+    }
+
   }
-
-
-  /* Predicates */
-
-  /*
-  Predicate: verifica si un Item es válido.
-  */
-  ghost predicate Valid()
-    reads this
-  {
-    this.weight > 0.0 && this.value > 0.0
-  }
-
-
-  /* Functions */
-
-  /*
-  Function: devuelve un ItemData, el modelo de un Item.
-  */
-  ghost function Model() : ItemData
-    reads this
-  {
-    ItemData(this.weight, this.value)
-  }
-
-
-  /*
-  Function: devuelve el valor por unidad de peso.
-  */
-  ghost function ValuePerWeight() : real
-    reads this
-    requires this.Valid()
-  {
-    this.value/this.weight
-  }
-
 }

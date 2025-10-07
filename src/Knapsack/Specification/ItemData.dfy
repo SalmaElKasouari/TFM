@@ -13,13 +13,15 @@ Estructura del fichero:
 
 -----------------------------------------------------------------------------------------------------------------------*/
 
-datatype ItemData = ItemData(weight: real, value: real) {
-  /* Predicates */
+module ItemData {
+  datatype ItemData = ItemData(weight: real, value: real) {
+    /* Predicates */
 
-  /* 
-  Predicate: verifica que el objeto es válido, es decir, que tiene valor y peso positivos.
-  */
-  ghost predicate Valid() {
-    weight > 0.0 && value > 0.0
+    /* 
+    Predicate: verifica que el objeto es válido, es decir, que tiene valor y peso positivos.
+    */
+    ghost predicate Valid() {
+      weight > 0.0 && value > 0.0
+    }
   }
 }

@@ -16,18 +16,22 @@ Estructura del fichero:
 
 include "ItemData.dfy"
 
+module InputData {
 
-datatype InputData = InputData(items: seq<ItemData>, maxWeight: real) {
-  
-  /* Predicates */
+  import opened ItemData
 
-  /* 
-  Predicate: verifica que la entrada sea válida, es decir: 
-    - todos los objetos son válidos, es decir, tienen valor y peso positivos.
-    - el peso máximo de la mochila no es negativo.
-  */
-  ghost predicate Valid() {
-    && (forall i | 0 <= i < |items| :: items[i].Valid())
-    && maxWeight >= 0.0
+  datatype InputData = InputData(items: seq<ItemData>, maxWeight: real) {
+
+    /* Predicates */
+
+    /* 
+    Predicate: verifica que la entrada sea válida, es decir: 
+      - todos los objetos son válidos, es decir, tienen valor y peso positivos.
+      - el peso máximo de la mochila no es negativo.
+    */
+    ghost predicate Valid() {
+      && (forall i | 0 <= i < |items| :: items[i].Valid())
+      && maxWeight >= 0.0
+    }
   }
 }

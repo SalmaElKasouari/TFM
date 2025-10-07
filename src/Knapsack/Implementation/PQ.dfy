@@ -1,8 +1,19 @@
 abstract module PQ {
-  class Solution {
-    var priority : real
 
-    predicate Compare(other : Solution)
+  class Solution {
+    
+    /* 
+    Predicate: defines the non-strict order relation between two solutions.
+    Must be implemented by refined modules to define the comparison criterion.
+    */
+    predicate le(other : Solution)
+      reads this, other
+
+    /* 
+    Predicate: defines the strict order relation between two solutions.
+    Must be implemented by refined modules to define the comparison criterion.
+    */
+    predicate lt(other: Solution)
       reads this, other
 
   }
@@ -27,15 +38,15 @@ abstract module PQ {
 
     /* Predicate: true if the segment [x, y) of the array satisfies the heap property*/
     ghost predicate IsHeap(x : int, y : int)
-      reads this, this.arr, set i | 0 <= i < this.arr.Length :: arr[i]
+      reads this, this.arr, set i | 0 <= i < this.arr.Length :: this.arr[i]
     {
       && 0 <= x <= y <= arr.Length
-      && (forall i | 2*x < i < y :: this.arr[(i-1)/2].priority <= this.arr[i].priority)
+      && (forall i | 2*x < i < y :: arr[(i-1)/2].le(arr[i]))
     }
 
     /* Predicate: true if the array satisfies the heap property */
     ghost predicate Valid()
-      reads this, this.arr, set i | 0 <= i < this.arr.Length :: arr[i]
+      reads this, this.arr, set i | 0 <= i < this.arr.Length :: this.arr[i]
     {
       && IsHeap(0, this.count)
       && this.count <= this.arr.Length
@@ -44,7 +55,7 @@ abstract module PQ {
 
     /* Predicate: true if the heap has no elements */
     ghost predicate IsEmpty()
-      reads this, this.arr, set i | 0 <= i < this.arr.Length :: arr[i]
+      reads this, this.arr, set i | 0 <= i < this.arr.Length :: this.arr[i]
       requires Valid()
     {
       Model() == {}
@@ -52,7 +63,7 @@ abstract module PQ {
 
     /* Predicate: true if m belongs to the model of the heap */
     ghost predicate IsInModel(node : Solution)
-      reads this, this.arr, node, set i | 0 <= i < this.arr.Length :: arr[i]
+      reads this, this.arr, node, set i | 0 <= i < this.arr.Length :: this.arr[i]
       requires Valid()
     {
       node in Model()
@@ -61,12 +72,12 @@ abstract module PQ {
 
     /* Predicate: true if s is the node with the minimum priority in the heap, i.e., no other node in the heap has a lower priority. */
     ghost predicate IsMin(s : Solution)
-      reads this, this.arr, s, set i | i in Model(),  set i | 0 <= i < this.arr.Length :: arr[i]
+      reads this, this.arr, s, set i | i in Model(),  set i | 0 <= i < this.arr.Length :: this.arr[i]
       requires Valid()
       requires !IsEmpty()
     {
       && IsInModel(s) // m belongs to the model
-      && forall i : Solution | i in Model() :: s.priority <= i.priority // the priority of s is not greater than any element of the set
+      && forall i : Solution | i in Model() :: s.le(i) // the priority of s is not greater than any element of the set
     }
 
 
@@ -74,12 +85,13 @@ abstract module PQ {
 
     /* Function: returns the model of the heap */
     ghost function Model() : set<Solution>
-      reads this, this.arr, set i | 0 <= i < this.arr.Length :: arr[i]
+      reads this, this.arr, set i | 0 <= i < this.arr.Length :: this.arr[i]
       requires Valid()
       ensures forall i : Solution | i in Model() :: (exists j | 0 <= j < this.count :: i == this.arr[j])
     {
       set j | 0 <= j < this.count :: this.arr[j]
     }
+
 
     /* Function: returns the element with the minimum priority in the heap */
     function Min() : Solution
@@ -114,7 +126,7 @@ abstract module PQ {
       ensures Valid()
       ensures IsInModel(node)
       ensures Model() == old(Model()) + {node}
-      ensures !old(IsEmpty()) && node.priority > old(Min().priority) ==> Min() == old(Min())
+      ensures !old(IsEmpty()) && old(Min()).lt(node) ==> Min() == old(Min())
     // {
     //   if (this.IsEmpty()) {
     //     var aux: array<Solution> := new Solution[1][node];
@@ -167,7 +179,8 @@ abstract module PQ {
     method Float()
       modifies this.arr
       requires Valid()
-      requires forall i | 0 < i < this.count - 1 :: this.arr[(i-1)/2].priority <= this.arr[i].priority
+      requires forall i | 0 < i < this.count - 1 :: arr[(i-1)/2].le(arr[i])
+
       ensures Valid()
     // {
     //     var j := this.count - 1;
@@ -201,7 +214,7 @@ abstract module PQ {
     method Sink(s : nat, l : nat)
       modifies this.arr
       requires 0 <= s <= l == this.count <= arr.Length
-      requires forall i | 0 < i < this.count && (i-1)/2 != s :: this.arr[(i-1)/2].priority <= this.arr[i].priority
+      requires forall i | 0 < i < this.count && (i-1)/2 != s :: arr[(i-1)/2].le(arr[i])
       ensures Valid()
 
 
