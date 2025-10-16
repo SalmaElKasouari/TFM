@@ -205,7 +205,7 @@ abstract module PQ {
     method Size() returns (c : int)
       requires Valid()
       ensures Valid()
-      // ensures c == |Model()| seguramente se demuestre con un lema que diga ensures todos los elementos del modelo estan en el heap y viceversa
+      ensures c == |Model()|
     {
       return this.count;
     }
@@ -291,12 +291,12 @@ abstract module PQ {
       requires Valid()
       requires !IsEmpty()
       ensures Valid()
-      ensures Model() == old(Model()) - multiset{old(Min())}
-    // {
-    //   this.arr[0] := this.arr[this.count - 1];
-    //   this.count := this.count - 1;
-    //   Sink(0, this.count);      
-    // }
+      // ensures Model() == old(Model()) - multiset{old(Min())}
+    {
+      this.arr[0] := this.arr[this.count - 1];
+      this.count := this.count - 1;
+      Sink(0, this.count);      
+    }
 
 
     /* Method: moves a node downward in the heap until the heap property is restored */
