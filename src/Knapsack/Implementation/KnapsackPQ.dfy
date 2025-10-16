@@ -36,16 +36,6 @@ module KnapsackPQ refines PQ {
 
     /* Predicates */
 
-    /* 
-    Predicate: defines the non-strict ordering (<=) between two solutions. Returns true if this solution 
-    has a priority less than or equal to the other. This predicate is defined in 
-    terms of 'lt', so that this.le(other) <==> Not(other.lt(this)).
-    */
-    predicate le (other : Solution)
-    {
-      !other.lt(this)
-    }
-
 
     /* 
     Predicate: defines the strict ordering (<) between two solutions. Returns true if this solution 
@@ -54,63 +44,28 @@ module KnapsackPQ refines PQ {
     predicate lt (other : Solution)
       ensures !other.lt(other)
     {
-      this.priority < other.priority
+      this.priority > other.priority
     }
 
-    /* 
-    Predicate: no element is related to itself, not(x < x) 
-    */
-    predicate Irreflexive (x : Solution)
-      reads x
-    {
-      !x.lt(x)
-    }
-
-    /* 
-    Predicate: if a < b, then not b < a 
-    */
-    predicate Asymmetric (x : Solution, y : Solution)
-      reads x, y
-    {
-      x.lt(y) ==> !y.lt(x)
-    }
-
-    /* 
-    Predicate: if a < b and b < c, then a < c
-    */
-    predicate Transitive (x : Solution, y : Solution, z : Solution)
-      reads x, y, z
-    {
-      x.lt(y) && y.lt(z) ==> x.lt(z)
-    }
-
-    /* 
-    Predicate: weak ordering — if neither a < b nor b < a, they are equivalent
-    */
-    predicate WeakOrder(x : Solution, y : Solution)
-      reads x, y
-    {
-      (!x.lt(y) && !y.lt(x)) ==> x.priority == y.priority
-    }
 
     /* Lemma: proof that lt is irreflexive */
     lemma LtIrreflexive()
-      ensures forall x : Solution :: Irreflexive(x)
     {}
 
     /* Lemma: proof that lt is asymmetric */
     lemma LtAsymmetric()
-      ensures forall x, y : Solution :: Asymmetric(x, y)
     {}
 
     /* Lemma: proof that lt is transitive */
     lemma LtTransitive()
-      ensures forall x, y, z : Solution :: Transitive(x, y, z)
+    {}
+
+    /* Lemma: proof that lt satisfies transitive incomparability */
+    lemma LtTransitiveIncomparability()
     {}
 
     /* Lemma: proof that lt satisfies weak order */
     lemma LtWeakOrder()
-      ensures forall x, y : Solution :: WeakOrder(x, y)
     {}
 
 
@@ -137,7 +92,6 @@ module KnapsackPQ refines PQ {
     ghost predicate IsUpperBound(input : Input)
       reads this, this.itemsAssign, input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
       requires input.Valid()
-      //requires this.Valid(input)
     {
       Model().IsUpperBound(this.priority, input.Model())
     }
@@ -195,7 +149,7 @@ module KnapsackPQ refines PQ {
     /*
     Function: devuelve la prioridad del nodo.
     */
-    ghost function Priority() : real
+    function Priority() : real
       reads this
     {
       this.priority

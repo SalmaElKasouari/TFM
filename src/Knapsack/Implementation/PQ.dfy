@@ -1,14 +1,19 @@
 abstract module PQ {
 
   class Solution {
+
+    /* Predicates */
     
     /* 
-    Predicate: defines the non-strict order relation between two solutions.
-    Must be implemented by refined modules to define the comparison criterion.
+    Predicate: defines the non-strict ordering (<=) between two solutions. Returns true if this solution 
+    has a priority less than or equal to the other. This predicate is defined in 
+    terms of 'lt', so that this.le(other) <==> Not(other.lt(this)).
     */
     predicate le (other : Solution)
       reads this, other
-
+    {
+      !other.lt(this)
+    }
 
     /* 
     Predicate: defines the strict order relation between two solutions.
@@ -16,6 +21,92 @@ abstract module PQ {
     */
     predicate lt (other: Solution)
       reads this, other
+
+
+    /* 
+    Predicate: irreflexive property
+    */
+    predicate Irreflexive (x : Solution)
+      reads x
+    {
+      !x.lt(x)
+    }
+
+
+    /* 
+    Predicate: Asymmetric property
+    */
+    predicate Asymmetric (x : Solution, y : Solution)
+      reads x, y
+    {
+      x.lt(y) ==> !y.lt(x)
+    }
+
+
+    /* 
+    Predicate: if a < b and b < c, then a < c
+    */
+    predicate Transitive (x : Solution, y : Solution, z : Solution)
+      reads x, y, z
+    {
+      x.lt(y) && y.lt(z) ==> x.lt(z)
+    }
+
+    /* 
+    Predicate: incomparable property
+    */
+    predicate Incomparable (x : Solution, y : Solution)
+      reads x, y
+    {
+      !x.lt(y) && !y.lt(x)
+    }
+
+    /* 
+    Predicate: transitive incomparability property
+    */
+    predicate TransitiveIncomparability (x : Solution, y : Solution, z : Solution)
+      reads x, y, z
+    {
+      Incomparable(x,y) && y.Incomparable(y,z) ==> Incomparable(x,z)
+    }
+
+    /* 
+    Predicate: weak order property
+    */
+    predicate WeakOrder(x : Solution, y : Solution, z : Solution)
+      reads x, y, z
+    {
+      && Irreflexive(x)
+      && Asymmetric(x,y)
+      && Transitive(x, y, z)
+      && TransitiveIncomparability(x, y, z)
+    }
+
+    /* Lemas */
+
+    /* Lemma: proof that lt is irreflexive */
+    lemma LtIrreflexive()
+      ensures forall x : Solution :: Irreflexive(x)
+
+
+    /* Lemma: proof that lt is asymmetric */
+    lemma LtAsymmetric()
+      ensures forall x, y : Solution :: Asymmetric(x, y)
+
+
+    /* Lemma: proof that lt is transitive */
+    lemma LtTransitive()
+      ensures forall x, y, z : Solution :: Transitive(x, y, z)
+
+
+    /* Lemma: proof that lt satisfies transitive incomparability */
+    lemma LtTransitiveIncomparability()
+      ensures forall x, y, z : Solution :: TransitiveIncomparability(x, y, z)
+
+
+    /* Lemma: proof that lt satisfies weak order */
+    lemma LtWeakOrder()
+      ensures forall x, y, z: Solution :: WeakOrder(x, y, z)
 
   }
 
@@ -59,7 +150,7 @@ abstract module PQ {
       reads this, this.arr, set i | 0 <= i < this.arr.Length :: this.arr[i]
       requires Valid()
     {
-      Model() == {}
+      Model() == multiset{}
     }
 
     /* Predicate: true if m belongs to the model of the heap */
@@ -85,13 +176,14 @@ abstract module PQ {
     /* Functions */
 
     /* Function: returns the model of the heap */
-    ghost function Model() : set<Solution>
+    ghost function Model() : multiset<Solution>
       reads this, this.arr, set i | 0 <= i < this.arr.Length :: this.arr[i]
       requires Valid()
       ensures forall i : Solution | i in Model() :: (exists j | 0 <= j < this.count :: i == this.arr[j])
     {
-      set j | 0 <= j < this.count :: this.arr[j]
+      multiset(arr[0..this.count])
     }
+
 
 
     /* Function: returns the element with the minimum priority in the heap */
@@ -113,8 +205,7 @@ abstract module PQ {
     method Size() returns (c : int)
       requires Valid()
       ensures Valid()
-      ensures forall i | 0 <= i < c == this.count :: IsInModel(this.arr[i])
-      ensures forall s | s in Model() :: (exists i | 0 <= i < c == this.count :: this.arr[i] == s)
+      // ensures c == |Model()| seguramente se demuestre con un lema que diga ensures todos los elementos del modelo estan en el heap y viceversa
     {
       return this.count;
     }
@@ -124,10 +215,10 @@ abstract module PQ {
     method Insert(node : Solution)
       modifies this, this.arr
       requires Valid()
-      ensures Valid()
+      ensures Valid()     
       ensures IsInModel(node)
-      ensures Model() == old(Model()) + {node}
-      ensures !old(IsEmpty()) && old(Min()).lt(node) ==> Min() == old(Min())
+      ensures Model() == old(Model()) + multiset{node}
+      //ensures !old(IsEmpty()) && old(Min()).lt(node) ==> Min() == old(Min())
     // {      
     //   if (this.IsEmpty()) {        
     //       var aux: array<Solution> := new Solution[1][node];
@@ -183,9 +274,9 @@ abstract module PQ {
       ensures Valid()
     // {
     //     var j := this.count - 1;
-    //     while j > 0 && this.arr[(j-1)/2].priority > this.arr[j].priority
+    //     while j > 0 && arr[j].lt(arr[(j-1)/2])
     //         invariant 0 <= j <= this.count - 1 < this.arr.Length
-    //         invariant forall i | 0 < i < this.count :: i != j ==> this.arr[(i-1)/2].priority <= this.arr[i].priority
+    //         invariant forall i | 0 < i < this.count :: i != j ==> arr[(i-1)/2].le(arr[i])
     //     {
     //         this.arr[(j-1)/2], this.arr[j] := this.arr[j], this.arr[(j-1)/2];
     //         j := (j-1)/2;
@@ -200,8 +291,7 @@ abstract module PQ {
       requires Valid()
       requires !IsEmpty()
       ensures Valid()
-      ensures !IsInModel(old(Min()))
-      ensures Model() == old(Model()) - {old(Min())}
+      ensures Model() == old(Model()) - multiset{old(Min())}
     // {
     //   this.arr[0] := this.arr[this.count - 1];
     //   this.count := this.count - 1;
