@@ -3,7 +3,7 @@ abstract module PQ {
   class Solution {
 
     /* Predicates */
-    
+
     /* 
     Predicate: defines the non-strict ordering (<=) between two solutions. Returns true if this solution 
     has a priority less than or equal to the other. This predicate is defined in 
@@ -141,7 +141,7 @@ abstract module PQ {
       reads this, this.arr, set i | 0 <= i < this.arr.Length :: this.arr[i]
     {
       && IsHeap(0, this.count)
-      && this.count <= this.arr.Length
+      && 0 <= this.count <= this.arr.Length
     }
 
 
@@ -156,7 +156,7 @@ abstract module PQ {
     /* Predicate: true if m belongs to the model of the heap */
     ghost predicate IsInModel(node : Solution)
       reads this, this.arr, node, set i | 0 <= i < this.arr.Length :: this.arr[i]
-      requires Valid()
+      requires 0 <= this.count <= this.arr.Length
     {
       node in Model()
     }
@@ -178,7 +178,7 @@ abstract module PQ {
     /* Function: returns the model of the heap */
     ghost function Model() : multiset<Solution>
       reads this, this.arr, set i | 0 <= i < this.arr.Length :: this.arr[i]
-      requires Valid()
+      requires 0 <= this.count <= this.arr.Length
       ensures forall i : Solution | i in Model() :: (exists j | 0 <= j < this.count :: i == this.arr[j])
     {
       multiset(arr[0..this.count])
@@ -215,25 +215,28 @@ abstract module PQ {
     method Insert(node : Solution)
       modifies this, this.arr
       requires Valid()
-      ensures Valid()     
+      ensures Valid()
       ensures IsInModel(node)
       ensures Model() == old(Model()) + multiset{node}
-      //ensures !old(IsEmpty()) && old(Min()).lt(node) ==> Min() == old(Min())
-    // {      
-    //   if (this.IsEmpty()) {        
-    //       var aux: array<Solution> := new Solution[1][node];
-    //       this.arr := aux;
-    //   }
-    //   else if (this.count < this.arr.Length) { // array is not full
-    //     this.arr[this.count] := node;
-    //   }
-    //   else { // array is full
-    //     Grow();
-    //     this.arr[this.count] := node;
-    //   }
-    //   this.count := this.count + 1;
-    //   this.Float();
-    // }
+      //ensures !old(IsEmpty()) && old(Min()).lt(node) ==> Min() == old(Min()) no es necesario
+    {
+      if (this.count == 0) { // array is empty
+        var aux: array<Solution> := new Solution[1][node];
+        this.arr := aux;
+        this.count := this.count + 1;
+      }
+      else if (this.count < this.arr.Length) { // array is not full
+        this.arr[this.count] := node;        
+        this.count := this.count + 1;
+        Float();
+      }
+      else { // array is full
+        Grow();
+        this.arr[this.count] := node;
+        this.count := this.count + 1;
+        Float();
+      }
+    }
 
 
     /* Method: duplicates space of the heap */
@@ -269,14 +272,16 @@ abstract module PQ {
     /* Method: moves the last inserted node upward in the heap until the heap property is restored */
     method Float()
       modifies this.arr
-      requires this.count <= this.arr.Length
-      requires forall i | 0 < i < this.count - 1 :: arr[(i-1)/2].le(arr[i])
+      requires 0 <= this.count <= this.arr.Length
+      requires forall i | 0 < i < this.count - 1 :: this.arr[(i-1)/2].le(this.arr[i])
       ensures Valid()
+      ensures Model() == old(Model())
+
     // {
     //     var j := this.count - 1;
-    //     while j > 0 && arr[j].lt(arr[(j-1)/2])
+    //     while j > 0 && this.arr[j].lt(this.arr[(j-1)/2])
     //         invariant 0 <= j <= this.count - 1 < this.arr.Length
-    //         invariant forall i | 0 < i < this.count :: i != j ==> arr[(i-1)/2].le(arr[i])
+    //         invariant forall i | 0 < i < this.count && i != j :: this.arr[(i-1)/2].le(this.arr[i])
     //     {
     //         this.arr[(j-1)/2], this.arr[j] := this.arr[j], this.arr[(j-1)/2];
     //         j := (j-1)/2;
@@ -287,15 +292,15 @@ abstract module PQ {
 
     /* Method: deletes the element with the minimum priority of the heap */
     method DeleteMin()
-      modifies this, this.arr      
+      modifies this, this.arr
       requires Valid()
       requires !IsEmpty()
       ensures Valid()
-      // ensures Model() == old(Model()) - multiset{old(Min())}
+      //ensures Model() == old(Model()) - multiset{old(Min())}
     {
       this.arr[0] := this.arr[this.count - 1];
       this.count := this.count - 1;
-      Sink(0, this.count);      
+      Sink(0, this.count);
     }
 
 
