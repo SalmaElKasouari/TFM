@@ -133,7 +133,7 @@ abstract module PQ {
       reads this, this.arr, set i | 0 <= i < this.arr.Length :: this.arr[i]
     {
       && 0 <= x <= y <= arr.Length
-      && (forall i | 2*x < i < y :: arr[(i-1)/2].le(arr[i]))
+      && (forall i | 2*x < i < y :: this.arr[(i-1)/2].le(this.arr[i]))
     }
 
     /* Predicate: true if the array satisfies the heap property */
@@ -226,7 +226,7 @@ abstract module PQ {
         this.count := this.count + 1;
       }
       else if (this.count < this.arr.Length) { // array is not full
-        this.arr[this.count] := node;        
+        this.arr[this.count] := node;
         this.count := this.count + 1;
         Float();
       }
@@ -272,11 +272,10 @@ abstract module PQ {
     /* Method: moves the last inserted node upward in the heap until the heap property is restored */
     method Float()
       modifies this.arr
-      requires 0 <= this.count <= this.arr.Length
+      requires 0 < this.count <= this.arr.Length
       requires forall i | 0 < i < this.count - 1 :: this.arr[(i-1)/2].le(this.arr[i])
       ensures Valid()
       ensures Model() == old(Model())
-
     // {
     //     var j := this.count - 1;
     //     while j > 0 && this.arr[j].lt(this.arr[(j-1)/2])
@@ -298,6 +297,9 @@ abstract module PQ {
       ensures Valid()
       //ensures Model() == old(Model()) - multiset{old(Min())}
     {
+      var oldModel := old(Model());
+      var oldMin := old(Min());
+
       this.arr[0] := this.arr[this.count - 1];
       this.count := this.count - 1;
       Sink(0, this.count);
@@ -310,7 +312,39 @@ abstract module PQ {
       requires 0 <= s <= l == this.count <= arr.Length
       requires forall i | 0 < i < this.count && (i-1)/2 != s :: arr[(i-1)/2].le(arr[i])
       ensures Valid()
+      //ensures Model() == old(Model())
+    {
+      var j := s;
+      while (2*j+1 < l)
+        // invariant forall k | 0 < k < l && (k - 1)/2 != j :: this.arr[(k-1)/2].le(this.arr[k])
+        // invariant j >= 2*s+1 && 2*j+1< l ==> this.arr[(j-1)/2].le(this.arr[2*j+1])
+        // invariant j >= 2*s+1 && 2*j+2< l ==> this.arr[(j-1)/2].le(this.arr[2*j+2])
+      {
+        var m : nat;
+        if (2*j+2 < l && this.arr[2*j+2].le(this.arr[2*j+1])) {
+          m := 2*j+2;  // right son is smaller
+        }
+        else {
+          m := 2*j+1;  // left son is smaller
+        }
+        if (this.arr[m].lt(this.arr[j])) {
+          this.arr[j], this.arr[m] := this.arr[m], this.arr[j];
+          j := m;
+        }
+        else {
+          break;
+        }
+      }
 
-
+      assert Valid() by {
+        assert 0 <= this.count <= this.arr.Length;
+        assert IsHeap(0, this.count) by {
+          assert 0 <= 0 <= this.count <= arr.Length;
+          assume (forall i | 2*0 < i < this.count :: this.arr[(i-1)/2].le(this.arr[i]));
+        }
+      }
+    }
   }
 }
+
+
