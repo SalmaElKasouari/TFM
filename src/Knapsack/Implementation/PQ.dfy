@@ -33,18 +33,6 @@ abstract module PQ {
     }
 
 
-
-    /* 
-    Predicate: weak order property
-    */
-    ghost static predicate WeakOrder()
-    {
-      && Irreflexive()
-      && Asymmetric()
-      && Transitive()
-      && TransitiveIncomparability()
-    }
-
     /* Lemas */
 
     /* Lemma: proof that lt is irreflexive */
@@ -69,7 +57,16 @@ abstract module PQ {
 
     /* Lemma: proof that lt satisfies weak order */
     static lemma LtWeakOrder()
-      ensures WeakOrder()
+      ensures forall x : Solution :: !x.lt(x)
+      ensures forall x : Solution, y : Solution :: x.lt(y) ==> !y.lt(x)
+      ensures forall x : Solution, y : Solution, z : Solution :: x.lt(y) && y.lt(z) ==> x.lt(z)
+      ensures forall x : Solution, y : Solution, z : Solution :: x.eq(y) && y.eq(z) ==> x.eq(z)
+    {
+      LtIrreflexive();
+      LtAsymmetric();
+      LtTransitive();
+      LtTransitiveIncomparability();
+    }
 
   }
 
