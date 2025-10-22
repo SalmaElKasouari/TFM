@@ -138,8 +138,7 @@ abstract module PQ {
     /* Function: returns the model of the heap */
     ghost function Model() : multiset<Solution>
       reads this, this.arr, set i | 0 <= i < this.arr.Length :: this.arr[i]
-      requires 0 <= this.count <= this.arr.Length
-      ensures forall i : Solution | i in Model() :: (exists j | 0 <= j < this.count :: i == this.arr[j])
+      requires Valid()
     {
       multiset(arr[0..this.count])
     }
