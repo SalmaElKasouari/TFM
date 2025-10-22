@@ -33,40 +33,6 @@ abstract module PQ {
     }
 
 
-    /* 
-    Predicate: irreflexive property
-    */
-    ghost static predicate Irreflexive ()
-    {
-      forall x : Solution :: !x.lt(x)
-    }
-
-
-    /* 
-    Predicate: Asymmetric property
-    */
-    ghost static predicate Asymmetric ()
-    {
-      forall x : Solution, y : Solution :: x.lt(y) ==> !y.lt(x)
-    }
-
-
-    /* 
-    Predicate: if a < b and b < c, then a < c
-    */
-    ghost static predicate Transitive ()
-    {
-      forall x : Solution, y : Solution, z : Solution :: x.lt(y) && y.lt(z) ==> x.lt(z)
-    }
-
-
-    /* 
-    Predicate: transitive incomparability property
-    */
-    ghost static predicate TransitiveIncomparability ()
-    {
-      forall x : Solution, y : Solution, z : Solution :: x.eq(y) && y.eq(z) ==> x.eq(z)
-    }
 
     /* 
     Predicate: weak order property
@@ -83,22 +49,22 @@ abstract module PQ {
 
     /* Lemma: proof that lt is irreflexive */
     static lemma LtIrreflexive()
-      ensures Irreflexive()
-
+      ensures forall x : Solution :: !x.lt(x)
 
     /* Lemma: proof that lt is asymmetric */
     static lemma LtAsymmetric()
-      ensures Asymmetric()
+      ensures forall x : Solution, y : Solution :: x.lt(y) ==> !y.lt(x)
 
 
     /* Lemma: proof that lt is transitive */
     static lemma LtTransitive()
-      ensures Transitive()
+      ensures forall x : Solution, y : Solution, z : Solution :: x.lt(y) && y.lt(z) ==> x.lt(z)
+
 
 
     /* Lemma: proof that lt satisfies transitive incomparability */
     static lemma LtTransitiveIncomparability()
-      ensures TransitiveIncomparability()
+      ensures forall x : Solution, y : Solution, z : Solution :: x.eq(y) && y.eq(z) ==> x.eq(z)
 
 
     /* Lemma: proof that lt satisfies weak order */
