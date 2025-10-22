@@ -24,56 +24,56 @@ abstract module PQ {
 
 
     /* 
+    Predicate: incomparable property
+    */
+    predicate Eq (x : Solution, y : Solution)
+      reads x, y
+    {
+      !x.lt(y) && !y.lt(x)
+    }
+
+
+    /* 
     Predicate: irreflexive property
     */
-    predicate Irreflexive (x : Solution)
-      reads x
+    ghost static predicate Irreflexive ()
     {
-      !x.lt(x)
+      forall x : Solution :: !x.lt(x)
     }
 
 
     /* 
     Predicate: Asymmetric property
     */
-    predicate Asymmetric (x : Solution, y : Solution)
-      reads x, y
+    ghost static predicate Asymmetric ()
     {
-      x.lt(y) ==> !y.lt(x)
+      forall x : Solution, y : Solution :: x.lt(y) ==> !y.lt(x)
     }
 
 
     /* 
     Predicate: if a < b and b < c, then a < c
     */
-    predicate Transitive (x : Solution, y : Solution, z : Solution)
+    ghost predicate Transitive (x : Solution, y : Solution, z : Solution)
       reads x, y, z
     {
       x.lt(y) && y.lt(z) ==> x.lt(z)
     }
 
-    /* 
-    Predicate: incomparable property
-    */
-    predicate Incomparable (x : Solution, y : Solution)
-      reads x, y
-    {
-      !x.lt(y) && !y.lt(x)
-    }
 
     /* 
     Predicate: transitive incomparability property
     */
-    predicate TransitiveIncomparability (x : Solution, y : Solution, z : Solution)
+    ghost predicate TransitiveIncomparability (x : Solution, y : Solution, z : Solution)
       reads x, y, z
     {
-      Incomparable(x,y) && y.Incomparable(y,z) ==> Incomparable(x,z)
+      Eq(x,y) && y.Eq(y,z) ==> Eq(x,z)
     }
 
     /* 
     Predicate: weak order property
     */
-    predicate WeakOrder(x : Solution, y : Solution, z : Solution)
+    ghost predicate WeakOrder(x : Solution, y : Solution, z : Solution)
       reads x, y, z
     {
       && Irreflexive(x)
