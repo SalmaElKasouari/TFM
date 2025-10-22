@@ -143,6 +143,29 @@ abstract module PQ {
       multiset(arr[0..this.count])
     }
 
+    lemma BelongsToArray(i : Solution)
+      requires Valid()
+      requires i in Model()
+      ensures (exists j | 0 <= j < this.count :: this.arr[j] == i)
+    {}
+
+    lemma FirstIsMin()
+      requires Valid()
+      requires !IsEmpty()
+      ensures IsMin(this.arr[0])
+    {
+      if (!IsMin(this.arr[0])) {
+        assert IsInModel(this.arr[0]);
+        assert exists s : Solution | s in Model() :: s.lt(this.arr[0]);
+        var s :| s in Model() && s.lt(this.arr[0]);
+        BelongsToArray(s);
+        Solution.LtIrreflexive();
+        var j :| 1 <= j < this.count && this.arr[j] == s && s.lt(this.arr[0]);
+        assume false;
+      }
+    }
+
+
 
 
     /* Function: returns the element with the minimum priority in the heap */
@@ -151,8 +174,9 @@ abstract module PQ {
       requires Valid()
       requires !IsEmpty()
       ensures Valid()
-      //ensures IsMin(Min())
+      ensures IsMin(Min())
     {
+      FirstIsMin();
       this.arr[0]
     }
 
