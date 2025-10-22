@@ -26,10 +26,10 @@ abstract module PQ {
     /* 
     Predicate: incomparable property
     */
-    predicate Eq (x : Solution, y : Solution)
-      reads x, y
+    predicate eq (y : Solution)
+      reads y
     {
-      !x.lt(y) && !y.lt(x)
+      !this.lt(y) && !y.lt(this)
     }
 
 
@@ -54,59 +54,56 @@ abstract module PQ {
     /* 
     Predicate: if a < b and b < c, then a < c
     */
-    ghost predicate Transitive (x : Solution, y : Solution, z : Solution)
-      reads x, y, z
+    ghost static predicate Transitive ()
     {
-      x.lt(y) && y.lt(z) ==> x.lt(z)
+      forall x : Solution, y : Solution, z : Solution :: x.lt(y) && y.lt(z) ==> x.lt(z)
     }
 
 
     /* 
     Predicate: transitive incomparability property
     */
-    ghost predicate TransitiveIncomparability (x : Solution, y : Solution, z : Solution)
-      reads x, y, z
+    ghost static predicate TransitiveIncomparability ()
     {
-      Eq(x,y) && y.Eq(y,z) ==> Eq(x,z)
+      forall x : Solution, y : Solution, z : Solution :: x.eq(y) && y.eq(z) ==> x.eq(z)
     }
 
     /* 
     Predicate: weak order property
     */
-    ghost predicate WeakOrder(x : Solution, y : Solution, z : Solution)
-      reads x, y, z
+    ghost static predicate WeakOrder()
     {
-      && Irreflexive(x)
-      && Asymmetric(x,y)
-      && Transitive(x, y, z)
-      && TransitiveIncomparability(x, y, z)
+      && Irreflexive()
+      && Asymmetric()
+      && Transitive()
+      && TransitiveIncomparability()
     }
 
     /* Lemas */
 
     /* Lemma: proof that lt is irreflexive */
-    lemma LtIrreflexive()
-      ensures forall x : Solution :: Irreflexive(x)
+    static lemma LtIrreflexive()
+      ensures Irreflexive()
 
 
     /* Lemma: proof that lt is asymmetric */
-    lemma LtAsymmetric()
-      ensures forall x, y : Solution :: Asymmetric(x, y)
+    static lemma LtAsymmetric()
+      ensures Asymmetric()
 
 
     /* Lemma: proof that lt is transitive */
-    lemma LtTransitive()
-      ensures forall x, y, z : Solution :: Transitive(x, y, z)
+    static lemma LtTransitive()
+      ensures Transitive()
 
 
     /* Lemma: proof that lt satisfies transitive incomparability */
-    lemma LtTransitiveIncomparability()
-      ensures forall x, y, z : Solution :: TransitiveIncomparability(x, y, z)
+    static lemma LtTransitiveIncomparability()
+      ensures TransitiveIncomparability()
 
 
     /* Lemma: proof that lt satisfies weak order */
-    lemma LtWeakOrder()
-      ensures forall x, y, z: Solution :: WeakOrder(x, y, z)
+    static lemma LtWeakOrder()
+      ensures WeakOrder()
 
   }
 
