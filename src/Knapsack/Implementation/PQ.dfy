@@ -27,7 +27,7 @@ abstract module PQ {
     Predicate: incomparable property
     */
     predicate eq (y : Solution)
-      reads y
+      reads this, y
     {
       !this.lt(y) && !y.lt(this)
     }
@@ -39,8 +39,8 @@ abstract module PQ {
     static lemma LtIrreflexive()
       ensures forall x : Solution :: !x.lt(x)
 
-    /* Lemma: proof that lt is asymmetric */
-    static lemma LtAsymmetric()
+    /* Lemma: proof that lt is antisymmetric */
+    static lemma LtAntisymmetric()
       ensures forall x : Solution, y : Solution :: x.lt(y) ==> !y.lt(x)
 
 
@@ -48,6 +48,20 @@ abstract module PQ {
     static lemma LtTransitive()
       ensures forall x : Solution, y : Solution, z : Solution :: x.lt(y) && y.lt(z) ==> x.lt(z)
 
+
+    /* Lemma: proof that lt is transitive */
+    static lemma LeLtTransitive(x : Solution, y : Solution, z : Solution)
+      requires x.le(y) && y.lt(z)
+      ensures x.lt(z)
+    {
+      Solution.LtWeakOrder();
+      assert x.le(z);
+      if(!x.lt(z)){        
+        assert z.le(x);
+        assert x.eq(z) && x.eq(y) && y.eq(z);
+        assert false;
+      }
+    }
 
 
     /* Lemma: proof that lt satisfies transitive incomparability */
@@ -63,7 +77,7 @@ abstract module PQ {
       ensures forall x : Solution, y : Solution, z : Solution :: x.eq(y) && y.eq(z) ==> x.eq(z)
     {
       LtIrreflexive();
-      LtAsymmetric();
+      LtAntisymmetric();
       LtTransitive();
       LtTransitiveIncomparability();
     }
@@ -116,7 +130,8 @@ abstract module PQ {
     /* Predicate: true if m belongs to the model of the heap */
     ghost predicate IsInModel(node : Solution)
       reads this, this.arr, node, set i | 0 <= i < this.arr.Length :: this.arr[i]
-      requires 0 <= this.count <= this.arr.Length
+      requires Valid()
+      //requires 0 <= this.count <= this.arr.Length
     {
       node in Model()
     }
@@ -143,11 +158,13 @@ abstract module PQ {
       multiset(arr[0..this.count])
     }
 
+
     lemma BelongsToArray(i : Solution)
       requires Valid()
       requires i in Model()
       ensures (exists j | 0 <= j < this.count :: this.arr[j] == i)
     {}
+
 
     lemma FirstIsMin()
       requires Valid()
@@ -157,14 +174,25 @@ abstract module PQ {
       if (!IsMin(this.arr[0])) {
         assert IsInModel(this.arr[0]);
         assert exists s : Solution | s in Model() :: s.lt(this.arr[0]);
+
+        // s es la solucion que es menor que this.arr[0]
         var s :| s in Model() && s.lt(this.arr[0]);
         BelongsToArray(s);
         Solution.LtIrreflexive();
+
+        // j es la posicion de esa solucion s
         var j :| 1 <= j < this.count && this.arr[j] == s && s.lt(this.arr[0]);
-        assume false;
+        while j != 0
+          invariant 0 <= j < this.count
+          invariant this.arr[j].lt(this.arr[0])
+        {
+          Solution.LeLtTransitive(this.arr[(j-1)/2], this.arr[j], this.arr[0]);
+          assert this.arr[(j-1)/2].le(this.arr[j]);
+          assert this.arr[(j-1)/2].lt(this.arr[0]);
+          j := (j-1)/2;
+        }
       }
     }
-
 
 
 
@@ -258,7 +286,7 @@ abstract module PQ {
       requires 0 < this.count <= this.arr.Length
       requires forall i | 0 < i < this.count - 1 :: this.arr[(i-1)/2].le(this.arr[i])
       ensures Valid()
-      ensures Model() == old(Model())
+      ensures Model() == old(multiset(arr[0..this.count-1]) + multiset{this.arr[this.count-1]})
     // {
     //     var j := this.count - 1;
     //     while j > 0 && this.arr[j].lt(this.arr[(j-1)/2])
