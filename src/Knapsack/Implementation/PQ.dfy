@@ -56,13 +56,12 @@ abstract module PQ {
     {
       Solution.LtWeakOrder();
       assert x.le(z);
-      if(!x.lt(z)){        
+      if(!x.lt(z)){
         assert z.le(x);
         assert x.eq(z) && x.eq(y) && y.eq(z);
         assert false;
       }
     }
-
 
     /* Lemma: proof that lt satisfies transitive incomparability */
     static lemma LtTransitiveIncomparability()
@@ -301,61 +300,70 @@ abstract module PQ {
 
 
     /* Method: deletes the element with the minimum priority of the heap */
-    method DeleteMin()
+    method {:only} DeleteMin()
       modifies this, this.arr
       requires Valid()
       requires !IsEmpty()
       ensures Valid()
-      //ensures Model() == old(Model()) - multiset{old(Min())}
+      ensures Model() == old(Model()) - multiset{old(Min())}
     {
-      var oldModel := old(Model());
-      var oldMin := old(Min());
+      var oldMin := this.arr[0];
+      assert oldMin == old(Min()) == Min();
 
       this.arr[0] := this.arr[this.count - 1];
+      assert multiset(this.arr[0..this.count]) == old(Model()) - multiset{old(arr[0])} + multiset{old(arr[this.count - 1])};
+      assert multiset(this.arr[0..this.count]) == old(Model()) - multiset{old(Min())} + multiset{old(arr[this.count - 1])};
+
       this.count := this.count - 1;
+      assert multiset(this.arr[0..this.count]) == old(Model()) - multiset{old(Min())};
       Sink(0, this.count);
+      assert multiset(this.arr[0..this.count]) == old(Model()) - multiset{old(Min())};
+      assert Model() == multiset(this.arr[0..this.count]);
     }
 
 
     /* Method: moves a node downward in the heap until the heap property is restored */
-    method Sink(s : nat, l : nat)
+    method  {:only} Sink(s : nat, l : nat)
       modifies this.arr
       requires 0 <= s <= l == this.count <= arr.Length
       requires forall i | 0 < i < this.count && (i-1)/2 != s :: arr[(i-1)/2].le(arr[i])
       ensures Valid()
-      //ensures Model() == old(Model())
-    {
-      var j := s;
-      while (2*j+1 < l)
-        // invariant forall k | 0 < k < l && (k - 1)/2 != j :: this.arr[(k-1)/2].le(this.arr[k])
-        // invariant j >= 2*s+1 && 2*j+1< l ==> this.arr[(j-1)/2].le(this.arr[2*j+1])
-        // invariant j >= 2*s+1 && 2*j+2< l ==> this.arr[(j-1)/2].le(this.arr[2*j+2])
-      {
-        var m : nat;
-        if (2*j+2 < l && this.arr[2*j+2].le(this.arr[2*j+1])) {
-          m := 2*j+2;  // right son is smaller
-        }
-        else {
-          m := 2*j+1;  // left son is smaller
-        }
-        if (this.arr[m].lt(this.arr[j])) {
-          this.arr[j], this.arr[m] := this.arr[m], this.arr[j];
-          j := m;
-        }
-        else {
-          break;
-        }
-      }
+      ensures multiset(arr[0..this.count]) == old(multiset(arr[0..this.count])) // equivale a Model() == old(Model()), lo q pasa q no se puede invocar a old(Model()) porq arr no es un heap al entrar al método, Sink lo hace un heap
+    // {
+    //   var j := s;
+    //   while (2*j+1 < l)
+    //     // invariant forall k | 0 < k < l && (k - 1)/2 != j :: this.arr[(k-1)/2].le(this.arr[k])
+    //     // invariant j >= 2*s+1 && 2*j+1< l ==> this.arr[(j-1)/2].le(this.arr[2*j+1])
+    //     // invariant j >= 2*s+1 && 2*j+2< l ==> this.arr[(j-1)/2].le(this.arr[2*j+2])
+    //   {
+    //     var m : nat;
+    //     if (2*j+2 < l && this.arr[2*j+2].le(this.arr[2*j+1])) {
+    //       m := 2*j+2;  // right son is smaller
+    //     }
+    //     else {
+    //       m := 2*j+1;  // left son is smaller
+    //     }
+    //     if (this.arr[m].lt(this.arr[j])) {
+    //       this.arr[j], this.arr[m] := this.arr[m], this.arr[j];
+    //       j := m;
+    //     }
+    //     else {
+    //       break;
+    //     }
+    //   }
 
-      assert Valid() by {
-        assert 0 <= this.count <= this.arr.Length;
-        assert IsHeap(0, this.count) by {
-          assert 0 <= 0 <= this.count <= arr.Length;
-          assume (forall i | 2*0 < i < this.count :: this.arr[(i-1)/2].le(this.arr[i]));
-        }
-      }
-    }
+    //   assert Valid() by {
+    //     assert 0 <= this.count <= this.arr.Length;
+    //     assert IsHeap(0, this.count) by {
+    //       assert 0 <= 0 <= this.count <= arr.Length;
+    //       assume (forall i | 2*0 < i < this.count :: this.arr[(i-1)/2].le(this.arr[i]));
+    //     }
+    //   }
+    // }
+    
+        
   }
+
 }
 
 

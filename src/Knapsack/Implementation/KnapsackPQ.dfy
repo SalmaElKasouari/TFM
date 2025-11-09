@@ -49,24 +49,17 @@ module KnapsackPQ refines PQ {
 
 
     /* Lemma: proof that lt is irreflexive */
-    lemma LtIrreflexive()
-    {}
+    static lemma LtIrreflexive(){}
 
     /* Lemma: proof that lt is asymmetric */
-    lemma LtAsymmetric()
-    {}
+    static lemma LtAntisymmetric(){}
 
     /* Lemma: proof that lt is transitive */
-    lemma LtTransitive()
-    {}
+    static lemma LtTransitive(){}
 
     /* Lemma: proof that lt satisfies transitive incomparability */
-    lemma LtTransitiveIncomparability()
-    {}
-
-    /* Lemma: proof that lt satisfies weak order */
-    lemma LtWeakOrder()
-    {}
+    static lemma LtTransitiveIncomparability(){}
+    
 
 
     /* 
