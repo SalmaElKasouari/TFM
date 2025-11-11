@@ -7,7 +7,7 @@ abstract module PQ {
     /* 
     Predicate: defines the non-strict ordering (<=) between two solutions. Returns true if this solution 
     has a priority less than or equal to the other. This predicate is defined in 
-    terms of 'lt', so that this.le(other) <==> Not(other.lt(this)).
+    terms of 'lt', so that le(other) <==> Not(other.lt(this)).
     */
     predicate le (other : Solution)
       reads this, other
@@ -29,7 +29,7 @@ abstract module PQ {
     predicate eq (y : Solution)
       reads this, y
     {
-      !this.lt(y) && !y.lt(this)
+      !lt(y) && !y.lt(this)
     }
 
 
@@ -81,6 +81,10 @@ abstract module PQ {
       LtTransitiveIncomparability();
     }
 
+    static lemma LtImpliesLe(x : Solution, y : Solution)
+      requires x.lt(y) // x < y
+      ensures x.le(y) // x <= y
+
   }
 
   /* The following priority queue is implemented with a williams heap (binary heap) */
@@ -94,8 +98,8 @@ abstract module PQ {
     constructor PriorityQueue(size: int)
       ensures Valid()
     {
-      this.arr := new Solution[0];
-      this.count := 0;
+      arr := new Solution[0];
+      count := 0;
     }
 
 
@@ -103,24 +107,24 @@ abstract module PQ {
 
     /* Predicate: true if the segment [x, y) of the array satisfies the heap property*/
     ghost predicate IsHeap(x : int, y : int)
-      reads this, this.arr, set i | 0 <= i < this.arr.Length :: this.arr[i]
+      reads this, arr, set i | 0 <= i < arr.Length :: arr[i]
     {
       && 0 <= x <= y <= arr.Length
-      && (forall i | 2*x < i < y :: this.arr[(i-1)/2].le(this.arr[i]))
+      && (forall i | 2*x < i < y :: arr[(i-1)/2].le(arr[i]))
     }
 
     /* Predicate: true if the array satisfies the heap property */
     ghost predicate Valid()
-      reads this, this.arr, set i | 0 <= i < this.arr.Length :: this.arr[i]
+      reads this, arr, set i | 0 <= i < arr.Length :: arr[i]
     {
-      && IsHeap(0, this.count)
-      && 0 <= this.count <= this.arr.Length
+      && IsHeap(0, count)
+      && 0 <= count <= arr.Length
     }
 
 
     /* Predicate: true if the heap has no elements */
     ghost predicate IsEmpty()
-      reads this, this.arr, set i | 0 <= i < this.arr.Length :: this.arr[i]
+      reads this, arr, set i | 0 <= i < arr.Length :: arr[i]
       requires Valid()
     {
       Model() == multiset{}
@@ -128,9 +132,9 @@ abstract module PQ {
 
     /* Predicate: true if m belongs to the model of the heap */
     ghost predicate IsInModel(node : Solution)
-      reads this, this.arr, node, set i | 0 <= i < this.arr.Length :: this.arr[i]
+      reads this, arr, node, set i | 0 <= i < arr.Length :: arr[i]
       requires Valid()
-      //requires 0 <= this.count <= this.arr.Length
+      //requires 0 <= count <= arr.Length
     {
       node in Model()
     }
@@ -138,7 +142,7 @@ abstract module PQ {
 
     /* Predicate: true if s is the node with the minimum priority in the heap, i.e., no other node in the heap has a lower priority. */
     ghost predicate IsMin(s : Solution)
-      reads this, this.arr, s, set i | i in Model(),  set i | 0 <= i < this.arr.Length :: this.arr[i]
+      reads this, arr, s, set i | i in Model(),  set i | 0 <= i < arr.Length :: arr[i]
       requires Valid()
       requires !IsEmpty()
     {
@@ -151,43 +155,43 @@ abstract module PQ {
 
     /* Function: returns the model of the heap */
     ghost function Model() : multiset<Solution>
-      reads this, this.arr, set i | 0 <= i < this.arr.Length :: this.arr[i]
+      reads this, arr, set i | 0 <= i < arr.Length :: arr[i]
       requires Valid()
     {
-      multiset(arr[0..this.count])
+      multiset(arr[0..count])
     }
 
 
     lemma BelongsToArray(i : Solution)
       requires Valid()
       requires i in Model()
-      ensures (exists j | 0 <= j < this.count :: this.arr[j] == i)
+      ensures (exists j | 0 <= j < count :: arr[j] == i)
     {}
 
 
     lemma FirstIsMin()
       requires Valid()
       requires !IsEmpty()
-      ensures IsMin(this.arr[0])
+      ensures IsMin(arr[0])
     {
-      if (!IsMin(this.arr[0])) {
-        assert IsInModel(this.arr[0]);
-        assert exists s : Solution | s in Model() :: s.lt(this.arr[0]);
+      if (!IsMin(arr[0])) {
+        assert IsInModel(arr[0]);
+        assert exists s : Solution | s in Model() :: s.lt(arr[0]);
 
-        // s es la solucion que es menor que this.arr[0]
-        var s :| s in Model() && s.lt(this.arr[0]);
+        // s es la solucion que es menor que arr[0]
+        var s :| s in Model() && s.lt(arr[0]);
         BelongsToArray(s);
         Solution.LtIrreflexive();
 
         // j es la posicion de esa solucion s
-        var j :| 1 <= j < this.count && this.arr[j] == s && s.lt(this.arr[0]);
+        var j :| 1 <= j < count && arr[j] == s && s.lt(arr[0]);
         while j != 0
-          invariant 0 <= j < this.count
-          invariant this.arr[j].lt(this.arr[0])
+          invariant 0 <= j < count
+          invariant arr[j].lt(arr[0])
         {
-          Solution.LeLtTransitive(this.arr[(j-1)/2], this.arr[j], this.arr[0]);
-          assert this.arr[(j-1)/2].le(this.arr[j]);
-          assert this.arr[(j-1)/2].lt(this.arr[0]);
+          Solution.LeLtTransitive(arr[(j-1)/2], arr[j], arr[0]);
+          assert arr[(j-1)/2].le(arr[j]);
+          assert arr[(j-1)/2].lt(arr[0]);
           j := (j-1)/2;
         }
       }
@@ -197,14 +201,14 @@ abstract module PQ {
 
     /* Function: returns the element with the minimum priority in the heap */
     function Min() : Solution
-      reads this, this.arr, set i | i in Model(), set i | 0 <= i < this.arr.Length :: arr[i]
+      reads this, arr, set i | i in Model(), set i | 0 <= i < arr.Length :: arr[i]
       requires Valid()
       requires !IsEmpty()
       ensures Valid()
       ensures IsMin(Min())
     {
       FirstIsMin();
-      this.arr[0]
+      arr[0]
     }
 
 
@@ -217,33 +221,32 @@ abstract module PQ {
       ensures Valid()
       ensures c == |Model()|
     {
-      return this.count;
+      return count;
     }
 
 
     /* Method: inserts an element to the heap */
     method Insert(node : Solution)
-      modifies this, this.arr
+      modifies this, arr
       requires Valid()
       ensures Valid()
       ensures IsInModel(node)
       ensures Model() == old(Model()) + multiset{node}
-      //ensures !old(IsEmpty()) && old(Min()).lt(node) ==> Min() == old(Min()) no es necesario
     {
-      if (this.count == 0) { // array is empty
+      if (count == 0) { // array is empty
         var aux: array<Solution> := new Solution[1][node];
-        this.arr := aux;
-        this.count := this.count + 1;
+        arr := aux;
+        count := count + 1;
       }
-      else if (this.count < this.arr.Length) { // array is not full
-        this.arr[this.count] := node;
-        this.count := this.count + 1;
+      else if (count < arr.Length) { // array is not full
+        arr[count] := node;
+        count := count + 1;
         Float();
       }
       else { // array is full
         Grow();
-        this.arr[this.count] := node;
-        this.count := this.count + 1;
+        arr[count] := node;
+        count := count + 1;
         Float();
       }
     }
@@ -251,119 +254,124 @@ abstract module PQ {
 
     /* Method: duplicates space of the heap */
     method Grow()
-      modifies this, this.arr
+      modifies this, arr
       requires Valid()
       requires !IsEmpty()
-      ensures this.count == old(this.count) // the number of elements does not change in this method. The Method Insert increases it
-      ensures this.arr.Length > old(this.arr.Length) // the length of the array increases
-      ensures fresh(this.arr) // is new in memory
-      ensures this.arr[0..this.count] == old(this.arr[0..this.count]) // the elements that were already in the array are preserved
+      ensures count == old(count) // the number of elements does not change in this method. The Method Insert increases it
+      ensures arr.Length > old(arr.Length) // the length of the array increases
+      ensures fresh(arr) // is new in memory
+      ensures arr[0..count] == old(arr[0..count]) // the elements that were already in the array are preserved
     {
       // allocate new memory
-      var last := this.arr[this.count-1];
-      var aux: array<Solution> := new Solution[2 * this.arr.Length] (_ => last);
+      var last := arr[count-1];
+      var aux: array<Solution> := new Solution[2 * arr.Length] (_ => last);
 
       // copy
       var i := 0;
-      while i < this.count
-        decreases this.count-i
-        invariant 0 <= i <= this.count <= this.arr.Length < aux.Length && this.count == old(this.count)
-        invariant aux[0..i] == this.arr[0..i]
-        invariant this.arr[0..this.count] == old(this.arr[0..this.count])
+      while i < count
+        decreases count-i
+        invariant 0 <= i <= count <= arr.Length < aux.Length && count == old(count)
+        invariant aux[0..i] == arr[0..i]
+        invariant arr[0..count] == old(arr[0..count])
       {
-        aux[i] := this.arr[i];
+        aux[i] := arr[i];
         i := i + 1;
       }
-      assert aux[0..this.count] == this.arr[0..this.count] == old(this.arr[0..this.count]);
-      this.arr := aux;
+      assert aux[0..count] == arr[0..count] == old(arr[0..count]);
+      arr := aux;
     }
 
 
     /* Method: moves the last inserted node upward in the heap until the heap property is restored */
     method Float()
-      modifies this.arr
-      requires 0 < this.count <= this.arr.Length
-      requires forall i | 0 < i < this.count - 1 :: this.arr[(i-1)/2].le(this.arr[i])
+      modifies arr
+      requires 0 < count <= arr.Length
+      requires forall i | 0 < i < count - 1 :: arr[(i-1)/2].le(arr[i])
       ensures Valid()
-      ensures Model() == old(multiset(arr[0..this.count-1]) + multiset{this.arr[this.count-1]})
-    // {
-    //     var j := this.count - 1;
-    //     while j > 0 && this.arr[j].lt(this.arr[(j-1)/2])
-    //         invariant 0 <= j <= this.count - 1 < this.arr.Length
-    //         invariant forall i | 0 < i < this.count && i != j :: this.arr[(i-1)/2].le(this.arr[i])
-    //     {
-    //         this.arr[(j-1)/2], this.arr[j] := this.arr[j], this.arr[(j-1)/2];
-    //         j := (j-1)/2;
-    //     }
-    // }
+      ensures multiset(arr[0..count]) == old(multiset(arr[0..count-1]) + multiset{arr[count-1]})
+    {
+      var j := count - 1;
+      while j > 0 && arr[j].lt(arr[(j-1)/2])
+        invariant 0 <= j <= count - 1 < arr.Length
+        //invariant forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i])
+        invariant multiset(arr[0..count]) == old(multiset(arr[0..count-1]) + multiset{arr[count-1]})
+      {
+        arr[(j-1)/2], arr[j] := arr[j], arr[(j-1)/2]; // swap
+        assert arr[(j-1)/2].lt(arr[j]);  // sabe que x < y
+        Solution.LtImpliesLe(arr[(j-1)/2], arr[j]); // lema implica (x < y) --> (x <= y)
+        assert arr[(j-1)/2].le(arr[j]);
+        
+        j := (j-1)/2;
+      }
+
+      if j > 0 {
+        assert arr[(j-1)/2].le(arr[j]);
+      }
+
+      assume (forall i | 0 < i < count :: arr[(i-1)/2].le(arr[i]));
+    }
 
 
 
     /* Method: deletes the element with the minimum priority of the heap */
-    method {:only} DeleteMin()
-      modifies this, this.arr
+    method DeleteMin()
+      modifies this, arr
       requires Valid()
       requires !IsEmpty()
       ensures Valid()
       ensures Model() == old(Model()) - multiset{old(Min())}
     {
-      var oldMin := this.arr[0];
+      var oldMin := arr[0];
       assert oldMin == old(Min()) == Min();
 
-      this.arr[0] := this.arr[this.count - 1];
-      assert multiset(this.arr[0..this.count]) == old(Model()) - multiset{old(arr[0])} + multiset{old(arr[this.count - 1])};
-      assert multiset(this.arr[0..this.count]) == old(Model()) - multiset{old(Min())} + multiset{old(arr[this.count - 1])};
+      arr[0] := arr[count - 1];
+      assert multiset(arr[0..count]) == old(Model()) - multiset{old(arr[0])} + multiset{old(arr[count - 1])};
+      assert multiset(arr[0..count]) == old(Model()) - multiset{old(Min())} + multiset{old(arr[count - 1])};
 
-      this.count := this.count - 1;
-      assert multiset(this.arr[0..this.count]) == old(Model()) - multiset{old(Min())};
-      Sink(0, this.count);
-      assert multiset(this.arr[0..this.count]) == old(Model()) - multiset{old(Min())};
-      assert Model() == multiset(this.arr[0..this.count]);
+      count := count - 1;
+      assert multiset(arr[0..count]) == old(Model()) - multiset{old(Min())};
+      Sink(0, count);
+      assert multiset(arr[0..count]) == old(Model()) - multiset{old(Min())};
+      assert Model() == multiset(arr[0..count]);
     }
 
 
     /* Method: moves a node downward in the heap until the heap property is restored */
-    method  {:only} Sink(s : nat, l : nat)
-      modifies this.arr
-      requires 0 <= s <= l == this.count <= arr.Length
-      requires forall i | 0 < i < this.count && (i-1)/2 != s :: arr[(i-1)/2].le(arr[i])
+    method Sink(s : nat, l : nat)
+      modifies arr
+      requires 0 <= s <= l == count <= arr.Length
+      requires forall i | 0 < i < count && (i-1)/2 != s :: arr[(i-1)/2].le(arr[i])
       ensures Valid()
-      ensures multiset(arr[0..this.count]) == old(multiset(arr[0..this.count])) // equivale a Model() == old(Model()), lo q pasa q no se puede invocar a old(Model()) porq arr no es un heap al entrar al método, Sink lo hace un heap
-    // {
-    //   var j := s;
-    //   while (2*j+1 < l)
-    //     // invariant forall k | 0 < k < l && (k - 1)/2 != j :: this.arr[(k-1)/2].le(this.arr[k])
-    //     // invariant j >= 2*s+1 && 2*j+1< l ==> this.arr[(j-1)/2].le(this.arr[2*j+1])
-    //     // invariant j >= 2*s+1 && 2*j+2< l ==> this.arr[(j-1)/2].le(this.arr[2*j+2])
-    //   {
-    //     var m : nat;
-    //     if (2*j+2 < l && this.arr[2*j+2].le(this.arr[2*j+1])) {
-    //       m := 2*j+2;  // right son is smaller
-    //     }
-    //     else {
-    //       m := 2*j+1;  // left son is smaller
-    //     }
-    //     if (this.arr[m].lt(this.arr[j])) {
-    //       this.arr[j], this.arr[m] := this.arr[m], this.arr[j];
-    //       j := m;
-    //     }
-    //     else {
-    //       break;
-    //     }
-    //   }
+      ensures multiset(arr[0..count]) == old(multiset(arr[0..count])) // equivale a Model() == old(Model()), lo q pasa q no se puede invocar a old(Model()) porq arr no es un heap al entrar al método, Sink lo hace un heap
+    {
+      var j := s;
+      while (2*j+1 < l)
+        //invariant forall k | 0 < k < l && (k - 1)/2 != j :: arr[(k-1)/2].le(arr[k])
+        invariant multiset(arr[0..count]) == old(multiset(arr[0..count]))
+      {
+        var m : nat;
+        if (2*j+2 < l && arr[2*j+2].le(arr[2*j+1])) {
+          m := 2*j+2;  // right son is smaller
+        }
+        else {
+          m := 2*j+1;  // left son is smaller
+        }
+        if (arr[m].lt(arr[j])) {
+          arr[j], arr[m] := arr[m], arr[j];
+          //assert arr[j].lt(arr[m]);
+          j := m;
+         
+        }
+        else {
+          break;
+        }
+      }      
+      assume (forall i | 0 < i < count :: arr[(i-1)/2].le(arr[i]));
+    }
 
-    //   assert Valid() by {
-    //     assert 0 <= this.count <= this.arr.Length;
-    //     assert IsHeap(0, this.count) by {
-    //       assert 0 <= 0 <= this.count <= arr.Length;
-    //       assume (forall i | 2*0 < i < this.count :: this.arr[(i-1)/2].le(this.arr[i]));
-    //     }
-    //   }
-    // }
-    
-        
-  }
 
-}
+  } // fin clase
+
+} // fin modulo
 
 
