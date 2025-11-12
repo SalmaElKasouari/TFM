@@ -293,14 +293,14 @@ abstract module PQ {
       var j := count - 1;
       while j > 0 && arr[j].lt(arr[(j-1)/2])
         invariant 0 <= j <= count - 1 < arr.Length
-        //invariant forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i])
+        invariant forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i])
         invariant multiset(arr[0..count]) == old(multiset(arr[0..count-1]) + multiset{arr[count-1]})
       {
         arr[(j-1)/2], arr[j] := arr[j], arr[(j-1)/2]; // swap
         assert arr[(j-1)/2].lt(arr[j]);  // sabe que x < y
         Solution.LtImpliesLe(arr[(j-1)/2], arr[j]); // lema implica (x < y) --> (x <= y)
         assert arr[(j-1)/2].le(arr[j]);
-        
+        assume forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i]);
         j := (j-1)/2;
       }
 
@@ -308,7 +308,6 @@ abstract module PQ {
         assert arr[(j-1)/2].le(arr[j]);
       }
 
-      assume (forall i | 0 < i < count :: arr[(i-1)/2].le(arr[i]));
     }
 
 
@@ -358,9 +357,8 @@ abstract module PQ {
         }
         if (arr[m].lt(arr[j])) {
           arr[j], arr[m] := arr[m], arr[j];
-          //assert arr[j].lt(arr[m]);
-          j := m;
-         
+          assert arr[j].lt(arr[m]);
+          j := m;         
         }
         else {
           break;
