@@ -288,7 +288,7 @@ abstract module PQ {
       ensures arr[(i-1)/2].le(arr[i])
     {}
 
-    method {:only} Swap(j : int, arr : array<Solution>)
+    method Swap(j : int, arr : array<Solution>)
       modifies arr
       requires 0 < j <= count - 1 < arr.Length
       requires forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i])
@@ -298,22 +298,24 @@ abstract module PQ {
     {
       arr[(j-1)/2], arr[j] := arr[j], arr[(j-1)/2]; // swap
       assert arr[(j-1)/2].lt(arr[j]);  // sabe que x < y
+      Solution.LtImpliesLe(arr[(j-1)/2], arr[j]);
+      assert arr[(j-1)/2].le(arr[j]);  // lemma (x < y) --> x <= y
       forall i | 0 < i < count && i != (j-1)/2
-          ensures arr[(i-1)/2].le(arr[i])
-        {
-          if (i != j) {
-            assert arr[i] == old(arr[i]);
-            assume (i-1)/2 != j && (i-1)/2 != (j-1)/2;
-            assert arr[(i-1)/2] == old(arr[(i-1)/2]);
-            assert old(arr[(i-1)/2]).le(old(arr[i]));
-            assert arr[(i-1)/2].le(arr[i]);
-            //ForallInst(i, j, arr);
-          }
-          else {
-            
-          }
-
+      ensures arr[(i-1)/2].le(arr[i])
+      {
+        if i == j {
+          assume false;
+        } 
+        else if (i-1)/2 == (j-1)/2 {
+          assume false;
+        } 
+        else {
+          assert i != j;
+          assert (i-1)/2 != (j-1)/2;
+          assert i != (j-1)/2;
+          assume false;
         }
+      }
     }
 
 
@@ -331,20 +333,18 @@ abstract module PQ {
         invariant forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i])
         invariant multiset(arr[0..count]) == old(multiset(arr[0..count-1]) + multiset{arr[count-1]})
       {
-        var oldj := j;
         arr[(j-1)/2], arr[j] := arr[j], arr[(j-1)/2]; // swap
         assert arr[(j-1)/2].lt(arr[j]);  // sabe que x < y
         Solution.LtImpliesLe(arr[(j-1)/2], arr[j]);
-        assert arr[(j-1)/2].le(arr[j]);  // sabe que x < y
-
-        
+        assert arr[(j-1)/2].le(arr[j]);  // lemma x <= y
         j := (j-1)/2;
+
+        assume forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i]);
       }
 
       if j > 0 {
         assert arr[(j-1)/2].le(arr[j]);
       }
-
     }
 
 
