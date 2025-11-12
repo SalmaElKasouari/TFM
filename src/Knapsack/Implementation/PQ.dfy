@@ -281,14 +281,23 @@ abstract module PQ {
       arr := aux;
     }
 
+    lemma {:only} ForallInst(i : int, j : int, arr : array<Solution>)
+      requires 0 < j <= count - 1 < arr.Length
+      requires forall k | 0 < k < count && k != j :: arr[(k-1)/2].le(arr[k])
+      requires 0 < i < count && i != j
+      ensures arr[(i-1)/2].le(arr[i])
+    {}
+
+
+
 
     /* Method: moves the last inserted node upward in the heap until the heap property is restored */
     method Float()
       modifies arr
       requires 0 < count <= arr.Length
-      requires forall i | 0 < i < count - 1 :: arr[(i-1)/2].le(arr[i])
+      requires IsHeap(0, count - 1);
       ensures Valid()
-      ensures multiset(arr[0..count]) == old(multiset(arr[0..count-1]) + multiset{arr[count-1]})
+      ensures Model() == old(multiset(arr[0..count-1]) + multiset{arr[count-1]})
     {
       var j := count - 1;
       while j > 0 && arr[j].lt(arr[(j-1)/2])
@@ -296,11 +305,21 @@ abstract module PQ {
         invariant forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i])
         invariant multiset(arr[0..count]) == old(multiset(arr[0..count-1]) + multiset{arr[count-1]})
       {
+        var oldj := j;
         arr[(j-1)/2], arr[j] := arr[j], arr[(j-1)/2]; // swap
         assert arr[(j-1)/2].lt(arr[j]);  // sabe que x < y
-        Solution.LtImpliesLe(arr[(j-1)/2], arr[j]); // lema implica (x < y) --> (x <= y)
-        assert arr[(j-1)/2].le(arr[j]);
-        assume forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i]);
+
+        forall i | 0 < i < count && i != (j-1)/2
+          ensures arr[(i-1)/2].le(arr[i])
+        {
+          if (i != j) {
+            ForallInst(i, j, arr);
+          }
+          else {
+            
+          }
+
+        }
         j := (j-1)/2;
       }
 
@@ -358,12 +377,12 @@ abstract module PQ {
         if (arr[m].lt(arr[j])) {
           arr[j], arr[m] := arr[m], arr[j];
           assert arr[j].lt(arr[m]);
-          j := m;         
+          j := m;
         }
         else {
           break;
         }
-      }      
+      }
       assume (forall i | 0 < i < count :: arr[(i-1)/2].le(arr[i]));
     }
 
