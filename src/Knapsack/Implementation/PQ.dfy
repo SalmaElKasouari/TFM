@@ -70,7 +70,7 @@ abstract module PQ {
     }
 
     /* Lemma: proof that lt satisfies transitive incomparability */
-    lemma LtTransitiveIncomparability()
+    static lemma LtTransitiveIncomparability()
       ensures forall x : Solution, y : Solution, z : Solution :: x.eq(y) && y.eq(z) ==> x.eq(z)
 
 
@@ -80,12 +80,12 @@ abstract module PQ {
       ensures forall x : Solution, y : Solution :: x.lt(y) ==> !y.lt(x)
       ensures forall x : Solution, y : Solution, z : Solution :: x.lt(y) && y.lt(z) ==> x.lt(z)
       ensures forall x : Solution, y : Solution, z : Solution :: x.eq(y) && y.eq(z) ==> x.eq(z)
-    // {
-    //   LtIrreflexive();
-    //   LtAntisymmetric();
-    //   LtTransitive();
-    //   LtTransitiveIncomparability();
-    // }
+    {
+      LtIrreflexive();
+      LtAntisymmetric();
+      LtTransitive();
+      LtTransitiveIncomparability();
+    }
 
     static lemma LtImpliesLe(x : Solution, y : Solution)
       requires x.lt(y) // x < y
