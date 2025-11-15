@@ -287,12 +287,12 @@ abstract module PQ {
       arr := aux;
     }
 
-    lemma ForallInst(i : int, j : int, arr : array<Solution>)
-      requires 0 < j <= count - 1 < arr.Length
-      requires forall k | 0 < k < count && k != j :: arr[(k-1)/2].le(arr[k])
-      requires 0 < i < count && i != j
-      ensures arr[(i-1)/2].le(arr[i])
-    {}
+    // lemma ForallInst(i : int, j : int, arr : array<Solution>)    NO SE USA
+    //   requires 0 < j <= count - 1 < arr.Length
+    //   requires forall k | 0 < k < count && k != j :: arr[(k-1)/2].le(arr[k])
+    //   requires 0 < i < count && i != j
+    //   ensures arr[(i-1)/2].le(arr[i])
+    // {}
 
     method Swap(j : int, arr : array<Solution>)
       modifies arr
@@ -330,7 +330,35 @@ abstract module PQ {
           assert i != j;
           assert (i-1)/2 != (j-1)/2;
           assert i != (j-1)/2;
-          assume false;
+          assert arr[i] == old(arr[i]);
+          assert old(arr[(i-1)/2]).le(old(arr[i]));
+          assert old(arr[(i-1)/2]).le(arr[i]);
+
+          // assume arr[(i-1)/2] == old(arr[(i-1)/2]); // NO SABE QUE EL PADRE DE I TAMPOCO ES MODIFICADO ---> Es que padre de i puede ser j
+          
+          if (j == (i-1)/2) { // j el padre de i, osea que es modificado
+            assert old(arr[(i-1)/2]) == value_oldj;
+            assert old(arr[(i-1)/2]) == arr[(j-1)/2];
+            assert old(arr[(i-1)/2]).le(arr[i]); // 1 <= 4
+            assert old(arr[j]).le(arr[i]); // 1 <= 4
+            assert value_oldj == old(arr[j]) == arr[(j-1)/2];
+
+            assert value_oldj.le(arr[i]);
+            assert arr[j] == arr[(i-1)/2];
+            assert arr[(j-1)/2].le(arr[j]); // 1 <= 2
+            assert arr[(j-1)/2].le(arr[i]); // 1 <= 4
+
+            assert value_oldparent == old(arr[(j-1)/2]);
+
+            // quiero 2 <= 4
+
+            
+            assume false;
+          }
+          else { // j no es el padre de i --> el padre de i no es modificado
+            assert arr[(i-1)/2] == old(arr[(i-1)/2]);
+          }
+
         }
       }
     }
