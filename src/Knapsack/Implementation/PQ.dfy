@@ -39,6 +39,7 @@ abstract module PQ {
     static lemma LtIrreflexive()
       ensures forall x : Solution :: !x.lt(x)
 
+
     /* Lemma: proof that lt is antisymmetric */
     static lemma LtAntisymmetric()
       ensures forall x : Solution, y : Solution :: x.lt(y) ==> !y.lt(x)
@@ -47,6 +48,11 @@ abstract module PQ {
     /* Lemma: proof that lt is transitive */
     static lemma LtTransitive()
       ensures forall x : Solution, y : Solution, z : Solution :: x.lt(y) && y.lt(z) ==> x.lt(z)
+
+    
+    /* Lemma: proof that le is transitive */ // NUEVOOOOOOOOOOOOOOOOOOOOOOOOO, necesario para demo en swap
+    static lemma LeTransitive()
+      ensures forall x : Solution, y : Solution, z : Solution :: x.le(y) && y.le(z) ==> x.le(z)
 
 
     /* Lemma: proof that lt is transitive */
@@ -64,7 +70,7 @@ abstract module PQ {
     }
 
     /* Lemma: proof that lt satisfies transitive incomparability */
-    static lemma LtTransitiveIncomparability()
+    lemma LtTransitiveIncomparability()
       ensures forall x : Solution, y : Solution, z : Solution :: x.eq(y) && y.eq(z) ==> x.eq(z)
 
 
@@ -74,12 +80,12 @@ abstract module PQ {
       ensures forall x : Solution, y : Solution :: x.lt(y) ==> !y.lt(x)
       ensures forall x : Solution, y : Solution, z : Solution :: x.lt(y) && y.lt(z) ==> x.lt(z)
       ensures forall x : Solution, y : Solution, z : Solution :: x.eq(y) && y.eq(z) ==> x.eq(z)
-    {
-      LtIrreflexive();
-      LtAntisymmetric();
-      LtTransitive();
-      LtTransitiveIncomparability();
-    }
+    // {
+    //   LtIrreflexive();
+    //   LtAntisymmetric();
+    //   LtTransitive();
+    //   LtTransitiveIncomparability();
+    // }
 
     static lemma LtImpliesLe(x : Solution, y : Solution)
       requires x.lt(y) // x < y
@@ -296,19 +302,30 @@ abstract module PQ {
       ensures forall i | 0 < i < count && i != j && i != (j-1)/2 :: arr[i] == old(arr[i])
       ensures forall i | 0 < i < count && i != (j-1)/2 :: arr[(i-1)/2].le(arr[i])
     {
+      var value_oldj := arr[j];
+      var value_oldparent := arr[(j-1)/2]; // 5
+
       arr[(j-1)/2], arr[j] := arr[j], arr[(j-1)/2]; // swap
       assert arr[(j-1)/2].lt(arr[j]);  // sabe que x < y
       Solution.LtImpliesLe(arr[(j-1)/2], arr[j]);
       assert arr[(j-1)/2].le(arr[j]);  // lemma (x < y) --> x <= y
+
       forall i | 0 < i < count && i != (j-1)/2
       ensures arr[(i-1)/2].le(arr[i])
       {
         if i == j {
-          assume false;
+          // trivial
         } 
-        else if (i-1)/2 == (j-1)/2 {
-          assume false;
-        } 
+        else if (i-1)/2 == (j-1)/2 { // i, j son hermanos
+          assert i != j;
+
+          assert arr[(j-1)/2].le(arr[j]); 
+          assert arr[(i-1)/2].le(arr[j]); // 4 <= 5        
+          assert arr[j].le(arr[i]); // 5 <= a[i]              
+
+          Solution.LeTransitive(); // 4 <= 5 y 5 <= i --> 4 <= i
+          assert arr[(i-1)/2].le(arr[i]);
+        }
         else {
           assert i != j;
           assert (i-1)/2 != (j-1)/2;
@@ -337,6 +354,8 @@ abstract module PQ {
         assert arr[(j-1)/2].lt(arr[j]);  // sabe que x < y
         Solution.LtImpliesLe(arr[(j-1)/2], arr[j]);
         assert arr[(j-1)/2].le(arr[j]);  // lemma x <= y
+
+        // LLAMAR A SWAP
         j := (j-1)/2;
 
         assume forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i]);
