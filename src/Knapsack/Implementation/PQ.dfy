@@ -301,6 +301,7 @@ abstract module PQ {
       requires arr[j].lt(arr[(j-1)/2])
       ensures forall i | 0 < i < count && i != j && i != (j-1)/2 :: arr[i] == old(arr[i])
       ensures forall i | 0 < i < count && i != (j-1)/2 :: arr[(i-1)/2].le(arr[i])
+      ensures multiset(arr[0..count]) == old(multiset(arr[0..count-1]) + multiset{arr[count-1]})
     {
       var value_oldj := arr[j];
       var value_oldparent := arr[(j-1)/2]; // 5
@@ -350,9 +351,7 @@ abstract module PQ {
 
             assert value_oldparent == old(arr[(j-1)/2]);
 
-            // quiero 2 <= 4
-
-            
+            // quiero 2 <= 4            
             assume false;
           }
           else { // j no es el padre de i --> el padre de i no es modificado
@@ -378,15 +377,8 @@ abstract module PQ {
         invariant forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i])
         invariant multiset(arr[0..count]) == old(multiset(arr[0..count-1]) + multiset{arr[count-1]})
       {
-        arr[(j-1)/2], arr[j] := arr[j], arr[(j-1)/2]; // swap
-        assert arr[(j-1)/2].lt(arr[j]);  // sabe que x < y
-        Solution.LtImpliesLe(arr[(j-1)/2], arr[j]);
-        assert arr[(j-1)/2].le(arr[j]);  // lemma x <= y
-
-        // LLAMAR A SWAP
+        Swap(j, arr);
         j := (j-1)/2;
-
-        assume forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i]);
       }
 
       if j > 0 {
