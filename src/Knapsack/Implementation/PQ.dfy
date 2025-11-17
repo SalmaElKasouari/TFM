@@ -49,7 +49,7 @@ abstract module PQ {
     static lemma LtTransitive()
       ensures forall x : Solution, y : Solution, z : Solution :: x.lt(y) && y.lt(z) ==> x.lt(z)
 
-    
+
     /* Lemma: proof that le is transitive */ // NUEVOOOOOOOOOOOOOOOOOOOOOOOOO, necesario para demo en swap
     static lemma LeTransitive()
       ensures forall x : Solution, y : Solution, z : Solution :: x.le(y) && y.le(z) ==> x.le(z)
@@ -312,17 +312,17 @@ abstract module PQ {
       assert arr[(j-1)/2].le(arr[j]);  // lemma (x < y) --> x <= y
 
       forall i | 0 < i < count && i != (j-1)/2
-      ensures arr[(i-1)/2].le(arr[i])
+        ensures arr[(i-1)/2].le(arr[i])
       {
         if i == j {
           // trivial
-        } 
+        }
         else if (i-1)/2 == (j-1)/2 { // i, j son hermanos
           assert i != j;
 
-          assert arr[(j-1)/2].le(arr[j]); 
-          assert arr[(i-1)/2].le(arr[j]); // 4 <= 5        
-          assert arr[j].le(arr[i]); // 5 <= a[i]              
+          assert arr[(j-1)/2].le(arr[j]);
+          assert arr[(i-1)/2].le(arr[j]); // 4 <= 5
+          assert arr[j].le(arr[i]); // 5 <= a[i]
 
           Solution.LeTransitive(); // 4 <= 5 y 5 <= i --> 4 <= i
           assert arr[(i-1)/2].le(arr[i]);
@@ -335,9 +335,10 @@ abstract module PQ {
           assert old(arr[(i-1)/2]).le(old(arr[i]));
           assert old(arr[(i-1)/2]).le(arr[i]);
 
-          // assume arr[(i-1)/2] == old(arr[(i-1)/2]); // NO SABE QUE EL PADRE DE I TAMPOCO ES MODIFICADO ---> Es que padre de i puede ser j
-          
-          if (j == (i-1)/2) { // j el padre de i, osea que es modificado
+          if (j != (i-1)/2) { // j el padre de i, osea que es modificado
+            assert arr[(i-1)/2] == old(arr[(i-1)/2]);
+          }
+          else { // j no es el padre de i --> el padre de i no es modificado
             assert old(arr[(i-1)/2]) == value_oldj;
             assert old(arr[(i-1)/2]) == arr[(j-1)/2];
             assert old(arr[(i-1)/2]).le(arr[i]); // 1 <= 4
@@ -351,11 +352,8 @@ abstract module PQ {
 
             assert value_oldparent == old(arr[(j-1)/2]);
 
-            // quiero 2 <= 4            
+            // quiero 2 <= 4
             assume false;
-          }
-          else { // j no es el padre de i --> el padre de i no es modificado
-            assert arr[(i-1)/2] == old(arr[(i-1)/2]);
           }
 
         }
