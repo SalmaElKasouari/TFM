@@ -299,9 +299,12 @@ abstract module PQ {
       requires 0 < j <= count - 1 < arr.Length
       requires forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i])
       requires arr[j].lt(arr[(j-1)/2])
+      requires j > 0 && 0 < 2*j+1 < count ==> arr[(j-1)/2].le(arr[2*j+1])
+      requires j > 0 && 0 < 2*j+2 < count ==> arr[(j-1)/2].le(arr[2*j+2])
+      ensures (j-1)/2 > 0 ==> forall i | 0 < i < count && (i-1)/2 == (j-1)/2 :: arr[((j-1)/2-1)/2].le(arr[i])
       ensures forall i | 0 < i < count && i != j && i != (j-1)/2 :: arr[i] == old(arr[i])
       ensures forall i | 0 < i < count && i != (j-1)/2 :: arr[(i-1)/2].le(arr[i])
-      ensures multiset(arr[0..count]) == old(multiset(arr[0..count-1]) + multiset{arr[count-1]})
+      ensures multiset(arr[0..count]) == old(multiset(arr[0..count]))
     {
       var value_oldj := arr[j];
       var value_oldparent := arr[(j-1)/2]; // 5
@@ -353,11 +356,14 @@ abstract module PQ {
             assert value_oldparent == old(arr[(j-1)/2]);
 
             // quiero 2 <= 4
+
             assume false;
           }
 
         }
       }
+
+      assume (j-1)/2 > 0 ==> forall i | 0 < i < count && (i-1)/2 == (j-1)/2 :: arr[((j-1)/2-1)/2].le(arr[i]);
     }
 
 
@@ -373,6 +379,9 @@ abstract module PQ {
       while j > 0 && arr[j].lt(arr[(j-1)/2])
         invariant 0 <= j <= count - 1 < arr.Length
         invariant forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i])
+        invariant forall i | 0 < i < count && i == (j-1) :: arr[(i-1)/2].le(arr[i])
+        invariant j > 0 && 0 < 2*j+1 < count ==> arr[(j-1)/2].le(arr[2*j+1])
+        invariant j > 0 && 0 < 2*j+2 < count ==> arr[(j-1)/2].le(arr[2*j+2])
         invariant multiset(arr[0..count]) == old(multiset(arr[0..count-1]) + multiset{arr[count-1]})
       {
         Swap(j, arr);
