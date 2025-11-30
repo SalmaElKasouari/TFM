@@ -378,7 +378,7 @@ abstract module PQ {
     method Float()
       modifies arr
       requires 0 < count <= arr.Length
-      requires IsHeap(0, count - 1);
+      requires IsHeap(0, count - 1)
       ensures Valid()
       ensures Model() == old(multiset(arr[0..count-1]) + multiset{arr[count-1]})
     {
