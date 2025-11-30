@@ -56,6 +56,9 @@ module KnapsackPQ refines PQ {
     /* Lemma: proof that lt is transitive */
     static lemma LtTransitive(){}
 
+    /* Lemma: proof that le is transitive */
+    static lemma LeTransitive() {}
+
     /* Lemma: proof that lt satisfies transitive incomparability */
     static lemma LtTransitiveIncomparability(){}
     

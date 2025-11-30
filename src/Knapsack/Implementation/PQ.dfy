@@ -50,7 +50,7 @@ abstract module PQ {
       ensures forall x : Solution, y : Solution, z : Solution :: x.lt(y) && y.lt(z) ==> x.lt(z)
 
 
-    /* Lemma: proof that le is transitive */ // NUEVOOOOOOOOOOOOOOOOOOOOOOOOO, necesario para demo en swap
+    /* Lemma: proof that le is transitive */
     static lemma LeTransitive()
       ensures forall x : Solution, y : Solution, z : Solution :: x.le(y) && y.le(z) ==> x.le(z)
 
