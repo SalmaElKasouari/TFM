@@ -336,11 +336,26 @@ abstract module PQ {
           assert i != (j-1)/2;
           assert arr[i] == old(arr[i]);
           assert old(arr[(i-1)/2]).le(old(arr[i]));
-          assert old(arr[(i-1)/2]).le(arr[i]);        
+          assert old(arr[(i-1)/2]).le(arr[i]);
+
+          // if (j != (i-1)/2) { // j no es el padre de i --> el padre de i no es modificado
+          //   assert arr[(i-1)/2] == old(arr[(i-1)/2]);
+          // }
+          // else { // j el padre de i, osea que es modificado
+          //   assert old(arr[(i-1)/2]) == value_oldj;
+          //   assert old(arr[(i-1)/2]) == arr[(j-1)/2];
+          //   assert old(arr[(i-1)/2]).le(arr[i]); // 1 <= 4
+          //   assert old(arr[j]).le(arr[i]); // 1 <= 4
+          //   assert value_oldj == old(arr[j]) == arr[(j-1)/2];
+          //   assert value_oldj.le(arr[i]);
+          //   assert arr[j] == arr[(i-1)/2];
+          //   assert arr[(j-1)/2].le(arr[j]); // 1 <= 2
+          //   assert arr[(j-1)/2].le(arr[i]); // 1 <= 4
+          //   assert value_oldparent == old(arr[(j-1)/2]);
+          // }
+
         }
       }
-
-      //assume (j-1)/2 > 0 ==> forall i | 0 < i < count && (i-1)/2 == (j-1)/2 :: arr[((j-1)/2-1)/2].le(arr[i]);
 
       if ((j-1)/2 > 0) {
         forall i | 0 < i < count && (i-1)/2 == (j-1)/2  // i, j hermanos
@@ -350,13 +365,12 @@ abstract module PQ {
           else { // i != j
             assert arr[((j-1)/2-1)/2].le(arr[j]); // abuelo <= j             
             assert arr[j].le(arr[i]); // j <= i
-
             Solution.LeTransitive(); // abuelo <= j   &&   j <= i  ==> abuelo <= i
-            assert arr[((j-1)/2-1)/2].le(arr[i]); // abuelo <= i           
+            assert arr[((j-1)/2-1)/2].le(arr[i]); // abuelo <=  i 
           }
         }
       }
-      
+      //assume (j-1)/2 > 0 ==> forall i | 0 < i < count && (i-1)/2 == (j-1)/2 :: arr[((j-1)/2-1)/2].le(arr[i]);
     }
 
 
