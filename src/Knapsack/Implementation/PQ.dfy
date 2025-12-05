@@ -287,13 +287,6 @@ abstract module PQ {
       arr := aux;
     }
 
-    // lemma ForallInst(i : int, j : int, arr : array<Solution>)    NO SE USA
-    //   requires 0 < j <= count - 1 < arr.Length
-    //   requires forall k | 0 < k < count && k != j :: arr[(k-1)/2].le(arr[k])
-    //   requires 0 < i < count && i != j
-    //   ensures arr[(i-1)/2].le(arr[i])
-    // {}
-
     method Swap(j : int, arr : array<Solution>)
       modifies arr
       requires 0 < j <= count - 1 < arr.Length
@@ -337,23 +330,6 @@ abstract module PQ {
           assert arr[i] == old(arr[i]);
           assert old(arr[(i-1)/2]).le(old(arr[i]));
           assert old(arr[(i-1)/2]).le(arr[i]);
-
-          // if (j != (i-1)/2) { // j no es el padre de i --> el padre de i no es modificado
-          //   assert arr[(i-1)/2] == old(arr[(i-1)/2]);
-          // }
-          // else { // j el padre de i, osea que es modificado
-          //   assert old(arr[(i-1)/2]) == value_oldj;
-          //   assert old(arr[(i-1)/2]) == arr[(j-1)/2];
-          //   assert old(arr[(i-1)/2]).le(arr[i]); // 1 <= 4
-          //   assert old(arr[j]).le(arr[i]); // 1 <= 4
-          //   assert value_oldj == old(arr[j]) == arr[(j-1)/2];
-          //   assert value_oldj.le(arr[i]);
-          //   assert arr[j] == arr[(i-1)/2];
-          //   assert arr[(j-1)/2].le(arr[j]); // 1 <= 2
-          //   assert arr[(j-1)/2].le(arr[i]); // 1 <= 4
-          //   assert value_oldparent == old(arr[(j-1)/2]);
-          // }
-
         }
       }
 
@@ -370,7 +346,6 @@ abstract module PQ {
           }
         }
       }
-      //assume (j-1)/2 > 0 ==> forall i | 0 < i < count && (i-1)/2 == (j-1)/2 :: arr[((j-1)/2-1)/2].le(arr[i]);
     }
 
 
@@ -441,6 +416,7 @@ abstract module PQ {
         else {
           m := 2*j+1;  // left son is smaller
         }
+        
         if (arr[m].lt(arr[j])) {
           arr[j], arr[m] := arr[m], arr[j];
           assert arr[j].lt(arr[m]);
@@ -450,7 +426,7 @@ abstract module PQ {
           break;
         }
       }
-      assume (forall i | 0 < i < count :: arr[(i-1)/2].le(arr[i]));
+      //assume (forall i | 0 < i < count :: arr[(i-1)/2].le(arr[i]));
     }
 
 
