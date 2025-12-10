@@ -434,12 +434,12 @@ abstract module PQ {
 
         if (arr[m].lt(arr[j])) {
           assert (m-1)/2 == j; // j es el padre de m   
-          //Swap2(m, arr);
+          Swap2(m, arr);
 
-          arr[(m-1)/2], arr[m] := arr[m], arr[(m-1)/2]; // swap
-      assert arr[(m-1)/2].lt(arr[m]);  // sabe que x < y
-      Solution.LtImpliesLe(arr[(m-1)/2], arr[m]);
-      assert arr[(m-1)/2].le(arr[m]);  // lemma (x < y) --> x <= y
+          // arr[(m-1)/2], arr[m] := arr[m], arr[(m-1)/2]; // swap
+          // assert arr[(m-1)/2].lt(arr[m]);  // sabe que x < y
+          // Solution.LtImpliesLe(arr[(m-1)/2], arr[m]);
+          // assert arr[(m-1)/2].le(arr[m]);  // lemma (x < y) --> x <= y
                     
           assert arr[(m-1)/2].lt(arr[m]);
           j := m;
