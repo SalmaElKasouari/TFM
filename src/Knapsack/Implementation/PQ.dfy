@@ -396,6 +396,8 @@ abstract module PQ {
       modifies arr
       requires 0 < m <= count - 1 < arr.Length
       requires arr[m].lt(arr[(m-1)/2])
+      requires arr[m].le(arr[2*(m-1)/2 + 1]) && 2*(m-1)/2 + 2 < count ==> arr[m].le(arr[2*(m-1)/2 + 2])
+      requires forall i | 0 < i < count && i != (m-1)/2 && (i-1)/2 != (m-1)/2 :: arr[(i-1)/2].le(arr[i])
       ensures forall i | 0 < i < count && i != m && (i-1)/2 != m :: arr[(i-1)/2].le(arr[i])
       ensures multiset(arr[0..count]) == old(multiset(arr[0..count]))
     {
