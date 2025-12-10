@@ -90,6 +90,16 @@ abstract module PQ {
     static lemma LtImpliesLe(x : Solution, y : Solution)
       requires x.lt(y) // x < y
       ensures x.le(y) // x <= y
+    {
+      LtWeakOrder();
+    }
+
+    static lemma LeReflexive()
+      ensures forall x : Solution :: x.le(x)
+    {
+      LtIrreflexive();
+    }
+    
 
   }
 
@@ -396,7 +406,8 @@ abstract module PQ {
       modifies arr
       requires 0 < m <= count - 1 < arr.Length
       requires arr[m].lt(arr[(m-1)/2])
-      requires arr[m].le(arr[2*(m-1)/2 + 1]) && 2*(m-1)/2 + 2 < count ==> arr[m].le(arr[2*(m-1)/2 + 2])
+      requires arr[m].le(arr[2*(m-1)/2 + 1])
+      requires 2*(m-1)/2 + 2 < count ==> arr[m].le(arr[2*(m-1)/2 + 2])
       requires forall i | 0 < i < count && i != (m-1)/2 && (i-1)/2 != (m-1)/2 :: arr[(i-1)/2].le(arr[i])
       ensures forall i | 0 < i < count && i != m && (i-1)/2 != m :: arr[(i-1)/2].le(arr[i])
       ensures multiset(arr[0..count]) == old(multiset(arr[0..count]))
@@ -411,6 +422,19 @@ abstract module PQ {
       assume forall i | 0 < i < count && i != m && (i-1)/2 != m :: arr[(i-1)/2].le(arr[i]);
       
     }
+
+    lemma SonIsSmaller(m : int, arr : array<Solution>)
+      requires 0 < m < count <= arr.Length
+      // requires m == 2*(m-1)/2+1 || (2*(m-1)/2+2 < count && m == 2*(m-1)/2+2)
+      // requires 2*(m-1)/2+2 < count && m == 2*(m-1)/2+1 ==> arr[m].le(arr[2*(m-1)/2+2])
+      // requires m == 2*(m-1)/2+2 ==> arr[m].le(arr[2*(m-1)/2+1])
+      requires m == if 2*((m-1)/2)+2 < count && arr[2*((m-1)/2)+2].le(arr[2*((m-1)/2)+1]) then 2*((m-1)/2)+2 else 2*((m-1)/2)+1
+      ensures arr[m].le(arr[2*((m-1)/2) + 1])
+      ensures 2*((m-1)/2) + 2 < count ==> arr[m].le(arr[2*((m-1)/2) + 2])
+    // {
+    //   Solution.LtWeakOrder();
+
+    // }
 
     /* Method: moves a node downward in the heap until the heap property is restored */
     method Sink()
@@ -427,17 +451,21 @@ abstract module PQ {
         invariant multiset(arr[0..count]) == old(multiset(arr[0..count]))
       {
         var m : nat;
-        if (2*j+2 < count && arr[2*j+2].le(arr[2*j+1])) {
-          m := 2*j+2;  // right son is smaller
-        }
-        else {
-          m := 2*j+1;  // left son is smaller
-        }
+        
+        m := if 2*j+2 < count && arr[2*j+2].le(arr[2*j+1]) then 2*j+2 else 2*j+1;
+        // assert (m-1)/2 == j; // j es el padre de m
+        // assert m == if 2*j+2 < count && arr[2*j+2].le(arr[2*j+1]) then 2*j+2 else 2*j+1;
+        // calc {
+        //   m;
+        //   if 2*j+2 < count && arr[2*j+2].le(arr[2*j+1]) then 2*j+2 else 2*j+1;
+        //   {assert j == (m-1)/2;}
+        //   if 2*((m-1)/2)+2 < count && arr[2*((m-1)/2)+2].le(arr[2*((m-1)/2)+1]) then 2*((m-1)/2)+2 else 2*((m-1)/2)+1;
+        // }
+        SonIsSmaller(m, arr);          
+          
 
-        if (arr[m].lt(arr[j])) {
-          assert (m-1)/2 == j; // j es el padre de m   
+        if (arr[m].lt(arr[j])) {         
           Swap2(m, arr);
-
           // arr[(m-1)/2], arr[m] := arr[m], arr[(m-1)/2]; // swap
           // assert arr[(m-1)/2].lt(arr[m]);  // sabe que x < y
           // Solution.LtImpliesLe(arr[(m-1)/2], arr[m]);
@@ -445,6 +473,7 @@ abstract module PQ {
                     
           assert arr[(m-1)/2].lt(arr[m]);
           j := m;
+          assume false;
         }
         else {
           break;
