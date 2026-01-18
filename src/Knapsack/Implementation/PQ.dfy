@@ -99,7 +99,7 @@ abstract module PQ {
     {
       LtIrreflexive();
     }
-    
+
 
   }
 
@@ -298,6 +298,56 @@ abstract module PQ {
     }
 
 
+    lemma  SwapPreservesHeapProperty(j : int, arr : array<Solution>)
+      requires 0 < j <= count - 1 < arr.Length
+      requires arr[(j-1)/2].lt(arr[j])
+      requires j > 0 && 0 < 2*j+1 < count ==> arr[j].le(arr[2*j+1])
+      requires j > 0 && 0 < 2*j+2 < count ==> arr[j].le(arr[2*j+2])
+
+      ensures (j-1)/2 > 0 ==> forall i | 0 < i < count && (i-1)/2 == (j-1)/2 ::
+                  arr[((j-1)/2-1)/2].le(arr[i])
+      ensures forall i | 0 < i < count && i != (j-1)/2 ::
+                arr[(i-1)/2].le(arr[i])
+      ensures multiset(arr[0..count]) == old(multiset(arr[0..count]))
+    // {
+    //   assert arr[(j-1)/2].lt(arr[j]);
+    //   Solution.LtImpliesLe(arr[(j-1)/2], arr[j]);
+    //   assert arr[(j-1)/2].le(arr[j]);
+
+    //   forall i | 0 < i < count && i != (j-1)/2
+    //     ensures arr[(i-1)/2].le(arr[i])
+    //   {
+    //     if i == j {
+    //       // trivial
+    //     }
+    //     else if (i-1)/2 == (j-1)/2 {
+    //       assert arr[(i-1)/2].le(arr[j]);
+    //       assert arr[j].le(arr[i]);
+    //       Solution.LeTransitive();
+    //       assert arr[(i-1)/2].le(arr[i]);
+    //     }
+    //     else {
+    //       assert arr[i] == old(arr[i]);
+    //       assert old(arr[(i-1)/2]).le(old(arr[i]));
+    //       assert old(arr[(i-1)/2]).le(arr[i]);
+    //     }
+    //   }
+
+    //   if ((j-1)/2 > 0) {
+    //     forall i | 0 < i < count && (i-1)/2 == (j-1)/2
+    //       ensures arr[((j-1)/2-1)/2].le(arr[i])
+    //     {
+    //       if (i != j) {
+    //         assert arr[((j-1)/2-1)/2].le(arr[j]);
+    //         assert arr[j].le(arr[i]);
+    //         Solution.LeTransitive();
+    //         assert arr[((j-1)/2-1)/2].le(arr[i]);
+    //       }
+    //     }
+    //   }
+    // }
+
+    /* Method: swap */
     method Swap(j : int, arr : array<Solution>)
       modifies arr
       requires 0 < j <= count - 1 < arr.Length
@@ -305,15 +355,19 @@ abstract module PQ {
       requires arr[j].lt(arr[(j-1)/2])
       requires j > 0 && 0 < 2*j+1 < count ==> arr[(j-1)/2].le(arr[2*j+1])
       requires j > 0 && 0 < 2*j+2 < count ==> arr[(j-1)/2].le(arr[2*j+2])
+
       ensures (j-1)/2 > 0 ==> forall i | 0 < i < count && (i-1)/2 == (j-1)/2 :: arr[((j-1)/2-1)/2].le(arr[i])
       ensures forall i | 0 < i < count && i != j && i != (j-1)/2 :: arr[i] == old(arr[i])
       ensures forall i | 0 < i < count && i != (j-1)/2 :: arr[(i-1)/2].le(arr[i])
       ensures multiset(arr[0..count]) == old(multiset(arr[0..count]))
     {
       arr[(j-1)/2], arr[j] := arr[j], arr[(j-1)/2]; // swap
-      assert arr[(j-1)/2].lt(arr[j]);  // sabe que x < y
+
+      //SwapPreservesHeapProperty(j, arr);
+
+      assert arr[(j-1)/2].lt(arr[j]);
       Solution.LtImpliesLe(arr[(j-1)/2], arr[j]);
-      assert arr[(j-1)/2].le(arr[j]);  // lemma (x < y) --> x <= y
+      assert arr[(j-1)/2].le(arr[j]);
 
       forall i | 0 < i < count && i != (j-1)/2
         ensures arr[(i-1)/2].le(arr[i])
@@ -321,20 +375,13 @@ abstract module PQ {
         if i == j {
           // trivial
         }
-        else if (i-1)/2 == (j-1)/2 { // i, j son hermanos
-          assert i != j;
-
-          assert arr[(j-1)/2].le(arr[j]);
-          assert arr[(i-1)/2].le(arr[j]); // 4 <= 5
-          assert arr[j].le(arr[i]); // 5 <= a[i]
-
-          Solution.LeTransitive(); // 4 <= 5 y 5 <= i --> 4 <= i
+        else if (i-1)/2 == (j-1)/2 {
+          assert arr[(i-1)/2].le(arr[j]);
+          assert arr[j].le(arr[i]);
+          Solution.LeTransitive();
           assert arr[(i-1)/2].le(arr[i]);
         }
         else {
-          assert i != j;
-          assert (i-1)/2 != (j-1)/2;
-          assert i != (j-1)/2;
           assert arr[i] == old(arr[i]);
           assert old(arr[(i-1)/2]).le(old(arr[i]));
           assert old(arr[(i-1)/2]).le(arr[i]);
@@ -342,19 +389,19 @@ abstract module PQ {
       }
 
       if ((j-1)/2 > 0) {
-        forall i | 0 < i < count && (i-1)/2 == (j-1)/2  // i, j hermanos
-          ensures arr[((j-1)/2-1)/2].le(arr[i]) // el abuelo de j es menor que i
+        forall i | 0 < i < count && (i-1)/2 == (j-1)/2
+          ensures arr[((j-1)/2-1)/2].le(arr[i])
         {
-          if (i == j) {}
-          else { // i != j
-            assert arr[((j-1)/2-1)/2].le(arr[j]); // abuelo <= j
-            assert arr[j].le(arr[i]); // j <= i
-            Solution.LeTransitive(); // abuelo <= j   &&   j <= i  ==> abuelo <= i
-            assert arr[((j-1)/2-1)/2].le(arr[i]); // abuelo <=  i
+          if (i != j) {
+            assert arr[((j-1)/2-1)/2].le(arr[j]);
+            assert arr[j].le(arr[i]);
+            Solution.LeTransitive();
+            assert arr[((j-1)/2-1)/2].le(arr[i]);
           }
         }
       }
     }
+
 
     /* Method: moves the last inserted node upward in the heap until the heap property is restored */
     method Float()
@@ -374,10 +421,18 @@ abstract module PQ {
         invariant multiset(arr[0..count]) == old(multiset(arr[0..count-1]) + multiset{arr[count-1]})
       {
         Swap(j, arr);
+
+        // label L:
+
+        // arr[(j-1)/2], arr[j] := arr[j], arr[(j-1)/2]; // swap
+
+        //hola@L(j, arr);     
+
+
+
         j := (j-1)/2;
       }
     }
-
 
 
     /* Method: deletes the element with the minimum priority of the heap */
@@ -402,6 +457,7 @@ abstract module PQ {
       assert Model() == multiset(arr[0..count]);
     }
 
+
     method Swap2(m : int, arr : array<Solution>) // j = m
       modifies arr
       requires 0 < m <= count - 1 < arr.Length
@@ -412,7 +468,6 @@ abstract module PQ {
       ensures forall i | 0 < i < count && i != m && (i-1)/2 != m :: arr[(i-1)/2].le(arr[i])
       ensures multiset(arr[0..count]) == old(multiset(arr[0..count]))
     {
-
       arr[(m-1)/2], arr[m] := arr[m], arr[(m-1)/2]; // swap
       assert arr[(m-1)/2].lt(arr[m]);  // sabe que x < y
       Solution.LtImpliesLe(arr[(m-1)/2], arr[m]);
@@ -420,7 +475,6 @@ abstract module PQ {
 
 
       assume forall i | 0 < i < count && i != m && (i-1)/2 != m :: arr[(i-1)/2].le(arr[i]);
-      
     }
 
     lemma SonIsSmaller(m : int, arr : array<Solution>)
@@ -431,10 +485,9 @@ abstract module PQ {
       requires m == if 2*((m-1)/2)+2 < count && arr[2*((m-1)/2)+2].le(arr[2*((m-1)/2)+1]) then 2*((m-1)/2)+2 else 2*((m-1)/2)+1
       ensures arr[m].le(arr[2*((m-1)/2) + 1])
       ensures 2*((m-1)/2) + 2 < count ==> arr[m].le(arr[2*((m-1)/2) + 2])
-    // {
-    //   Solution.LtWeakOrder();
-
-    // }
+    {
+      Solution.LtWeakOrder();
+    }
 
     /* Method: moves a node downward in the heap until the heap property is restored */
     method Sink()
@@ -451,7 +504,7 @@ abstract module PQ {
         invariant multiset(arr[0..count]) == old(multiset(arr[0..count]))
       {
         var m : nat;
-        
+
         m := if 2*j+2 < count && arr[2*j+2].le(arr[2*j+1]) then 2*j+2 else 2*j+1;
         // assert (m-1)/2 == j; // j es el padre de m
         // assert m == if 2*j+2 < count && arr[2*j+2].le(arr[2*j+1]) then 2*j+2 else 2*j+1;
@@ -461,19 +514,11 @@ abstract module PQ {
         //   {assert j == (m-1)/2;}
         //   if 2*((m-1)/2)+2 < count && arr[2*((m-1)/2)+2].le(arr[2*((m-1)/2)+1]) then 2*((m-1)/2)+2 else 2*((m-1)/2)+1;
         // }
-        SonIsSmaller(m, arr);          
-          
+        SonIsSmaller(m, arr); // sirve para la precondicion de Swap2
 
-        if (arr[m].lt(arr[j])) {         
+        if (arr[m].lt(arr[j])) {
           Swap2(m, arr);
-          // arr[(m-1)/2], arr[m] := arr[m], arr[(m-1)/2]; // swap
-          // assert arr[(m-1)/2].lt(arr[m]);  // sabe que x < y
-          // Solution.LtImpliesLe(arr[(m-1)/2], arr[m]);
-          // assert arr[(m-1)/2].le(arr[m]);  // lemma (x < y) --> x <= y
-                    
-          assert arr[(m-1)/2].lt(arr[m]);
           j := m;
-          assume false;
         }
         else {
           break;
