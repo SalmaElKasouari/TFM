@@ -421,7 +421,6 @@ abstract module PQ {
         invariant j > 0 && 0 < 2*j+2 < count ==> arr[(j-1)/2].le(arr[2*j+2])
         invariant multiset(arr[0..count]) == old(multiset(arr[0..count-1]) + multiset{arr[count-1]})
       {
-
         label L:
 
         arr[(j-1)/2], arr[j] := arr[j], arr[(j-1)/2]; // swap
@@ -477,9 +476,6 @@ abstract module PQ {
 
     lemma SonIsSmaller(m : int, arr : array<Solution>)
       requires 0 < m < count <= arr.Length
-      // requires m == 2*(m-1)/2+1 || (2*(m-1)/2+2 < count && m == 2*(m-1)/2+2)
-      // requires 2*(m-1)/2+2 < count && m == 2*(m-1)/2+1 ==> arr[m].le(arr[2*(m-1)/2+2])
-      // requires m == 2*(m-1)/2+2 ==> arr[m].le(arr[2*(m-1)/2+1])
       requires m == if 2*((m-1)/2)+2 < count && arr[2*((m-1)/2)+2].le(arr[2*((m-1)/2)+1]) then 2*((m-1)/2)+2 else 2*((m-1)/2)+1
       ensures arr[m].le(arr[2*((m-1)/2) + 1])
       ensures 2*((m-1)/2) + 2 < count ==> arr[m].le(arr[2*((m-1)/2) + 2])
@@ -501,18 +497,9 @@ abstract module PQ {
         invariant forall i | 0 < i < count && i != j && (i-1)/2 != j :: arr[(i-1)/2].le(arr[i])
         invariant multiset(arr[0..count]) == old(multiset(arr[0..count]))
       {
-        var m : nat;
+        var m := if 2*j+2 < count && arr[2*j+2].le(arr[2*j+1]) then 2*j+2 else 2*j+1;
 
-        m := if 2*j+2 < count && arr[2*j+2].le(arr[2*j+1]) then 2*j+2 else 2*j+1;
-        // assert (m-1)/2 == j; // j es el padre de m
-        // assert m == if 2*j+2 < count && arr[2*j+2].le(arr[2*j+1]) then 2*j+2 else 2*j+1;
-        // calc {
-        //   m;
-        //   if 2*j+2 < count && arr[2*j+2].le(arr[2*j+1]) then 2*j+2 else 2*j+1;
-        //   {assert j == (m-1)/2;}
-        //   if 2*((m-1)/2)+2 < count && arr[2*((m-1)/2)+2].le(arr[2*((m-1)/2)+1]) then 2*((m-1)/2)+2 else 2*((m-1)/2)+1;
-        // }
-        SonIsSmaller(m, arr); // sirve para la precondicion de Swap2
+        SonIsSmaller(m, arr); // sirve para la precondicion de Swap2: requires 2*((m-1)/2) + 2 < count ==> arr[m].le(arr[2*((m-1)/2) + 2])
 
         if (arr[m].lt(arr[j])) {
           Swap2(m, arr);
