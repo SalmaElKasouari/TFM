@@ -314,6 +314,10 @@ abstract module PQ {
       ensures (j-1)/2 > 0 ==> forall i | 0 < i < count && (i-1)/2 == (j-1)/2 :: arr[((j-1)/2-1)/2].le(arr[i])
       ensures forall i | 0 < i < count && i != j && i != (j-1)/2 :: arr[i] == old(arr[i])
       ensures forall i | 0 < i < count && i != (j-1)/2 :: arr[(i-1)/2].le(arr[i])
+
+      ensures forall i | 0 < i < count && i != (j-1)/2 :: arr[(i-1)/2].le(arr[i])
+      ensures (j-1)/2 > 0 && 0 < 2*(j-1)/2+1 < count ==> arr[((j-1)/2-1)/2].le(arr[2*(j-1)/2+1])
+      ensures (j-1)/2 > 0 && 0 < 2*(j-1)/2+2 < count ==> arr[((j-1)/2-1)/2].le(arr[2*(j-1)/2+2])
     {
       assert arr[(j-1)/2].lt(arr[j]);
       Solution.LtImpliesLe(arr[(j-1)/2], arr[j]);
