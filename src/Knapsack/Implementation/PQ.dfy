@@ -298,7 +298,7 @@ abstract module PQ {
     }
 
 
-    twostate {:only} lemma SwapFloatPreservesHeapProperty(j : int, arr : array<Solution>)
+    twostate lemma SwapFloatPreservesHeapProperty(j : int, arr : array<Solution>)
       requires 0 < j <= count - 1 < arr.Length
       
       requires arr[(j-1)/2] == old(arr[j]) //estado antiguo: el padre era antes lo que habia en el hijo
