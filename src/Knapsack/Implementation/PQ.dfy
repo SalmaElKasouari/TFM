@@ -303,14 +303,14 @@ abstract module PQ {
       
       requires arr[(j-1)/2] == old(arr[j]) //estado antiguo: el padre era antes lo que habia en el hijo
       requires arr[j] == old(arr[(j-1)/2]) //estado antiguo: el hijo era antes lo que habia en el padre
-      requires forall i | 0 < i < count && i != j :: arr[i] == (old(arr[i]))
+      requires forall i | 0 < i < count && i != j && i != (j-1)/2 :: arr[i] == (old(arr[i]))
 
-      requires forall i | 0 < i < count && i != j  :: old(arr[(i-1)/2]).le(old(arr[i])) // estado antiguo: todos menos j y su padre eran menores que su padre
+      requires forall i | 0 < i < count && i != j :: old(arr[(i-1)/2]).le(old(arr[i])) // estado antiguo: todos menos j y su padre eran menores que su padre
       requires old(arr[j]).lt(old(arr[(j-1)/2])) // estado antiguo: el hijo era menor que su padre
       requires j > 0 && 0 < 2*j+1 < count ==> old(arr[(j-1)/2]).le(old(arr[2*j+1]))
       requires j > 0 && 0 < 2*j+2 < count ==> old(arr[(j-1)/2]).le(old(arr[2*j+2]))
 
-      // ensures (j-1)/2 > 0 ==> forall i | 0 < i < count && (i-1)/2 == (j-1)/2 :: arr[((j-1)/2-1)/2].le(arr[i])
+      ensures (j-1)/2 > 0 ==> forall i | 0 < i < count && (i-1)/2 == (j-1)/2 :: arr[((j-1)/2-1)/2].le(arr[i])
       ensures forall i | 0 < i < count && i != (j-1)/2 :: arr[(i-1)/2].le(arr[i])
       ensures forall i | 0 < i < count && i != (j-1)/2 :: arr[i] == old(arr[i])
       ensures (j-1)/2 > 0 && 0 < 2*(j-1)/2+1 < count ==> arr[((j-1)/2-1)/2].le(arr[2*(j-1)/2+1])
@@ -422,6 +422,7 @@ abstract module PQ {
       while j > 0 && arr[j].lt(arr[(j-1)/2])
         invariant 0 <= j <= count - 1 < arr.Length
         invariant forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i])
+        invariant forall i | 0 < i < count && i != j :: arr[i] == old(arr[i])
         //invariant forall i | 0 < i < count && i == (j-1)/2 :: arr[(i-1)/2].le(arr[i])
         invariant j > 0 && 0 < 2*j+1 < count ==> arr[(j-1)/2].le(arr[2*j+1])
         invariant j > 0 && 0 < 2*j+2 < count ==> arr[(j-1)/2].le(arr[2*j+2])
@@ -430,7 +431,6 @@ abstract module PQ {
         label L:
 
         arr[(j-1)/2], arr[j] := arr[j], arr[(j-1)/2]; // swap
-
 
         SwapFloatPreservesHeapProperty@L(j, arr);
 
