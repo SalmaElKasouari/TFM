@@ -298,22 +298,20 @@ abstract module PQ {
     }
 
 
-    twostate lemma SwapFloatPreservesHeapProperty(j : int, arr : array<Solution>)
+    twostate {:only} lemma SwapFloatPreservesHeapProperty(j : int, arr : array<Solution>)
       requires 0 < j <= count - 1 < arr.Length
       
-      requires forall i | 0 < i < count && i != j  :: old(arr[(i-1)/2]).le(old(arr[i])) // estado antiguo: todos menos j y su padre eran menores que su padre
       requires arr[(j-1)/2] == old(arr[j]) //estado antiguo: el padre era antes lo que habia en el hijo
-      requires arr[j] == old(arr[(j-1)/2]) //estado antiguo: el hijo era antes lo que habi en el padre
+      requires arr[j] == old(arr[(j-1)/2]) //estado antiguo: el hijo era antes lo que habia en el padre
+      requires forall i | 0 < i < count && i != j :: arr[i] == (old(arr[i])) 
 
+      requires forall i | 0 < i < count && i != j  :: old(arr[(i-1)/2]).le(old(arr[i])) // estado antiguo: todos menos j y su padre eran menores que su padre
       requires old(arr[j]).lt(old(arr[(j-1)/2])) // estado antiguo: el hijo era menor que su padre
-      requires forall i | 0 < i < count && i != j :: arr[i] == (old(arr[i]))
-      
       requires j > 0 && 0 < 2*j+1 < count ==> old(arr[j]).le(old(arr[2*j+1]))
       requires j > 0 && 0 < 2*j+2 < count ==> old(arr[j]).le(old(arr[2*j+2]))
 
-      ensures (j-1)/2 > 0 ==> forall i | 0 < i < count && (i-1)/2 == (j-1)/2 :: arr[((j-1)/2-1)/2].le(arr[i])
-      ensures forall i | 0 < i < count && i != j && i != (j-1)/2 :: arr[i] == old(arr[i])
-      ensures forall i | 0 < i < count && i != (j-1)/2 :: arr[(i-1)/2].le(arr[i])
+      // ensures (j-1)/2 > 0 ==> forall i | 0 < i < count && (i-1)/2 == (j-1)/2 :: arr[((j-1)/2-1)/2].le(arr[i])
+      // ensures forall i | 0 < i < count && i != (j-1)/2 :: arr[(i-1)/2].le(arr[i])
 
       ensures forall i | 0 < i < count && i != (j-1)/2 :: arr[(i-1)/2].le(arr[i])
       ensures (j-1)/2 > 0 && 0 < 2*(j-1)/2+1 < count ==> arr[((j-1)/2-1)/2].le(arr[2*(j-1)/2+1])
