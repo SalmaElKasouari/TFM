@@ -419,8 +419,6 @@ abstract module PQ {
       while j > 0 && arr[j].lt(arr[(j-1)/2])
         invariant 0 <= j <= count - 1 < arr.Length
         invariant forall i | 0 < i < count && i != j :: arr[(i-1)/2].le(arr[i])
-        invariant forall i | 0 < i < count && i != j :: arr[i] == old(arr[i])
-        //invariant forall i | 0 < i < count && i == (j-1)/2 :: arr[(i-1)/2].le(arr[i])
         invariant j > 0 && 0 < 2*j+1 < count ==> arr[(j-1)/2].le(arr[2*j+1])
         invariant j > 0 && 0 < 2*j+2 < count ==> arr[(j-1)/2].le(arr[2*j+2])
         invariant multiset(arr[0..count]) == old(multiset(arr[0..count-1]) + multiset{arr[count-1]})
