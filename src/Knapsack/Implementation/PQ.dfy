@@ -303,7 +303,7 @@ abstract module PQ {
       requires old(arr[j]).lt(old(arr[(j-1)/2])) // estado antiguo: el hijo era menor que su padre
       requires arr[(j-1)/2] == old(arr[j]) //estado antiguo: el padre era antes lo que habia en el hijo
       requires arr[j] == old(arr[(j-1)/2]) //estado antiguo: el hijo era antes lo que habi en el padre
-      requires forall i | 0 < i < count && i != j :: old(arr[(i-1)/2]).le(old(arr[i])) // estado antiguo: todos menos j eran menores que su padre
+      requires forall i | 0 < i < count && i != j && i != (j-1)/2 :: old(arr[(i-1)/2]).le(old(arr[i])) // estado antiguo: todos menos j y su padre eran menores que su padre
       requires forall i | 0 < i < count && i != j :: arr[i] == (old(arr[i]))
       requires arr[(j-1)/2].lt(arr[j]) // estado nuevo: el hijo es mayor que su padre (ya se hizo swap)
       
