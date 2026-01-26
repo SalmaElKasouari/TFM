@@ -297,54 +297,57 @@ abstract module PQ {
       arr := aux;
     }
 
-
+    /* Lemma: proves that after swaping the value between j and his father (j-1)/2 in the float process, the heap property (excepting the father with its ancestors) */
     twostate lemma SwapFloatPreservesHeapProperty(j : int, arr : array<Solution>)
       requires 0 < j <= count - 1 < arr.Length
-      requires arr[j] == old(arr[(j-1)/2])
-      requires arr[(j-1)/2] == old(arr[j])
-      requires forall i | 0 <= i < count && i != j && i != (j-1)/2 :: arr[i] == old(arr[i])
-      requires old(arr[j]).lt(old(arr[(j-1)/2])) // estado antiguo: el hijo era menor que su padre
-      requires forall i | 0 < i < count && i != j :: old(arr[(i-1)/2]).le(old(arr[i])) // estado antiguo: todos menos j eran menores que su padre
-      requires arr[(j-1)/2].lt(arr[j]) // estado nuevo: el hijo es mayor que su padre (ya se hizo swap)
-      requires j > 0 && 0 < 2*j+1 < count ==> old(arr[(j-1)/2]).le(arr[2*j+1])
-      requires j > 0 && 0 < 2*j+2 < count ==> old(arr[(j-1)/2]).le(arr[2*j+2])
 
-      ensures (j-1)/2 > 0 ==> forall i | 0 < i < count && (i-1)/2 == (j-1)/2 :: arr[((j-1)/2-1)/2].le(arr[i])
-      ensures forall i | 0 < i < count && i != j && i != (j-1)/2 :: arr[i] == old(arr[i])
-      ensures forall i | 0 < i < count && i != (j-1)/2 :: arr[(i-1)/2].le(arr[i])
+      // Precondiciones sobre el intercambio
+      requires arr[j] == old(arr[(j-1)/2]) // actual hijo es lo que era el padre
+      requires arr[(j-1)/2] == old(arr[j]) // actual padre es lo que era el hijo
+      requires forall i | 0 <= i < count && i != j && i != (j-1)/2 :: arr[i] == old(arr[i]) // todos los elementos excepto j y su padre no han sido modificados 
+      
+      // Precondiciones sobre la propiedad heap
+      requires old(arr[j]).lt(old(arr[(j-1)/2])) // estado antiguo: el hijo era menor que su padre (no cumple heap)
+      requires forall i | 0 < i < count && i != j :: old(arr[(i-1)/2]).le(old(arr[i])) // estado antiguo: todos menos j eran menores que su padre
+      requires arr[(j-1)/2].lt(arr[j]) // estado nuevo: el hijo es mayor que su padre (ya se hizo swap, si cumple heap)
+      requires j > 0 && 0 < 2*j+1 < count ==> old(arr[(j-1)/2]).le(arr[2*j+1]) // el padre de j es menor que el hijo izquierdo de j
+      requires j > 0 && 0 < 2*j+2 < count ==> old(arr[(j-1)/2]).le(arr[2*j+2]) // el padre de j es menor que el hijo derecho de j
+
+      // Postcondiciones
+      ensures forall i | 0 < i < count && i != (j-1)/2 :: arr[(i-1)/2].le(arr[i]) // todos los elementos cumplen la propiedad de heap a excepción del padre de j que seguirá flotando si se da el caso
+      ensures (j-1)/2 > 0 ==> forall i | 0 < i < count && (i-1)/2 == (j-1)/2 :: arr[((j-1)/2-1)/2].le(arr[i]) // i,j que son hermanos cumplen la propiedad de heap con respecto a su abuelo, es decir, son mayores que el padre del padre de j
     {
       assert arr[(j-1)/2].lt(arr[j]);
-      Solution.LtImpliesLe(arr[(j-1)/2], arr[j]);
+      Solution.LtImpliesLe(arr[(j-1)/2], arr[j]); // x < y implies x <= y is true
       assert arr[(j-1)/2].le(arr[j]);
 
       forall i | 0 < i < count && i != (j-1)/2
         ensures arr[(i-1)/2].le(arr[i])
       {
-        if i == j {
-          // trivial
+        if i == j {}
+        else if (i-1)/2 == (j-1)/2 { // i, j son hermanos (tienen mismo padre)
+          assert arr[(i-1)/2].le(arr[j]); // x <= y
+          assert arr[j].le(arr[i]); // y <= z
+          Solution.LeTransitive(); // por transitividad:
+          assert arr[(i-1)/2].le(arr[i]); // x <= z
         }
-        else if (i-1)/2 == (j-1)/2 { //i, j son hermanos
-          assert arr[(i-1)/2].le(arr[j]);
-          assert arr[j].le(arr[i]);
-          Solution.LeTransitive();
-          assert arr[(i-1)/2].le(arr[i]);
-        }
-        else { //i, j no son hermanos
-          assert arr[i] == old(arr[i]);
-          assert old(arr[(i-1)/2]).le(old(arr[i]));
-          assert old(arr[(i-1)/2]).le(arr[i]);
+        else { // i, j no son hermanos: solo se ha modificado j y su padre
+          assert arr[i] == old(arr[i]); // el resto de elementos i, permanecen igual que antes
+          assert old(arr[(i-1)/2]).le(old(arr[i])); 
+          assert old(arr[(i-1)/2]).le(arr[i]); // por lo tanto, al no ser modificados, la propiedad de heap se sigue manteniendo
         }
       }
 
-      if ((j-1)/2 > 0) {        
+      if ((j-1)/2 > 0) { 
         forall i | 0 < i < count && (i-1)/2 == (j-1)/2
-          ensures arr[((j-1)/2-1)/2].le(arr[i])
+          ensures arr[((j-1)/2-1)/2].le(arr[i])  // los hijos del padre de j (i,j), son mayores que el abuelo de j
         {
-          if (i != j) {
-            assert arr[((j-1)/2-1)/2].le(arr[j]);
-            assert arr[j].le(arr[i]);
-            Solution.LeTransitive();
-            assert arr[((j-1)/2-1)/2].le(arr[i]);
+          if (i == j) {}
+          else {
+            assert arr[((j-1)/2-1)/2].le(arr[j]); // x <= y
+            assert arr[j].le(arr[i]); // y <= z
+            Solution.LeTransitive(); // por transitivdad
+            assert arr[((j-1)/2-1)/2].le(arr[i]); // x <= z
           }
         }
       }
@@ -352,7 +355,7 @@ abstract module PQ {
 
 
 
-    /* Method: swap */
+    /* Method: this was the old swap method to verify float*/
     method Swap(j : int, arr : array<Solution>)
       modifies arr
       requires 0 < j <= count - 1 < arr.Length
@@ -485,6 +488,7 @@ abstract module PQ {
       Solution.LtWeakOrder();
     }
 
+
     /* Method: moves a node downward in the heap until the heap property is restored */
     method Sink()
       modifies arr
@@ -508,7 +512,7 @@ abstract module PQ {
           j := m;
         }
         else {
-          break;
+          break; // poner booleano 
         }
       }
       assume (forall i | 0 < i < count :: arr[(i-1)/2].le(arr[i]));
