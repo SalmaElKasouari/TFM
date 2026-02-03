@@ -21,7 +21,7 @@ include "../Specification/ItemData.dfy"
 
 module Item {
   
-  import  opened ItemData
+  import opened ItemData
 
   class Item {
 
