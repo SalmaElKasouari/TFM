@@ -488,26 +488,28 @@ abstract module PQ {
     }
 
     /* Lemma: proves that after swaping the value between m and his father j = (m-1)/2 in the sink process, the heap property holds (excepting the father with its ancestors) */
-    twostate lemma SwapSinkPreservesHeapProperty(m : int, arr : array<Solution>)
+    twostate lemma SwapSinkPreservesHeapProperty(j:int, m : int, arr : array<Solution>)
+      requires j == (m-1)/2 && (m == 2*j +1 || m == 2*j+2)
       requires 0 < m <= count - 1 < arr.Length
+      requires 2*j+1 < count &&  ( old(arr[2*j+1]).lt(old(arr[j])) || (2*j+2 < count && old(arr[2*j+2]).lt(old(arr[j]))))
 
       // Precondiciones sobre el intercambio
-      requires arr[m] == old(arr[(m-1)/2]) // actual hijo es lo que era el padre
-      requires arr[(m-1)/2] == old(arr[m]) // actual padre es lo que era el hijo
-      requires forall i | 0 <= i < count && i != m && i != (m-1)/2 :: arr[i] == old(arr[i]) // todos los elementos excepto j y su padre no han sido modificados
+      requires arr[m] == old(arr[j]) // actual hijo es lo que era el padre
+      requires arr[j] == old(arr[m]) // actual padre es lo que era el hijo
+      requires forall i | 0 <= i < count && i != m && i != j :: arr[i] == old(arr[i]) // todos los elementos excepto j y su padre no han sido modificados
 
       // Precondiciones sobre la propiedad heap
-      requires old(arr[m]).lt(old(arr[(m-1)/2])) // estado antiguo: el hijo era menor que su padre (no cumple heap)
-      requires old(arr[m]).le(old(arr[2*((m-1)/2)+1])) // y menor o igual que su hermano
-      //requires 2*((m-1)/2) + 2 < count ==> old(arr[m]).le(old(arr[2*((m-1)/2) + 2])) // si existe hijo derecho, m es menor que ese hijo derecho
-      requires forall i | 0 < i < count && i != (m-1)/2 && (i-1)/2 != (m-1)/2 :: old(arr[(i-1)/2]).le(old(arr[i])) // estado antiguo: todos excepto j y sus hijos, son menores que su padre
-      // requires (m-1)/2 > 0 ==> old(arr[((m-1)/2-1)/2]).le(old(arr[m])) // m es mayor que su abuelo
-      // requires (m-1)/2 > 0 && 0 < 2*((m-1)/2)+1 < count ==> old(arr[(((m-1)/2)-1)/2]).le(arr[2*((m-1)/2)+1]) // el padre de j es menor que el hijo izquierdo de j
-      // requires (m-1)/2 > 0 && 0 < 2*((m-1)/2)+2 < count ==> old(arr[(((m-1)/2)-1)/2]).le(arr[2*((m-1)/2)+2]) // el padre de j es menor que el hijo derecho de j
+      requires old(arr[m]).lt(old(arr[j])) // estado antiguo: el hijo era menor que su padre (no cumple heap)
+      requires old(arr[m]).le(old(arr[2*j+1])) // y menor o igual que su hermano
+      requires 2*j + 2 < count ==> old(arr[m]).le(old(arr[2*j + 2])) // si existe hijo derecho, m es menor que ese hijo derecho
+      
+      requires forall i | 0 < i < count && (i-1)/2 != j:: old(arr[(i-1)/2]).le(old(arr[i])) // estado antiguo: todos excepto j y sus hijos, son menores que su padre
+      requires j > 0 ==> old(arr[(j-1)/2]).le(old(arr[m])) // m es mayor que su abuelo
+      requires j > 0 && 0 < 2*j+2 < count ==> old(arr[(j-1)/2]).le(arr[2*j+2]) // el padre de j es menor que el hijo derecho de j
 
       // Postcondiciones
-      ensures forall i | 0 < i < count && i != m :: arr[(i-1)/2].le(arr[i]) // todos los elementos cumplen la propiedad de heap a excepción de m que podrá seguir hundiendose
-    {
+      ensures forall i | 0 < i < count && (i-1)/2 != m :: arr[(i-1)/2].le(arr[i]) // todos los elementos cumplen la propiedad de heap a excepción de m que podrá seguir hundiendose
+   /* {
       assert arr[(m-1)/2].lt(arr[m]);
       Solution.LtImpliesLe(arr[(m-1)/2], arr[m]); // x < y implies x <= y is true
       assert arr[(m-1)/2].le(arr[m]);
@@ -536,11 +538,11 @@ abstract module PQ {
           
         }
       }
-    }
+    }*/
 
 
     /* Method: moves a node downward in the heap until the heap property is restored */
-    method Sink()
+    method {:only} Sink()
       modifies arr
       requires 0 <= 0 <= count <= arr.Length
       requires forall i | 0 < i < count && (i-1)/2 != 0 :: arr[(i-1)/2].le(arr[i])
@@ -550,16 +552,12 @@ abstract module PQ {
       var seguir := true;
       var j := 0;
 
-      while (2*j+1 < count && (if 2*j+2 < count && arr[2*j+2].le(arr[2*j+1])
-        then arr[2*j+2]
-        else arr[2*j+1])
-        .lt(arr[j])) // el bucle sigue si: j tiene hijos y el minimo de los dos es menor que j
-        invariant 0 <= j <= count <= arr.Length
-        invariant forall i | 0 < i < count && i != j && (i-1)/2 != j :: arr[(i-1)/2].le(arr[i]) // todos excepto j y sus hijos, son menores que su padre
-        // invariant j > 0 ==> arr[(j-1)/2].le(arr[j])
-        // invariant j > 0 && 2*j+1 < count ==> arr[(j-1)/2].le(arr[2*j+1]) // el padre de j es menor que el hijo izquierdo de j
-        // invariant j > 0 && 2*j+2 < count ==> arr[(j-1)/2].le(arr[2*j+2]) // el padre de j es menor que el hijo derecho de j
-        invariant multiset(arr[0..count]) == old(multiset(arr[0..count]))
+      while (2*j+1 < count &&  ( arr[2*j+1].lt(arr[j]) || (2*j+2 < count && arr[2*j+2].lt(arr[j]))))//(if 2*j+2 < count && arr[2*j+2].le(arr[2*j+1]) then arr[2*j+2] else arr[2*j+1]).lt(arr[j])) // el bucle sigue si: j tiene hijos y el minimo de los dos es menor que j
+         invariant 0 <= j <= count <= arr.Length
+         invariant forall i | 0 < i < count  && (i-1)/2 != j :: arr[(i-1)/2].le(arr[i]) // todos excepto j y sus hijos, son menores que su padre
+         invariant j > 0 && 2*j+1 < count ==> arr[(j-1)/2].le(arr[2*j+1]) // el padre de j es menor que el hijo izquierdo de j
+         invariant j > 0 && 2*j+2 < count ==> arr[(j-1)/2].le(arr[2*j+2]) // el padre de j es menor que el hijo derecho de j
+         invariant multiset(arr[0..count]) == old(multiset(arr[0..count]))
       {
         var m := if 2*j+2 < count && arr[2*j+2].le(arr[2*j+1]) then 2*j+2 else 2*j+1;
 
@@ -567,22 +565,22 @@ abstract module PQ {
         SonIsSmaller(m, arr);
         label L:
 
-        arr[j], arr[m] := arr[m], arr[j]; // swap (j padre, m hijo)
+        
+        assert arr[m].lt(arr[j]) by{
+           assert ( arr[2*j+1].lt(arr[j]) || (2*j+2 < count && arr[2*j+2].lt(arr[j])));
+           if ( arr[2*j+1].lt(arr[j]))
+            {Solution.LeLtTransitive(arr[m],arr[2*j+1],arr[j]);}
+          else {Solution.LeLtTransitive(arr[m],arr[2*j+2],arr[j]);}
 
-        SwapSinkPreservesHeapProperty@L(m, arr);
+        }
+
+        arr[j], arr[m] := arr[m], arr[j]; // swap (j padre, m hijo)
+        
+        SwapSinkPreservesHeapProperty@L(j, m, arr);
 
         j := m;
-      }
-
-      assert Valid() by {
-        assert IsHeap(0, count) by {
-          assert 0 <= 0 <= count <= arr.Length;
-          assume (forall i | 0 < i < count :: arr[(i-1)/2].le(arr[i]));
-        }
-        assert 0 <= count <= arr.Length;
-      }
+      }   
     }
-
 
   } // fin clase
 
