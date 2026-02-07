@@ -471,7 +471,7 @@ abstract module PQ {
 
 
     /* Lemma: proves that after swaping the value between m and his father j = (m-1)/2 in the sink process, the heap property holds (excepting the father with its ancestors) */
-    twostate lemma {:only} SwapSinkPreservesHeapProperty(j:int, m : int, arr : array<Solution>)
+    twostate lemma SwapSinkPreservesHeapProperty(j:int, m : int, arr : array<Solution>)
       requires j == (m-1)/2 && (m == 2*j +1 || m == 2*j+2)
       requires 0 < m <= count - 1 < arr.Length
       requires 2*j+1 < count &&  ( old(arr[2*j+1]).lt(old(arr[j])) || (2*j+2 < count && old(arr[2*j+2]).lt(old(arr[j]))))

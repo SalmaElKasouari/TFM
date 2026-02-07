@@ -10,8 +10,16 @@ Estructura del fichero:
 
 ---------------------------------------------------------------------------------------------------------------------*/
 
-//include "BB.dfy"
+include "Item.dfy"
+include "Input.dfy"
+include "KnapsackPQ.dfy"
+include "PQ.dfy"
+
+import opened KnapsackPQ
 import opened Input
+
+
+
 /* Métodos */
 
 /*
