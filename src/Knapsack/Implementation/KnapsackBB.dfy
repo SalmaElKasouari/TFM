@@ -54,7 +54,7 @@ method ComputeSolution(input: Input) returns (bs: Solution)
 		assert ps.Model().Partial(input.Model());
 		assert ps.IsUpperBound(input);
 	}
-	
+
 
 	/* Construimos una solución mejor (bs) */
 	var bs_itemsAssign := new bool[n](i => false);
@@ -63,7 +63,7 @@ method ComputeSolution(input: Input) returns (bs: Solution)
 	var bs_k := n;
 	var bs_priority := 0.0;
 	bs := new Solution(bs_itemsAssign, bs_totalValue, bs_totalWeight, bs_k, bs_priority);
-	bs.priority := ps.priority; // puede que sea muy feo esto, le quiero poner la misma prioridad que ps, la de coger todos los objetos restantes, es decir, todos
+	bs.priority := ps.priority; // puede que sea muy feo esto, le quiero poner la misma prioridad que ps, la de coger todos los objetos restantes, porque bs es completa y tiene total value = 0, que implica 0 <= ps.priority
 
 	assert bs.Valid(input) by {
 		bs.Model().SumOfFalsesEqualsZero(input.Model());	

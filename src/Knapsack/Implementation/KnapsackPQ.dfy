@@ -93,9 +93,7 @@ module KnapsackPQ refines PQ {
 
 
     /*
-    Método: cálculo de la bound. Al tratarse de un problema de maximización (maximizar el valor de los objetos), necesitamos 
-    una bound superior del valor de la mejor solución alcanzable. En este caso, la bound consiste en seleccionar todos 
-    los objetos restantes.
+    Método: cálculo la cota superior de la mejor solución alcanzable. La cota superior consiste en seleccionar todos los objetos restantes.
     //
     Verificación: usando el lema AllTruesIsUpperBoundForAll.
     */
