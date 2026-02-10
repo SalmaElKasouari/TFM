@@ -61,7 +61,7 @@ module KnapsackPQ refines PQ {
 
     /* Lemma: proof that lt satisfies transitive incomparability */
     static lemma LtTransitiveIncomparability(){}
-    
+
 
 
     /* 
@@ -89,6 +89,47 @@ module KnapsackPQ refines PQ {
       requires input.Valid()
     {
       Model().IsUpperBound(this.priority, input.Model())
+    }
+
+
+    /*
+    Método: cálculo de la bound. Al tratarse de un problema de maximización (maximizar el valor de los objetos), necesitamos 
+    una bound superior del valor de la mejor solución alcanzable. En este caso, la bound consiste en seleccionar todos 
+    los objetos restantes.
+    //
+    Verificación: usando el lema AllTruesIsUpperBoundForAll.
+    */
+    method CalculateUpperBound (input : Input) returns (upperBound : real)
+      requires input.Valid()
+      requires Model().Explicit(input.Model().items)
+      requires Model().TotalValue(input.Model().items) == totalValue
+      requires 0 <= this.k <= this.itemsAssign.Length      
+      ensures forall s : SolutionData | && |s.itemsAssign| == |this.Model().itemsAssign|
+                                        && s.k == |s.itemsAssign|
+                                        && this.k <= s.k
+                                        && s.Extends(this.Model())
+                                        && s.Valid(input.Model())
+                :: s.TotalValue(input.Model().items) <= upperBound
+    {
+      ghost var ps' := SolutionData(this.Model().itemsAssign, this.k);
+      assert |ps'.itemsAssign| == |this.Model().itemsAssign|;
+      upperBound := this.totalValue;
+
+      assert upperBound == ps'.TotalValue(input.Model().items);
+
+      for i := this.k to this.itemsAssign.Length
+        invariant this.k <= ps'.k <= |ps'.itemsAssign| == |this.Model().itemsAssign|
+        invariant ps'.Extends(this.Model())
+        invariant forall j | this.k <= j < i :: ps'.itemsAssign[j]
+        invariant i == ps'.k
+        invariant upperBound == ps'.TotalValue(input.Model().items)
+      {
+        var oldps' := ps';
+        ps' := SolutionData(ps'.itemsAssign[ps'.k := true], ps'.k+1);
+        upperBound := upperBound + input.items[i].value;
+        SolutionData.AddTrueMaintainsSumConsistency(oldps', ps', input.Model());
+      }
+      SolutionData.AllTruesIsUpperBoundForAll(this.Model(), ps', input.Model());
     }
 
 
