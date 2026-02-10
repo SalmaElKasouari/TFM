@@ -24,6 +24,12 @@ Estructura del fichero:
 include "PQ.dfy"
 include "../Specification/SolutionData.dfy"
 include "Input.dfy"
+include "KnapsackPQ.dfy"
+
+import opened KnapsackPQ
+import opened Input
+import opened SolutionData
+
 
 /* Métodos */
 
@@ -47,7 +53,7 @@ se invoca el lema InvalidExtensionsFromInvalidPs(ps, input).
     que los valores de peso y valor coincidan con el estado previo a la llamada. Además, en este punto se presentan 
     tres posibles escenarios
 */
-method KnapsackBT(input: Input, ps: Solution, bs: Solution)
+method KnapsackBB(input: Input, ps: Solution, bs: Solution)
   decreases ps.Bound(),1 // Función de bound
   modifies ps`totalValue, ps`totalWeight, ps`k, ps.itemsAssign
   modifies bs`totalValue, bs`totalWeight, bs`k, bs.itemsAssign
@@ -77,296 +83,7 @@ method KnapsackBT(input: Input, ps: Solution, bs: Solution)
   // Si bs cambia, su nuevo valor total debe ser mayor o igual al valor anterior
   ensures bs.Model().TotalValue(input.Model().items) >= old(bs.Model().TotalValue(input.Model().items))
 
-{
 
-  if (ps.k == input.items.Length) { // hemos tratado todos los objetos
-    KnapsackBTBaseCase(input, ps, bs);
-  }
-  else {
-    if (ps.totalWeight + input.items[ps.k].weight <= input.maxWeight) {
-      KnapsackBTTrueBranch(input, ps, bs);
-    }
-    else {
-      InvalidExtensionsFromInvalidPs(ps, input);
-    }
-
-    label L: // capturamos el momento antes de la llamada
-
-    ghost var oldbs := bs.Model();
-    assert ps.Model().Equals(old(ps.Model()));
-    assert oldbs.OptimalExtension( SolutionData(ps.Model().itemsAssign[ps.k:=true],ps.k+1), input.Model())
-           || oldbs.Equals(old(bs.Model()));
-
-
-    KnapsackBTFalseBranch(input, ps, bs);
-
-    assert bs.Model().OptimalExtension(SolutionData(ps.Model().itemsAssign[ps.k:=false], ps.k+1), input.Model())
-           || bs.Model().Equals(oldbs);
-    assert ps.Model().Equals(old(ps.Model()));
-
-    /* La extensión óptima (bs) sale de la rama false */
-    if bs.Model().OptimalExtension(SolutionData(ps.Model().itemsAssign[ps.k := false], ps.k+1), input.Model()) {
-      assert forall s : SolutionData | s.Valid(input.Model()) && s.Extends(ps.Model()) ::
-          s.TotalValue(input.Model().items) <= bs.Model().TotalValue(input.Model().items);
-    }
-    /* La extensión óptima (bs) no ha mejorado en ninguna de las ramas y por lo tanto sigue siendo la antigua */
-    else if oldbs.Equals(old(bs.Model())) {
-      assert forall s : SolutionData | s.Valid(input.Model()) && s.Extends(ps.Model()) ::
-          s.TotalValue(input.Model().items) <= bs.Model().TotalValue(input.Model().items);
-    }
-    /* La extensión óptima (bs) sale de la rama true */
-    else {
-      /* En este caso la bs es extensión óptima de la rama true, es decir, que la bs que entró en KnapsackFalseBranch 
-      (rama false) no ha mejorado y entonces no ha sido modificada, luego es igual a la que entró que es la que sale
-      de la rama true.
-      */
-      assert bs.Model().Equals(oldbs);
-
-      assert old@L(ps.Model()).Equals(ps.Model());
-      assert old@L(SolutionData(ps.Model().itemsAssign[ps.k := true], ps.k+1)).Equals(SolutionData(ps.Model().itemsAssign[ps.k := true], ps.k+1));
-      assert old(ps.totalWeight + input.items[ps.k].weight <= input.maxWeight);
-      bs.Model().EqualsOptimalExtensionFromEquals(old@L(SolutionData(ps.Model().itemsAssign[ps.k := true], ps.k+1)), SolutionData(ps.Model().itemsAssign[ps.k := true], ps.k+1), input.Model());
-      assert oldbs.OptimalExtension(SolutionData(ps.Model().itemsAssign[ps.k := true], ps.k+1), input.Model());
-
-      assert forall s : SolutionData | s.Valid(input.Model()) && s.Extends(ps.Model()) ::
-          s.TotalValue(input.Model().items) <= bs.Model().TotalValue(input.Model().items);
-    }
-  }
-}
-
-/* 
-Método: Caso base del método algorítmico BT (cuando ya se han tratado todos los objetos). Comparte todas las precondiciones 
-y postcondiciones que KnapsackBT pero incluye la precondicion de que la etapa del arbol de exploración (k) es igual
-que número de objetos de la entrada.
-//
-Verificación:
- - Caso ps.totalValue > bs.totalValue: se usa el lema EqualValueWeightFromEquals para asegurar que 
-  el valor de cualquier solución que sea extensión de ps es igual al valor de ps. Esto asegura que por tanto no hay
-  otra solución con un valor mejor, y con el lema CopyModel se confirma que bs se actualizó correctamente y por
-  tanto guarda la solución optima.
- - Caso ps.totalValue <= bs.totalValue: se usa el lema EqualValueWeightFromEquals para asegurar que 
-  el valor de cualquier solución que sea extensión de ps es igual al valor de ps y como esta es menor o igual que 
-  el valor de bs, se asegura que bs sigue almacenando la solución óptima.
-*/
-method KnapsackBTBaseCase(input: Input, ps: Solution, bs: Solution)
-  decreases ps.Bound() // Función de bound
-  modifies ps`totalValue, ps`totalWeight, ps`k, ps.itemsAssign
-  modifies bs`totalValue, bs`totalWeight, bs`k, bs.itemsAssign
-
-  requires input.Valid()
-  requires ps.Partial(input)
-  requires bs.Valid(input)
-  requires bs.itemsAssign != ps.itemsAssign
-  requires bs != ps
-
-  requires ps.k == input.items.Length
-
-  ensures ps.Partial(input) //dentro ya comprueba ps.itemsAssign.Length == input.items.Length
-  ensures ps.Model().Equals(old(ps.Model())) // las ps actual y antigua deben ser iguales hasta la k
-  ensures ps.k == old (ps.k)
-  ensures ps.totalValue == old(ps.totalValue)
-  ensures ps.totalWeight == old(ps.totalWeight)
-
-  //La mejor solución debe ser válida
-  ensures bs.Valid(input)
-
-  //La mejor solución deber ser una extension optima de ps
-  ensures bs.Model().OptimalExtension(ps.Model(), input.Model()) || bs.Model().Equals(old(bs.Model()))
-
-  //Cualquier extension optima de ps, su valor debe ser menor o igual que la mejor solucion (bs).
-  ensures forall s : SolutionData | s.Valid(input.Model()) && s.Extends(ps.Model()) ::
-            s.TotalValue(input.Model().items) <= bs.Model().TotalValue(input.Model().items)
-
-  // Si bs cambia, su nuevo valor total debe ser mayor o igual al valor anterior
-  ensures bs.Model().TotalValue(input.Model().items) >= old(bs.Model().TotalValue(input.Model().items))
-{
-  /* Hemos encontrado una solución mejor */
-  if (ps.totalValue > bs.totalValue) {
-    bs.Copy(ps);
-    forall s : SolutionData | s.Valid(input.Model()) && s.Extends(ps.Model())
-      ensures s.TotalValue(input.Model().items) <= bs.Model().TotalValue(input.Model().items) 
-    {
-      assert s.Equals(ps.Model());
-      calc {
-        s.TotalValue(input.Model().items);
-        {s.EqualValueWeightFromEquals(ps.Model(), input.Model());}
-        ps.Model().TotalValue(input.Model().items);
-        {bs.CopyModel(ps, input);}
-        bs.Model().TotalValue(input.Model().items);
-      }
-    }
-  }
-  /* No hemos encontrado una solución mejor */
-  else { // ps.totalValue <= bs.totalValue
-    forall s : SolutionData | s.Valid(input.Model()) && s.Extends(ps.Model())
-      ensures s.TotalValue(input.Model().items) <= bs.Model().TotalValue(input.Model().items) 
-    {
-      assert s.Equals(ps.Model());
-      s.EqualValueWeightFromEquals(ps.Model(), input.Model());
-      assert s.TotalValue(input.Model().items) == ps.Model().TotalValue(input.Model().items);
-    }
-  }
-}
-
-
-/* 
-Método: rama false del método algorítmico BT. Es un método que trata la rama de NO coger el objeto. Comparte todas 
-las precondiciones y postcondiciones que KnapsackBT pero incluye la precondicion de que la etapa del arbol de 
-exploración (k) es menor que número de objetos de la entrada.
-  - Se asigna la posición actual (ps.k) a false en ps.itemsAssign, lo que significa que el objeto no se selecciona.  
-  - Se avanza a la siguiente posición (ps.k := ps.k + 1) y se invoca recursivamente al método KnapsackBT para 
-    continuar con la exploración. 
-  - Una vez finalizada la recursión, se restaura ps.k a su valor original (ps.k := ps.k - 1) para volver al estado
-    previo.
-//
-Verificación:
-  - Se emplea la etiqueta L para capturar el estado de ps justo antes de la llamada recursiva (marcado como 
-  old@L), y luego se compara con el estado de la solución al finalizar la recursión, una vez que sus valores han 
-  sido restaurados. Esto permite validar que el estado de la solución parcial se restaura correctamente después 
-  del retroceso.
-*/
-method KnapsackBTFalseBranch(input: Input, ps: Solution, bs: Solution)
-  decreases ps.Bound(),0 // Función de bound
-  modifies ps`totalValue, ps`totalWeight, ps`k, ps.itemsAssign
-  modifies bs`totalValue, bs`totalWeight, bs`k, bs.itemsAssign
-
-  requires input.Valid()
-  requires ps.Partial(input)
-  requires bs.Valid(input)
-  requires bs.itemsAssign != ps.itemsAssign
-  requires bs != ps
-
-  requires ps.k < input.items.Length
-
-  ensures ps.Partial(input)
-  ensures ps.Model().Equals(old(ps.Model()))
-  ensures ps.k == old (ps.k)
-  ensures ps.totalValue == old(ps.totalValue)
-  ensures ps.totalWeight == old(ps.totalWeight)
-
-  //La mejor solución debe ser válida
-  ensures bs.Valid(input)
-
-  //La mejor solución deber ser una extension optima de ps
-  ensures bs.Model().OptimalExtension( SolutionData(ps.Model().itemsAssign[ps.k:=false],ps.k+1), input.Model())
-          || bs.Model().Equals(old(bs.Model()))
-
-  //Cualquier extension optima de ps, su valor debe ser menor o igual que la mejor solucion (bs).
-  ensures forall s : SolutionData | s.Valid(input.Model()) && s.Extends(SolutionData(ps.Model().itemsAssign[ps.k:=false],ps.k+1)) ::
-            s.TotalValue(input.Model().items) <= bs.Model().TotalValue(input.Model().items)
-
-  // Si bs cambia, su nuevo valor total debe ser mayor o igual al valor anterior
-  ensures bs.Model().TotalValue(input.Model().items) >= old(bs.Model().TotalValue(input.Model().items))
-
-{
-  ghost var oldps := ps.Model();
-  ps.itemsAssign[ps.k] := false;
-  ps.k := ps.k + 1;
-
-  assert ps.Partial(input) by {
-    SolutionData.AddFalsePreservesWeightValue(oldps, ps.Model(), input.Model());
-    input.InputDataItems(ps.k-1);
-  }
-
-  KnapsackBT(input, ps, bs);
-
-  label L:
-
-  ps.k := ps.k - 1;
-
-  assert SolutionData(ps.Model().itemsAssign[ps.k := false], ps.k + 1) == old@L(ps.Model());
-
-  //La mejor solución deber ser una extension optima de ps
-  assert bs.Model().OptimalExtension(SolutionData(ps.Model().itemsAssign[ps.k:=false], ps.k+1), input.Model())
-         || bs.Model().Equals(old(bs.Model()));
-
-  //Cualquier extension optima de ps, su valor debe ser menor o igual que la mejor solucion (bs).
-  assert forall s : SolutionData | s.Valid(input.Model()) && s.Extends(SolutionData(ps.Model().itemsAssign[ps.k:=false],ps.k+1)) ::
-      s.TotalValue(input.Model().items) <= bs.Model().TotalValue(input.Model().items);
-}
-
-/* 
-Método: rama true del método algorítmico BT. Es un método que trata la rama de SI coger el objeto. Comparte todas 
-las precondiciones y postcondiciones que KnapsackBT pero incluye la precondicion de que la etapa del arbol de 
-exploración (k) es menor que número de objetos de la entrada.
-  - Se asigna la posición actual (ps.k) a true en ps.itemsAssign, lo que significa que el objeto se selecciona.  
-  - Se actualizan el peso y el valor total de la solución parcial (ps).
-  - Se avanza a la siguiente posición (ps.k := ps.k + 1) y se invoca recursivamente al método KnapsackBT para 
-    continuar con la exploración. 
-// 
-Verificación:
-  - Se usa el lema PartialConsistency para probar que ps sigue siendo una solución parcial válida según las
-    restricciones del problema.
-  - Una vez finalizada la exploración, se restauran los valores originales.
-  - Se emplea la etiqueta L para capturar el estado de ps justo antes de la llamada recursiva (marcado como 
-    old@L), y luego se compara con el estado de la solución al finalizar la recursión, una vez que sus valores han 
-    sido restaurados. Esto permite validar que el estado de la solución parcial se restaura correctamente después 
-    del retroceso.
-*/
-method KnapsackBTTrueBranch(input: Input, ps: Solution, bs: Solution)
-  decreases ps.Bound(),0 // Función de bound
-  modifies ps`totalValue, ps`totalWeight, ps`k, ps.itemsAssign
-  modifies bs`totalValue, bs`totalWeight, bs`k, bs.itemsAssign
-
-  requires input.Valid()
-  requires ps.Partial(input)
-  requires bs.Valid(input)
-  requires bs.itemsAssign != ps.itemsAssign
-  requires bs != ps
-
-  requires ps.k < input.items.Length
-  requires ps.totalWeight + input.items[ps.k].weight <= input.maxWeight
-
-  ensures ps.Partial(input) //dentro ya comprueba ps.itemsAssign.Length == input.items.Length
-  ensures ps.Model().Equals(old(ps.Model())) // las ps actual y antigua deben ser iguales hasta la k
-  ensures ps.k == old (ps.k)
-  ensures ps.totalValue == old(ps.totalValue)
-  ensures ps.totalWeight == old(ps.totalWeight)
-
-  //La mejor solución debe ser válida
-  ensures bs.Valid(input)
-
-  ensures bs.Model().OptimalExtension( SolutionData(ps.Model().itemsAssign[ps.k:=true],ps.k+1), input.Model())
-          || bs.Model().Equals(old(bs.Model()))
-
-  //Cualquier extension optima de ps, su valor debe ser menor o igual que la mejor solucion (bs).
-  ensures forall s : SolutionData | s.Valid(input.Model()) && s.Extends(SolutionData(ps.Model().itemsAssign[ps.k:=true],ps.k+1)) ::
-            s.TotalValue(input.Model().items) <= bs.Model().TotalValue(input.Model().items)
-
-  // Si bs cambia, su nuevo valor total debe ser mayor o igual al valor anterior
-  ensures bs.Model().TotalValue(input.Model().items) >= old(bs.Model().TotalValue(input.Model().items))
-
-{
-  assert ps.totalWeight + input.items[ps.k].weight <= input.maxWeight;
-  ghost var oldps := ps.Model();
-  ghost var oldtotalWeight := ps.totalWeight;
-  ghost var oldtotalValue := ps.totalValue;
-
-  ps.itemsAssign[ps.k] := true;
-  ps.totalWeight := ps.totalWeight + input.items[ps.k].weight;
-  ps.totalValue := ps.totalValue + input.items[ps.k].value;
-  ps.k := ps.k + 1;
-
-  PartialConsistency(ps, oldps, input, oldtotalWeight, oldtotalValue);
-
-  KnapsackBT(input, ps, bs);
-
-  label L:
-
-  ps.k := ps.k - 1;
-  ps.totalWeight := ps.totalWeight - input.items[ps.k].weight;
-  ps.totalValue := ps.totalValue - input.items[ps.k].value;
-
-  assert SolutionData(ps.Model().itemsAssign[ps.k := true], ps.k + 1) == old@L(ps.Model());
-
-  //La mejor solución deber ser una extension optima de ps
-  assert bs.Model().OptimalExtension(SolutionData(ps.Model().itemsAssign[ps.k := true], ps.k + 1), input.Model())
-         || bs.Model().Equals(old(bs.Model()));
-
-  //Cualquier extension optima de ps, su valor debe ser menor o igual que la mejor solucion (bs).
-  assert forall s : SolutionData | s.Valid(input.Model()) && s.Extends(SolutionData(ps.Model().itemsAssign[ps.k := true], ps.k + 1)) ::
-      s.TotalValue(input.Model().items) <= bs.Model().TotalValue(input.Model().items);
-}
 
 
 
@@ -390,56 +107,56 @@ Verificación: se realizan cálculos formales para demostrar que el valor y peso
     suma se puede reescribir como ps.Model().TotalWeight(input.Model().items).
   - Tercer calc: análogo al anterior pero aplicado al valor total en lugar del peso.
 */
-lemma PartialConsistency(ps: Solution, oldps: SolutionData, input: Input, oldtotalWeight: real, oldtotalValue: real)
-  requires input.Valid()
-  requires 1 <= ps.k <= ps.itemsAssign.Length
-  requires 0 <= oldps.k <= |oldps.itemsAssign|
-  requires ps.k == oldps.k + 1
-  requires ps.itemsAssign.Length == |oldps.itemsAssign| == input.items.Length
-  requires oldps.itemsAssign[..oldps.k] + [true] == ps.itemsAssign[..ps.k]
-  requires oldps.Partial(input.Model())
-  requires oldtotalWeight == oldps.TotalWeight(input.Model().items)
-  requires oldtotalValue == oldps.TotalValue(input.Model().items)
-  requires oldps.TotalWeight(input.Model().items) + input.items[ps.k - 1].weight <= input.maxWeight
-  requires oldtotalWeight == ps.totalWeight - input.items[oldps.k].weight
-  requires oldtotalValue == ps.totalValue - input.items[oldps.k].value
-  ensures ps.Partial(input)
-{
-  assert oldps.Partial(input.Model());
-  assert oldtotalWeight == oldps.TotalWeight(input.Model().items);
-  assert oldps.TotalWeight(input.Model().items) + input.items[ps.k - 1].weight <= input.maxWeight;
+// lemma PartialConsistency(ps: Solution, oldps: SolutionData, input: Input, oldtotalWeight: real, oldtotalValue: real)
+//   requires input.Valid()
+//   requires 1 <= ps.k <= ps.itemsAssign.Length
+//   requires 0 <= oldps.k <= |oldps.itemsAssign|
+//   requires ps.k == oldps.k + 1
+//   requires ps.itemsAssign.Length == |oldps.itemsAssign| == input.items.Length
+//   requires oldps.itemsAssign[..oldps.k] + [true] == ps.itemsAssign[..ps.k]
+//   requires oldps.Partial(input.Model())
+//   requires oldtotalWeight == oldps.TotalWeight(input.Model().items)
+//   requires oldtotalValue == oldps.TotalValue(input.Model().items)
+//   requires oldps.TotalWeight(input.Model().items) + input.items[ps.k - 1].weight <= input.maxWeight
+//   requires oldtotalWeight == ps.totalWeight - input.items[oldps.k].weight
+//   requires oldtotalValue == ps.totalValue - input.items[oldps.k].value
+//   ensures ps.Partial(input)
+// {
+//   assert oldps.Partial(input.Model());
+//   assert oldtotalWeight == oldps.TotalWeight(input.Model().items);
+//   assert oldps.TotalWeight(input.Model().items) + input.items[ps.k - 1].weight <= input.maxWeight;
 
-  calc {
-     ps.Model().TotalWeight(input.Model().items);
-    { SolutionData.AddTrueMaintainsSumConsistency(oldps, ps.Model(), input.Model()); }
-     oldps.TotalWeight(input.Model().items) + input.Model().items[ps.k - 1].weight;
-    { input.InputDataItems(ps.k - 1); }
-     oldps.TotalWeight(input.Model().items) + input.items[ps.k - 1].weight;
-    <= input.maxWeight;
-  }
+//   calc {
+//      ps.Model().TotalWeight(input.Model().items);
+//     { SolutionData.AddTrueMaintainsSumConsistency(oldps, ps.Model(), input.Model()); }
+//      oldps.TotalWeight(input.Model().items) + input.Model().items[ps.k - 1].weight;
+//     { input.InputDataItems(ps.k - 1); }
+//      oldps.TotalWeight(input.Model().items) + input.items[ps.k - 1].weight;
+//     <= input.maxWeight;
+//   }
 
-  calc {
-    ps.totalWeight;
-    oldtotalWeight + input.items[ps.k - 1].weight;
-    oldps.TotalWeight(input.Model().items) + input.items[ps.k - 1].weight;
-    { input.InputDataItems(ps.k - 1);
-      SolutionData.AddTrueMaintainsSumConsistency(oldps, ps.Model(), input.Model());
-    }
-    ps.Model().TotalWeight(input.Model().items);
-  }
+//   calc {
+//     ps.totalWeight;
+//     oldtotalWeight + input.items[ps.k - 1].weight;
+//     oldps.TotalWeight(input.Model().items) + input.items[ps.k - 1].weight;
+//     { input.InputDataItems(ps.k - 1);
+//       SolutionData.AddTrueMaintainsSumConsistency(oldps, ps.Model(), input.Model());
+//     }
+//     ps.Model().TotalWeight(input.Model().items);
+//   }
 
-  calc {
-    ps.totalValue;
-    oldtotalValue + input.items[ps.k - 1].value;
-    oldps.TotalValue(input.Model().items) + input.items[ps.k - 1].value;
-    { input.InputDataItems(ps.k - 1);
-      SolutionData.AddTrueMaintainsSumConsistency(oldps, ps.Model(), input.Model());
-    }
-    ps.Model().TotalValue(input.Model().items);
-  }
+//   calc {
+//     ps.totalValue;
+//     oldtotalValue + input.items[ps.k - 1].value;
+//     oldps.TotalValue(input.Model().items) + input.items[ps.k - 1].value;
+//     { input.InputDataItems(ps.k - 1);
+//       SolutionData.AddTrueMaintainsSumConsistency(oldps, ps.Model(), input.Model());
+//     }
+//     ps.Model().TotalValue(input.Model().items);
+//   }
 
-  assert ps.Partial(input);
-}
+//   assert ps.Partial(input);
+// }
 
 /*
 Lema: si una solución parcial ps extendida con true no es válida, entonces ninguna de sus extensiones tampoco 
