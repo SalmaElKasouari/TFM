@@ -51,7 +51,7 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   var ps_k := 0;
   var ps_priority := 0.0;
   var ps := new Solution(ps_itemsAssign, ps_totalValue, ps_totalWeight, ps_k, ps_priority); // primero la creo con 0 y luego la asigno
-  ps.priority := CalculateUpperBound(ps, input); // la cota superior es selccionar todos los objetos restantes
+  ps.priority := CalculateUpperBound(ps_itemsAssign, ps_k, ps_totalValue, input); // la cota superior es selccionar todos los objetos restantes
 
   assert ps.Partial(input) by {
     assert ps.Model().Partial(input.Model());
@@ -73,8 +73,24 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   }
 
 
-  /* Llamada al método Branch and Bound */
-  KnapsackBB(input, ps, bs);
+  /* Branch and Bound */
+
+  var pq := new PriorityQueue(1);
+  //pq.Insert(ps);
+
+  // bucle algoritmo
+
+
+
+
+
+
+
+
+
+
+
+  assume false;
 
   /* Primera postcondición: bs.Valid(input) 
    Se verifica gracias a la postcondición en BB que asegura que bs es válida.
@@ -97,28 +113,28 @@ Método: cálculo la cota superior de la mejor solución alcanzable. La cota sup
 //
 Verificación: usando el lema AllTruesIsUpperBoundForAll.
 */
-method CalculateUpperBound(ps : Solution, input : Input) returns (upperBound : real)
+method CalculateUpperBound(itemsAssign : array<bool>, k : int, totalValue : real, input : Input) returns (upperBound : real)
   requires input.Valid()
-  requires ps.Model().Explicit(input.Model().items)
-  requires ps.Model().TotalValue(input.Model().items) == ps.totalValue
-  requires 0 <= ps.k <= ps.itemsAssign.Length
-  ensures forall s : SolutionData | && |s.itemsAssign| == |ps.Model().itemsAssign|
+  requires 0 <= k <= itemsAssign.Length
+  requires 0 <= k <= input.items.Length == itemsAssign.Length
+  requires SolutionData(itemsAssign[..], k).TotalValue(input.Model().items) == totalValue
+  ensures forall s : SolutionData | && |s.itemsAssign| == |SolutionData(itemsAssign[..], k).itemsAssign|
                                     && s.k == |s.itemsAssign|
-                                    && ps.k <= s.k
-                                    && s.Extends(ps.Model())
+                                    && k <= s.k
+                                    && s.Extends(SolutionData(itemsAssign[..], k))
                                     && s.Valid(input.Model())
             :: s.TotalValue(input.Model().items) <= upperBound
 {
-  ghost var ps' := SolutionData(ps.Model().itemsAssign, ps.k);
-  assert |ps'.itemsAssign| == |ps.Model().itemsAssign|;
-  upperBound := ps.totalValue;
+  ghost var ps' := SolutionData(itemsAssign[..], k);
+  assert |ps'.itemsAssign| == |itemsAssign[..]|;
+  upperBound := totalValue;
 
   assert upperBound == ps'.TotalValue(input.Model().items);
 
-  for i := ps.k to ps.itemsAssign.Length
-    invariant ps.k <= ps'.k <= |ps'.itemsAssign| == |ps.Model().itemsAssign|
-    invariant ps'.Extends(ps.Model())
-    invariant forall j | ps.k <= j < i :: ps'.itemsAssign[j]
+  for i := k to itemsAssign.Length
+    invariant k <= ps'.k <= |ps'.itemsAssign| == |itemsAssign[..]|
+    invariant ps'.Extends(SolutionData(itemsAssign[..], k))
+    invariant forall j | k <= j < i :: ps'.itemsAssign[j]
     invariant i == ps'.k
     invariant upperBound == ps'.TotalValue(input.Model().items)
   {
@@ -127,7 +143,7 @@ method CalculateUpperBound(ps : Solution, input : Input) returns (upperBound : r
     upperBound := upperBound + input.items[i].value;
     SolutionData.AddTrueMaintainsSumConsistency(oldps', ps', input.Model());
   }
-  SolutionData.AllTruesIsUpperBoundForAll(ps.Model(), ps', input.Model());
+  SolutionData.AllTruesIsUpperBoundForAll(SolutionData(itemsAssign[..], k), ps', input.Model());
 }
 
 /*

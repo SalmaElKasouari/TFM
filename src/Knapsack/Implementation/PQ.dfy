@@ -111,7 +111,7 @@ abstract module PQ {
     var arr : array<Solution>
     var count : int  // current number of elements, if count == arr.Length, array must grow
 
-    constructor PriorityQueue(size: int)
+    constructor (size: int)
       ensures Valid()
     {
       arr := new Solution[0];
