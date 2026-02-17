@@ -76,10 +76,43 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   /* Branch and Bound */
 
   var pq := new PriorityQueue(1);
-  //pq.Insert(ps);
+  pq.Insert(ps);
 
-  // bucle algoritmo
+  while(/*!pq.IsEmpty() &&*/ pq.Min().priority > bs.totalValue)
+  {
+    var father := pq.Min();
+    pq.DeleteMin();
+    var son := father; // copy?
+    son.k := son.k + 1;
 
+    // Seleccionar el objeto
+    if (father.totalWeight + input.items[son.k].weight <= input.maxWeight) {
+      son.itemsAssign[son.k] := true;
+      son.totalWeight := father.totalWeight + input.items[son.k].weight;
+      son.totalValue := father.totalValue + input.items[son.k].value;
+      son.priority := father.priority;
+      if (son.k == son.itemsAssign.Length) {
+        bs.Copy(ps);
+      }
+      else {
+        pq.Insert(son);
+      }
+    }
+
+    // No seleccionar el objeto
+    son.itemsAssign[son.k] := false;
+      son.totalWeight := father.totalWeight;
+      son.totalValue := father.totalValue;
+      son.priority := CalculateUpperBound(son.itemsAssign, son.k, son.totalValue, input);
+      if (son.priority > bs.totalValue) {
+        if (son.k == son.itemsAssign.Length) {
+          bs.Copy(ps);
+        }
+        else {
+          pq.Insert(son);
+        }
+      }
+  }
 
 
 
