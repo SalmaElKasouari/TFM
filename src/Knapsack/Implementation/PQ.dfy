@@ -139,11 +139,13 @@ abstract module PQ {
 
 
     /* Predicate: true if the heap has no elements */
-    ghost predicate IsEmpty()
+    predicate IsEmpty()
       reads this, arr, set i | 0 <= i < arr.Length :: arr[i]
       requires Valid()
+      ensures IsEmpty() == (Model() == multiset{})
     {
-      Model() == multiset{}
+      //Model() == multiset{}
+      count == 0
     }
 
     /* Predicate: true if m belongs to the model of the heap */

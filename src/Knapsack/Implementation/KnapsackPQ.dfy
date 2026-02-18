@@ -216,6 +216,7 @@ module KnapsackPQ refines PQ {
 
       // Copiar los elementos del array uno por uno
       for i := 0 to s.itemsAssign.Length
+        invariant 0 <= i <= s.itemsAssign.Length
         invariant forall j | 0 <= j < i :: this.itemsAssign[j] == s.itemsAssign[j]
       {
         this.itemsAssign[i] := s.itemsAssign[i];
@@ -224,6 +225,34 @@ module KnapsackPQ refines PQ {
       this.totalWeight := s.totalWeight;
       this.k := s.k;
       this.priority := s.priority;
+    }
+
+    constructor CCopy(s : Solution)
+      ensures this.itemsAssign.Length == s.itemsAssign.Length
+      ensures this.k == s.k
+      ensures this.totalValue == s.totalValue
+      ensures this.totalWeight == s.totalWeight
+      ensures this.priority == s.priority
+      ensures forall i | 0 <= i < this.itemsAssign.Length :: this.itemsAssign[i] == s.itemsAssign[i]
+      ensures this.Model() == s.Model()
+    {
+      totalValue := s.totalValue;
+      totalWeight := s.totalWeight;
+      k := s.k;
+      priority := s.priority;
+
+      // Copiar los elementos del array uno por uno
+      new;
+      itemsAssign := new bool[s.itemsAssign.Length](i => false);
+      assert itemsAssign.Length == s.itemsAssign.Length;
+      for i := 0 to s.itemsAssign.Length
+        modifies itemsAssign
+        invariant 0 <= i <= s.itemsAssign.Length == itemsAssign.Length
+        invariant forall j | 0 <= j < i :: itemsAssign[j] == s.itemsAssign[j]
+      {
+        itemsAssign[i] := s.itemsAssign[i];
+      }
+     
     }
 
 

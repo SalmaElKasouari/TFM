@@ -72,53 +72,55 @@ method ComputeSolution(input: Input) returns (bs: Solution)
     bs.Model().SumOfFalsesEqualsZero(input.Model());
   }
 
+  //var son := new Solution();
+
 
   /* Branch and Bound */
 
   var pq := new PriorityQueue(1); // en la cola tenemos soluciones parciales validas
   pq.Insert(ps);
 
-  var pending : set<SolutionData>; // soluciones alcanzables desde las soluciones que estan en la cola
-  var processed : set<SolutionData>;
+  // var pending : set<SolutionData>; // soluciones alcanzables desde las soluciones que estan en la cola
+  // var processed : set<SolutionData>;
 
 
-  while (/*!pq.IsEmpty() &&*/ pq.Min().priority > bs.totalValue)
-    invariant forall s : SolutionData | !(s in pending) :: s.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
-  {
-    var father := pq.Min();
-    pq.DeleteMin();
-    var son := father; // copy?
-    son.k := son.k + 1;
+  // while (!pq.IsEmpty() && pq.Min().priority > bs.totalValue)
+  //   invariant forall s : SolutionData | !(s in pending) :: s.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
+  // {
+  //   var father := pq.Min();
+  //   //pq.DeleteMin();
+  //   var son := new Solution(); // copy?
+  //   son.k := son.k + 1;
 
-    // Seleccionar el objeto
-    if (father.totalWeight + input.items[son.k].weight <= input.maxWeight) {
-      son.itemsAssign[son.k] := true;
-      son.totalWeight := father.totalWeight + input.items[son.k].weight;
-      son.totalValue := father.totalValue + input.items[son.k].value;
-      son.priority := father.priority;
-      if (son.k == son.itemsAssign.Length) {
-        bs.Copy(ps);
-      }
-      else {
-        pq.Insert(son);
-      }
-    }
+  //   // Seleccionar el objeto
+  //   if (father.totalWeight + input.items[son.k].weight <= input.maxWeight) {
+  //     son.itemsAssign[son.k] := true;
+  //     son.totalWeight := father.totalWeight + input.items[son.k].weight;
+  //     son.totalValue := father.totalValue + input.items[son.k].value;
+  //     son.priority := father.priority;
+  //     if (son.k == son.itemsAssign.Length) {
+  //       bs.Copy(ps);
+  //     }
+  //     else {
+  //       pq.Insert(son);
+  //     }
+  //   }
 
-    // No seleccionar el objeto
-    son.itemsAssign[son.k] := false;
-    son.totalWeight := father.totalWeight;
-    son.totalValue := father.totalValue;
-    son.priority := CalculateUpperBound(son.itemsAssign, son.k, son.totalValue, input);
-    if (son.priority > bs.totalValue) {
-      if (son.k == son.itemsAssign.Length) {
-        bs.Copy(ps);
-      }
-      else {
-        pq.Insert(son);
-      }
-    }
-    // A pending le quitamos las soluciones alcanzables del nodo procesado
-  }
+  //   // No seleccionar el objeto
+  //   son.itemsAssign[son.k] := false;
+  //   son.totalWeight := father.totalWeight;
+  //   son.totalValue := father.totalValue;
+  //   son.priority := CalculateUpperBound(son.itemsAssign, son.k, son.totalValue, input);
+  //   if (son.priority > bs.totalValue) {
+  //     if (son.k == son.itemsAssign.Length) {
+  //       bs.Copy(ps);
+  //     }
+  //     else {
+  //       pq.Insert(son);
+  //     }
+  //   }
+  //   // A pending le quitamos las soluciones alcanzables del nodo procesado
+  // }
 
 
 
