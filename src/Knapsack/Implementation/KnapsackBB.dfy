@@ -79,11 +79,11 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   pq.Insert(ps);
 
   var pending : set<SolutionData>; // soluciones alcanzables desde las soluciones que estan en la cola
-  var processed : set<SolutionData>; 
+  var processed : set<SolutionData>;
 
 
   while (/*!pq.IsEmpty() &&*/ pq.Min().priority > bs.totalValue)
-    invariant forall s : SolutionData | !(s in pending) :: s.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending 
+    invariant forall s : SolutionData | !(s in pending) :: s.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
   {
     var father := pq.Min();
     pq.DeleteMin();
@@ -106,19 +106,18 @@ method ComputeSolution(input: Input) returns (bs: Solution)
 
     // No seleccionar el objeto
     son.itemsAssign[son.k] := false;
-      son.totalWeight := father.totalWeight;
-      son.totalValue := father.totalValue;
-      son.priority := CalculateUpperBound(son.itemsAssign, son.k, son.totalValue, input);
-      if (son.priority > bs.totalValue) {
-        if (son.k == son.itemsAssign.Length) {
-          bs.Copy(ps);
-        }
-        else {
-          pq.Insert(son);
-        }
+    son.totalWeight := father.totalWeight;
+    son.totalValue := father.totalValue;
+    son.priority := CalculateUpperBound(son.itemsAssign, son.k, son.totalValue, input);
+    if (son.priority > bs.totalValue) {
+      if (son.k == son.itemsAssign.Length) {
+        bs.Copy(ps);
       }
-      // A pending le quitamos las soluciones alcanzables del nodo procesado
-      assume false;
+      else {
+        pq.Insert(son);
+      }
+    }
+    // A pending le quitamos las soluciones alcanzables del nodo procesado
   }
 
 
@@ -213,10 +212,10 @@ method Main() {
   print "The maximum value achievable is: ", bs.totalValue, "\n";
   print "By putting inside:\n";
   for i := 0 to input.items.Length {
-  	if (bs.itemsAssign[i]) {
-  		print "Item ", i," with weight: ", input.items[i].weight, " and value: ", input.items[i].value;
-  	}
+    if (bs.itemsAssign[i]) {
+      print "Item ", i," with weight: ", input.items[i].weight, " and value: ", input.items[i].value;
+    }
   }
   print "\nTotal weight: ", bs.totalWeight, "\n";
-  
+
 }
