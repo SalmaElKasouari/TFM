@@ -75,10 +75,15 @@ method ComputeSolution(input: Input) returns (bs: Solution)
 
   /* Branch and Bound */
 
-  var pq := new PriorityQueue(1);
+  var pq := new PriorityQueue(1); // en la cola tenemos soluciones parciales validas
   pq.Insert(ps);
 
-  while(/*!pq.IsEmpty() &&*/ pq.Min().priority > bs.totalValue)
+  var pending : set<SolutionData>; // soluciones alcanzables desde las soluciones que estan en la cola
+  var processed : set<SolutionData>; 
+
+
+  while (/*!pq.IsEmpty() &&*/ pq.Min().priority > bs.totalValue)
+    invariant forall s : SolutionData | !(s in pending) :: s.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending 
   {
     var father := pq.Min();
     pq.DeleteMin();
@@ -112,6 +117,8 @@ method ComputeSolution(input: Input) returns (bs: Solution)
           pq.Insert(son);
         }
       }
+      // A pending le quitamos las soluciones alcanzables del nodo procesado
+      assume false;
   }
 
 
