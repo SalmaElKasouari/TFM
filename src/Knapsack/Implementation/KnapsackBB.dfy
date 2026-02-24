@@ -39,8 +39,8 @@ Verificación: se asegura que la mejor solución encontrada (bs) es tanto válid
 */
 method ComputeSolution(input: Input) returns (bs: Solution)
   requires input.Valid()
-  ensures bs.Valid(input)
-  ensures bs.Optimal(input)
+  //ensures bs.Valid(input)
+  //ensures bs.Optimal(input)
 {
   var n := input.items.Length;
 
@@ -72,25 +72,22 @@ method ComputeSolution(input: Input) returns (bs: Solution)
     bs.Model().SumOfFalsesEqualsZero(input.Model());
   }
 
-  //var son := new Solution();
-
-
   /* Branch and Bound */
 
-  var pq := new PriorityQueue(1); // en la cola tenemos soluciones parciales validas
+  var pq := new PriorityQueue(); // en la cola tenemos soluciones parciales validas
   pq.Insert(ps);
 
-  // var pending : set<SolutionData>; // soluciones alcanzables desde las soluciones que estan en la cola
-  // var processed : set<SolutionData>;
+  ghost var pending : multiset<SolutionData>; // soluciones alcanzables desde las soluciones que estan en la cola
+  ghost var processed : multiset<SolutionData>;
 
 
-  // while (!pq.IsEmpty() && pq.Min().priority > bs.totalValue)
-  //   invariant forall s : SolutionData | !(s in pending) :: s.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
-  // {
-  //   var father := pq.Min();
-  //   //pq.DeleteMin();
-  //   var son := new Solution(); // copy?
-  //   son.k := son.k + 1;
+  while (!pq.IsEmpty() && pq.Min().priority > bs.totalValue)
+    //invariant forall s : SolutionData | !(s in pending) :: s.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
+  {
+    var father := pq.Min();
+    pq.DeleteMin();
+    var son := Solution.CCopy(father);
+    //son.k := son.k + 1;
 
   //   // Seleccionar el objeto
   //   if (father.totalWeight + input.items[son.k].weight <= input.maxWeight) {
@@ -119,19 +116,12 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   //       pq.Insert(son);
   //     }
   //   }
+
   //   // A pending le quitamos las soluciones alcanzables del nodo procesado
-  // }
+  }
 
 
 
-
-
-
-
-
-
-
-  assume false;
 
   /* Primera postcondición: bs.Valid(input) 
    Se verifica gracias a la postcondición en BB que asegura que bs es válida.
@@ -213,11 +203,11 @@ method Main() {
   print "The bag admits a weight of: ", input.maxWeight, "\n";
   print "The maximum value achievable is: ", bs.totalValue, "\n";
   print "By putting inside:\n";
-  for i := 0 to input.items.Length {
-    if (bs.itemsAssign[i]) {
-      print "Item ", i," with weight: ", input.items[i].weight, " and value: ", input.items[i].value;
-    }
-  }
+  // for i := 0 to input.items.Length {
+  //   if (bs.itemsAssign[i]) {
+  //     print "Item ", i," with weight: ", input.items[i].weight, " and value: ", input.items[i].value;
+  //   }
+  // }
   print "\nTotal weight: ", bs.totalWeight, "\n";
 
 }

@@ -212,6 +212,7 @@ module KnapsackPQ refines PQ {
       ensures this.itemsAssign == old(this.itemsAssign)
       ensures forall i | 0 <= i < this.itemsAssign.Length :: this.itemsAssign[i] == s.itemsAssign[i]
       ensures this.Model() == s.Model()
+      ensures fresh(itemsAssign)
     {
 
       // Copiar los elementos del array uno por uno
@@ -243,7 +244,7 @@ module KnapsackPQ refines PQ {
 
       // Copiar los elementos del array uno por uno
       new;
-      itemsAssign := new bool[s.itemsAssign.Length](i => false);
+      itemsAssign := new bool[s.itemsAssign.Length];
       assert itemsAssign.Length == s.itemsAssign.Length;
       for i := 0 to s.itemsAssign.Length
         modifies itemsAssign

@@ -1,4 +1,8 @@
+include "../Specification/SolutionData.dfy"
+
 abstract module PQ {
+
+  import opened SolutionData
 
   class Solution {
 
@@ -111,8 +115,10 @@ abstract module PQ {
     var arr : array<Solution>
     var count : int  // current number of elements, if count == arr.Length, array must grow
 
-    constructor (size: int)
+    constructor ()
       ensures Valid()
+      ensures fresh(arr)
+      ensures Model() == multiset{}
     {
       arr := new Solution[0];
       count := 0;
@@ -129,6 +135,7 @@ abstract module PQ {
       && (forall i | 2*x < i < y :: arr[(i-1)/2].le(arr[i]))
     }
 
+
     /* Predicate: true if the array satisfies the heap property */
     ghost predicate Valid()
       reads this, arr, set i | 0 <= i < arr.Length :: arr[i]
@@ -144,9 +151,9 @@ abstract module PQ {
       requires Valid()
       ensures IsEmpty() == (Model() == multiset{})
     {
-      //Model() == multiset{}
       count == 0
     }
+
 
     /* Predicate: true if m belongs to the model of the heap */
     ghost predicate IsInModel(node : Solution)
@@ -167,6 +174,7 @@ abstract module PQ {
       && IsInModel(s) // m belongs to the model
       && forall i : Solution | i in Model() :: s.le(i) // the priority of s is not greater than any element of the set
     }
+
 
 
     /* Functions */
@@ -230,6 +238,15 @@ abstract module PQ {
     }
 
 
+    function Pending() : multiset<SolutionData>
+    {
+      multiset x,y : Solution | x in Model() && y in x.Descendants() :: y
+    }
+
+    
+    
+
+
 
     /* Methods */
 
@@ -250,6 +267,8 @@ abstract module PQ {
       ensures Valid()
       ensures IsInModel(node)
       ensures Model() == old(Model()) + multiset{node}
+      ensures fresh(this)
+      ensures fresh(arr)
     {
       if (count == 0) { // array is empty
         var aux: array<Solution> := new Solution[1][node];
