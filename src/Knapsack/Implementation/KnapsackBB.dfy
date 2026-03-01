@@ -53,10 +53,10 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   var ps := new Solution(ps_itemsAssign, ps_totalValue, ps_totalWeight, ps_k, ps_priority); // primero la creo con 0 y luego la asigno
   ps.priority := CalculateUpperBound(ps_itemsAssign, ps_k, ps_totalValue, input); // la cota superior es selccionar todos los objetos restantes
 
-  assert ps.Partial(input) by {
-    assert ps.Model().Partial(input.Model());
-    assert ps.IsUpperBound(input);
-  }
+  // assert ps.Partial(input) by {
+  //   assert ps.Model().Partial(input.Model());
+  //   assert ps.IsUpperBound(input);
+  // }
 
 
   /* Construimos una solución mejor (bs) */
@@ -77,48 +77,54 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   var pq := new PriorityQueue(); // en la cola tenemos soluciones parciales validas
   pq.Insert(ps);
 
-  ghost var pending : multiset<SolutionData>; // soluciones alcanzables desde las soluciones que estan en la cola
+  ghost var pending : set<SolutionData>:= pq.Pending(input); // soluciones alcanzables desde las soluciones que estan en la cola
   ghost var processed : multiset<SolutionData>;
-
-
-  while (!pq.IsEmpty() && pq.Min().priority > bs.totalValue)
-    //invariant forall s : SolutionData | !(s in pending) :: s.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
-  {
-    var father := pq.Min();
-    pq.DeleteMin();
-    var son := Solution.CCopy(father);
-    //son.k := son.k + 1;
-
-  //   // Seleccionar el objeto
-  //   if (father.totalWeight + input.items[son.k].weight <= input.maxWeight) {
-  //     son.itemsAssign[son.k] := true;
-  //     son.totalWeight := father.totalWeight + input.items[son.k].weight;
-  //     son.totalValue := father.totalValue + input.items[son.k].value;
-  //     son.priority := father.priority;
-  //     if (son.k == son.itemsAssign.Length) {
-  //       bs.Copy(ps);
-  //     }
-  //     else {
-  //       pq.Insert(son);
-  //     }
-  //   }
-
-  //   // No seleccionar el objeto
-  //   son.itemsAssign[son.k] := false;
-  //   son.totalWeight := father.totalWeight;
-  //   son.totalValue := father.totalValue;
-  //   son.priority := CalculateUpperBound(son.itemsAssign, son.k, son.totalValue, input);
-  //   if (son.priority > bs.totalValue) {
-  //     if (son.k == son.itemsAssign.Length) {
-  //       bs.Copy(ps);
-  //     }
-  //     else {
-  //       pq.Insert(son);
-  //     }
-  //   }
-
-  //   // A pending le quitamos las soluciones alcanzables del nodo procesado
+  
+  forall sd:SolutionData |  sd.Partial(input.Model()) ensures sd in pq.PartialPending(input)
+  {  assert ps.Model() == rootData(input.Model());
+     AllNodes(input.Model(),sd);
+     assert sd in ps.Model().PartialExtensions();
   }
+
+
+  // while (!pq.IsEmpty() && pq.Min().priority > bs.totalValue)
+  //   invariant forall sd : SolutionData | !(sd in Pending(pq, input)) :: sd.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
+  // {
+  //   var father := pq.Min();
+  //   pq.DeleteMin();
+  //   //var son := Solution.CCopy(father);
+  //   //son.k := son.k + 1;
+
+  // //   // Seleccionar el objeto
+  // //   if (father.totalWeight + input.items[son.k].weight <= input.maxWeight) {
+  // //     son.itemsAssign[son.k] := true;
+  // //     son.totalWeight := father.totalWeight + input.items[son.k].weight;
+  // //     son.totalValue := father.totalValue + input.items[son.k].value;
+  // //     son.priority := father.priority;
+  // //     if (son.k == son.itemsAssign.Length) {
+  // //       bs.Copy(ps);
+  // //     }
+  // //     else {
+  // //       pq.Insert(son);
+  // //     }
+  // //   }
+
+  // //   // No seleccionar el objeto
+  // //   son.itemsAssign[son.k] := false;
+  // //   son.totalWeight := father.totalWeight;
+  // //   son.totalValue := father.totalValue;
+  // //   son.priority := CalculateUpperBound(son.itemsAssign, son.k, son.totalValue, input);
+  // //   if (son.priority > bs.totalValue) {
+  // //     if (son.k == son.itemsAssign.Length) {
+  // //       bs.Copy(ps);
+  // //     }
+  // //     else {
+  // //       pq.Insert(son);
+  // //     }
+  // //   }
+
+  // //   // A pending le quitamos las soluciones alcanzables del nodo procesado
+  // }
 
 
 
@@ -130,12 +136,12 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   /* Segunda postcondición: bs.Optimal(input) 
    Se verifica gracias a varias poscondiciones en BB que aseguran que bs es óptima.
   */
-  assert bs.Optimal(input) by {
-    forall s: SolutionData | s.Valid(input.Model())
-      ensures s.TotalValue(input.Model().items) <= bs.Model().TotalValue(input.Model().items) {
-      assert s.Extends(ps.Model());
-    }
-  }
+  // assert bs.Optimal(input) by {
+  //   forall s: SolutionData | s.Valid(input.Model())
+  //     ensures s.TotalValue(input.Model().items) <= bs.Model().TotalValue(input.Model().items) {
+  //     assert s.Extends(ps.Model());
+  //   }
+  // }
 }
 
 

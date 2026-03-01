@@ -155,23 +155,13 @@ abstract module PQ {
     }
 
 
-    /* Predicate: true if m belongs to the model of the heap */
-    ghost predicate IsInModel(node : Solution)
-      reads this, arr, node, set i | 0 <= i < arr.Length :: arr[i]
-      requires Valid()
-      //requires 0 <= count <= arr.Length
-    {
-      node in Model()
-    }
-
-
     /* Predicate: true if s is the node with the minimum priority in the heap, i.e., no other node in the heap has a lower priority. */
     ghost predicate IsMin(s : Solution)
       reads this, arr, s, set i | i in Model(),  set i | 0 <= i < arr.Length :: arr[i]
       requires Valid()
       requires !IsEmpty()
     {
-      && IsInModel(s) // m belongs to the model
+      && s in Model()// s belongs to the model
       && forall i : Solution | i in Model() :: s.le(i) // the priority of s is not greater than any element of the set
     }
 
@@ -201,7 +191,7 @@ abstract module PQ {
       ensures IsMin(arr[0])
     {
       if (!IsMin(arr[0])) {
-        assert IsInModel(arr[0]);
+        assert arr[0] in Model();
         assert exists s : Solution | s in Model() :: s.lt(arr[0]);
 
         // s es la solucion que es menor que arr[0]
@@ -236,17 +226,7 @@ abstract module PQ {
       FirstIsMin();
       arr[0]
     }
-
-
-    function Pending() : multiset<SolutionData>
-    {
-      multiset x,y : Solution | x in Model() && y in x.Descendants() :: y
-    }
-
     
-    
-
-
 
     /* Methods */
 
@@ -265,10 +245,8 @@ abstract module PQ {
       modifies this, arr
       requires Valid()
       ensures Valid()
-      ensures IsInModel(node)
+      ensures node in Model()
       ensures Model() == old(Model()) + multiset{node}
-      ensures fresh(this)
-      ensures fresh(arr)
     {
       if (count == 0) { // array is empty
         var aux: array<Solution> := new Solution[1][node];

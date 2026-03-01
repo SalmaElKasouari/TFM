@@ -195,28 +195,28 @@ module SolutionData {
 
 
     /* Functions */
-    
-    // ghost function Descendants() : set<SolutionData>
-    // {
-    //  set x : SolutionData | x.Extends(this) :: x
-    // }
 
-    // ghost function Descendants() : set<SolutionData>
-    // {
-    //   set x : SolutionData | x.Extends(SolutionData(itemsAssign[k := false], k + 1))
-    //                          || x.Extends(SolutionData(itemsAssign[k := true], k + 1))
-    //                         :: x
-    // }
-
-    ghost function Descendants2() : set<SolutionData>
+    ghost function Extensions() : set<SolutionData>
       decreases |itemsAssign| - k
       requires 0 <= k <= |itemsAssign|
     {
       if k == |itemsAssign| then
         {this}
       else
-        SolutionData(itemsAssign[k := false], k + 1).Descendants2() + 
-        SolutionData(itemsAssign[k := true ], k + 1).Descendants2()
+        SolutionData(itemsAssign[k := false], k + 1).Extensions() +
+        SolutionData(itemsAssign[k := true], k + 1).Extensions()
+    }
+
+    ghost function PartialExtensions() : set<SolutionData>
+      decreases |itemsAssign| - k
+      requires 0 <= k <= |itemsAssign|
+    {
+      if k == |itemsAssign| then
+        { this }
+      else
+        { this } +
+        SolutionData(itemsAssign[k := false], k + 1).PartialExtensions() +
+        SolutionData(itemsAssign[k := true],  k + 1).PartialExtensions()
     }
 
 

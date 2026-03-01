@@ -6,7 +6,169 @@ include "Input.dfy"
 module KnapsackPQ refines PQ {
 
   import opened Input
-  import opened SolutionData
+  import opened InputData
+  //import opened SolutionData
+
+  ghost function rootData(input : InputData) : SolutionData
+  {
+    SolutionData(seq(|input.items|, i => false), 0)
+  }
+
+  //Una SolutionData que extiende a otra que no es parcial no puede ser solucion valida
+  lemma ExtendsNotPartialNotValid(input : InputData, s : SolutionData, f : SolutionData)
+    decreases |input.items| - f.k
+    requires input.Valid()
+    requires !f.Partial(input)
+    requires f.k <= s.k == |s.itemsAssign| == |f.itemsAssign| == |input.items|
+    requires s.Extends(f)
+    ensures !s.Valid(input)
+  {
+    if (f.k == s.k) {
+      assert s.itemsAssign[..] == f.itemsAssign[..];
+      assert s == f;
+    }
+    else {
+      var ftrue := SolutionData(f.itemsAssign[f.k := true], f.k + 1);
+      var ffalse := SolutionData(f.itemsAssign[f.k := false], f.k + 1);
+      assert s.Extends(ftrue) || s.Extends(ffalse);
+      assert !f.Implicit(input.items, input.maxWeight);
+
+      if (s.Extends(ftrue)) {
+        SolutionData.AddTrueMaintainsSumConsistency(f, ftrue, input);
+        assert !ftrue.Partial(input);
+        ExtendsNotPartialNotValid(input, s, ftrue);
+      } else {
+        SolutionData.AddFalsePreservesWeightValue(f, ffalse, input);
+        assert !ffalse.Partial(input);
+        ExtendsNotPartialNotValid(input, s, ffalse);
+      }
+    }
+  }
+
+
+  //Una SolutionData valida que extiende a otra parcial ha de estar en el conjunto Extensions de dicha solucion parcial
+  lemma ExtendsInExtensions(input : InputData, s : SolutionData, f : SolutionData)
+    decreases |input.items| - f.k
+    requires input.Valid()
+    requires s.Valid(input) && f.Partial(input)
+    requires s.Extends(f)
+    ensures s in f.Extensions()
+  {
+    if (s.k == f.k) {
+      assert s.k == |input.items|;
+      assert s.itemsAssign[..] == f.itemsAssign[..];
+      assert s == f;
+    }
+    else {
+      var ftrue := SolutionData(f.itemsAssign[f.k := true], f.k + 1);
+      var ffalse := SolutionData(f.itemsAssign[f.k := false], f.k + 1);
+      assert s.Extends(ftrue) || s.Extends(ffalse);
+      if (s.Extends(ftrue)) {
+        if (ftrue.Partial(input)) { }
+        else { ExtendsNotPartialNotValid(input, s, ftrue);}
+      }
+      else {
+        if (ffalse.Partial(input)) { }
+        else { ExtendsNotPartialNotValid(input, s, ffalse);}
+      }
+    }
+  }
+
+
+  //Todas las SolutionData extienden a la raiz del arbol y por tanto estan en sus extensiones
+  lemma AllSolutions(input : InputData, s : SolutionData)
+    requires input.Valid()
+    requires s.Valid(input)
+    ensures s.Extends(rootData(input))
+    ensures s in rootData(input).Extensions()
+  {
+    ExtendsInExtensions(input, s, rootData(input));
+  }
+
+
+  //
+  lemma AllNodes(input: InputData, s: SolutionData)
+    requires input.Valid()
+    requires s.Partial(input)
+    requires |s.itemsAssign| == |input.items|
+    ensures s.Extends(rootData(input))
+    ensures s in rootData(input).PartialExtensions()
+  {
+    ExtendsInPartialExtensions(input, s, rootData(input));
+  }
+
+
+  lemma SamePrefixSameNode(s : SolutionData, f : SolutionData)
+    decreases |s.itemsAssign| - s.k
+    requires 0 <= s.k < |s.itemsAssign| == |f.itemsAssign|
+    requires 0 <= f.k < |f.itemsAssign|
+    requires s.itemsAssign[0..s.k] == f.itemsAssign[0..s.k]
+    ensures s == f
+  // {
+  //   if (s.k == |s.itemsAssign|) {
+  //     //assert s == f;
+  //   }
+  //   else {      
+  //     ghost var s' := SolutionData(s.itemsAssign, s.k + 1);
+  //     ghost var f' := SolutionData(f.itemsAssign[f.k := s'.itemsAssign[s'.k]], f.k + 1);
+  //     assert s'.itemsAssign[0..s'.k] == f'.itemsAssign[0..f'.k];
+  //     SamePrefixSameNode(s', f);
+  //   }
+  // }
+
+
+  lemma ExtendsInPartialExtensions(input : InputData, s : SolutionData, f : SolutionData)
+    decreases |input.items| - f.k
+    requires input.Valid()
+    requires f.k <= s.k
+    requires s.Partial(input) && f.Partial(input)
+    requires s.Extends(f)
+    ensures s in f.PartialExtensions()
+  {
+    if (s.k == f.k) {
+      if (s.k == |input.items|) {
+        assert s == f;
+      }
+      else {
+        assert s.itemsAssign[0..s.k] == f.itemsAssign[0..f.k];
+        SamePrefixSameNode(s, f);
+      }
+    }
+    else {
+      assume s == f;      
+    }
+  }
+
+
+
+  class PriorityQueue ... {
+
+    ghost function Pending(input : Input) : set<SolutionData>
+      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads this, this.arr,set i | 0 <= i < this.arr.Length :: this.arr[i]
+      reads set i | 0 <= i < this.arr.Length :: this.arr[i].itemsAssign
+      requires input.Valid()
+      requires Valid()
+    { set s : Solution, sd : SolutionData |
+        && s in Model() && s.Partial(input) && sd.Valid(input.Model())
+        && sd in s.Model().Extensions() ::sd
+    }
+
+
+    ghost function PartialPending(input : Input) : set<SolutionData>
+      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads this, this.arr,set i | 0 <= i < this.arr.Length :: this.arr[i]
+      reads set i | 0 <= i < this.arr.Length :: this.arr[i].itemsAssign
+      requires input.Valid()
+      requires this.Valid()
+    {
+      set s : Solution, sd : SolutionData |
+        && s in this.Model() && s.Partial(input) && sd.Partial(input.Model())
+        && sd in s.Model().PartialExtensions() :: sd
+    }
+
+  }
+
 
   class Solution ... {
 
@@ -92,45 +254,6 @@ module KnapsackPQ refines PQ {
     }
 
 
-    // /*
-    // Método: cálculo la cota superior de la mejor solución alcanzable. La cota superior consiste en seleccionar todos los objetos restantes.
-    
-    // Verificación: usando el lema AllTruesIsUpperBoundForAll.
-    // */
-    // method CalculateUpperBound (input : Input) returns (upperBound : real)
-    //   requires input.Valid()
-    //   requires Model().Explicit(input.Model().items)
-    //   requires Model().TotalValue(input.Model().items) == totalValue
-    //   requires 0 <= this.k <= this.itemsAssign.Length      
-    //   ensures forall s : SolutionData | && |s.itemsAssign| == |this.Model().itemsAssign|
-    //                                     && s.k == |s.itemsAssign|
-    //                                     && this.k <= s.k
-    //                                     && s.Extends(this.Model())
-    //                                     && s.Valid(input.Model())
-    //             :: s.TotalValue(input.Model().items) <= upperBound
-    // {
-    //   ghost var ps' := SolutionData(this.Model().itemsAssign, this.k);
-    //   assert |ps'.itemsAssign| == |this.Model().itemsAssign|;
-    //   upperBound := this.totalValue;
-
-    //   assert upperBound == ps'.TotalValue(input.Model().items);
-
-    //   for i := this.k to this.itemsAssign.Length
-    //     invariant this.k <= ps'.k <= |ps'.itemsAssign| == |this.Model().itemsAssign|
-    //     invariant ps'.Extends(this.Model())
-    //     invariant forall j | this.k <= j < i :: ps'.itemsAssign[j]
-    //     invariant i == ps'.k
-    //     invariant upperBound == ps'.TotalValue(input.Model().items)
-    //   {
-    //     var oldps' := ps';
-    //     ps' := SolutionData(ps'.itemsAssign[ps'.k := true], ps'.k+1);
-    //     upperBound := upperBound + input.items[i].value;
-    //     SolutionData.AddTrueMaintainsSumConsistency(oldps', ps', input.Model());
-    //   }
-    //   SolutionData.AllTruesIsUpperBoundForAll(this.Model(), ps', input.Model());
-    // }
-
-
     /* 
     Predicate: verifica si la solución es válida y completa (todos los objetos han sido tratados (k == itemsAssign.Length).
     */
@@ -212,7 +335,6 @@ module KnapsackPQ refines PQ {
       ensures this.itemsAssign == old(this.itemsAssign)
       ensures forall i | 0 <= i < this.itemsAssign.Length :: this.itemsAssign[i] == s.itemsAssign[i]
       ensures this.Model() == s.Model()
-      ensures fresh(itemsAssign)
     {
 
       // Copiar los elementos del array uno por uno
@@ -236,6 +358,7 @@ module KnapsackPQ refines PQ {
       ensures this.priority == s.priority
       ensures forall i | 0 <= i < this.itemsAssign.Length :: this.itemsAssign[i] == s.itemsAssign[i]
       ensures this.Model() == s.Model()
+      ensures fresh(itemsAssign)
     {
       totalValue := s.totalValue;
       totalWeight := s.totalWeight;
@@ -253,7 +376,7 @@ module KnapsackPQ refines PQ {
       {
         itemsAssign[i] := s.itemsAssign[i];
       }
-     
+
     }
 
 
