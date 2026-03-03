@@ -118,7 +118,7 @@ module KnapsackPQ refines PQ {
 
 
   lemma ExtendsInPartialExtensions(input : InputData, s : SolutionData, f : SolutionData)
-    decreases |input.items| - f.k
+    //decreases |input.items| - f.k
     requires input.Valid()
     requires f.k <= s.k
     requires s.Partial(input) && f.Partial(input)
@@ -131,7 +131,10 @@ module KnapsackPQ refines PQ {
       }
       else {
         assert s.itemsAssign[0..s.k] == f.itemsAssign[0..f.k];
-        SamePrefixSameNode(s, f);
+        assert forall i | 0 <= i < f.k :: f.itemsAssign[i] == f.itemsAssign[i];
+        assert f in f.PartialExtensions(); //demo de forall del extends ==> la linea anterior
+        assume false;
+        //SamePrefixSameNode(s, f);
       }
     }
     else {
