@@ -80,16 +80,18 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   ghost var pending : set<SolutionData>:= pq.Pending(input); // soluciones alcanzables desde las soluciones que estan en la cola
   ghost var processed : multiset<SolutionData>;
   
-  forall sd:SolutionData |  sd.Partial(input.Model()) ensures sd in pq.PartialPending(input)
+  forall sd:SolutionData | sd.Partial(input.Model()) ensures sd in pq.PartialPending(input)
   {  assert ps.Model() == rootData(input.Model());
      AllNodes(input.Model(),sd);
      assert sd in ps.Model().PartialExtensions();
   }
 
 
-  // while (!pq.IsEmpty() && pq.Min().priority > bs.totalValue)
-  //   invariant forall sd : SolutionData | !(sd in Pending(pq, input)) :: sd.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
-  // {
+  while (!pq.IsEmpty() && pq.Min().priority > bs.totalValue)
+    invariant pq.Valid()
+    invariant pq.AllPartial(input)
+  //   invariant forall sd : SolutionData | !(sd in pq.Pending(input)) :: sd.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
+   {
   //   var father := pq.Min();
   //   pq.DeleteMin();
   //   //var son := Solution.CCopy(father);
@@ -124,7 +126,7 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   // //   }
 
   // //   // A pending le quitamos las soluciones alcanzables del nodo procesado
-  // }
+  }
 
 
 

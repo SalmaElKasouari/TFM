@@ -10,7 +10,7 @@ Estructura del fichero:
     valor almacenado indica si el objeto ha sido seleccionado (true) o no (false).
   - k: etapa del árbol de exploración de la solución. Denota el número de objetos tratados de itemsAssign. 
 
-  Functions
+  Funciones
     - TotalWeight: suma total de los pesos de los objetos seleccionados.
     - TotalValue: suma total de los valores de los objetos seleccionados.
   
@@ -48,7 +48,7 @@ module SolutionData {
 
   datatype SolutionData = SolutionData(itemsAssign: seq<bool>, k: nat) {
 
-    /* Functions */
+    /* Funciones */
 
     /*
       Function: calcula el peso total de los objetos seleccionados hasta el índice k. Si el objeto está seleccionado
@@ -194,7 +194,7 @@ module SolutionData {
 
 
 
-    /* Functions */
+    /* Funciones */
 
     ghost function Extensions() : set<SolutionData>
       decreases |itemsAssign| - k

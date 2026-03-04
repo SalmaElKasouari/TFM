@@ -108,7 +108,7 @@ module KnapsackPQ refines PQ {
   //   if (s.k == |s.itemsAssign|) {
   //     //assert s == f;
   //   }
-  //   else {      
+  //   else {
   //     ghost var s' := SolutionData(s.itemsAssign, s.k + 1);
   //     ghost var f' := SolutionData(f.itemsAssign[f.k := s'.itemsAssign[s'.k]], f.k + 1);
   //     assert s'.itemsAssign[0..s'.k] == f'.itemsAssign[0..f'.k];
@@ -138,7 +138,7 @@ module KnapsackPQ refines PQ {
       }
     }
     else {
-      assume s == f;      
+      assume s == f;
     }
   }
 
@@ -168,6 +168,66 @@ module KnapsackPQ refines PQ {
       set s : Solution, sd : SolutionData |
         && s in this.Model() && s.Partial(input) && sd.Partial(input.Model())
         && sd in s.Model().PartialExtensions() :: sd
+    }
+
+    ghost predicate AllPartial(input:Input)
+      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads this, this.arr,set i | 0 <= i < this.arr.Length :: this.arr[i]
+      reads set i | 0 <= i < this.arr.Length :: this.arr[i].itemsAssign
+      requires input.Valid()
+      requires Valid()
+    {
+      forall s | s in Model() ::s.Partial(input)
+    }
+
+    static ghost function RecPartialPending(input:Input, model:multiset<Solution>):set<SolutionData>
+      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads model, set s:Solution | s in model ::s.itemsAssign
+      requires input.Valid()
+    {
+      if (model == multiset{}) then {}
+      else
+        var s:| s in model;
+        if (s.Partial(input)) then s.Model().PartialExtensions() + RecPartialPending(input,model-multiset{s})
+        else RecPartialPending(input,model-multiset{s})
+    }
+
+    ghost predicate disJointTrees(input:Input)
+      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads this, this.arr,set i | 0 <= i < this.arr.Length :: this.arr[i]
+      reads set i | 0 <= i < this.arr.Length :: this.arr[i].itemsAssign
+      requires input.Valid()
+      requires Valid()
+      requires AllPartial(input)
+    { 
+      forall s1, s2 | s1 in Model() && s2 in Model() && s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions()
+    }
+
+    static ghost function RecMPartialPending(input:Input, model:multiset<Solution>):multiset<SolutionData>
+      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads model, set s:Solution | s in model ::s.itemsAssign
+      requires input.Valid()
+    {
+      if (model == multiset{}) then multiset{}
+      else
+        var s:| s in model;
+        if (s.Partial(input)) then multiset(s.Model().PartialExtensions()) + RecMPartialPending(input,model-multiset{s})
+        else RecMPartialPending(input,model-multiset{s})
+    }
+
+    lemma nonEmpty(input:Input)
+      requires input.Valid()
+      requires this.Valid()
+      requires forall s:Solution | s in Model() :: s.Partial(input)
+      requires !IsEmpty()
+      ensures PartialPending(input) != {}
+      ensures RecPartialPending(input,Model()) != {}
+      ensures RecMPartialPending(input,Model()) != multiset{}
+    {
+      var s:Solution :| s in Model() && s.Partial(input);
+      var sd := s.Model();
+      assert sd in s.Model().PartialExtensions();
+      assert sd in PartialPending(input);
     }
 
   }
@@ -202,8 +262,8 @@ module KnapsackPQ refines PQ {
 
 
     /* 
-    Predicate: defines the strict ordering (<) between two solutions. Returns true if this solution 
-    has a strictly lower priority than the other.
+    Predicate: define el orden estricto (<) entre dos soluciones. Devuelve true si this tiene una 
+    prioridad estrictamente menor que other.
     */
     predicate lt (other : Solution)
       ensures !other.lt(other)
@@ -212,19 +272,19 @@ module KnapsackPQ refines PQ {
     }
 
 
-    /* Lemma: proof that lt is irreflexive */
+    /* Lemma: demuestra que lt is irreflexivo */
     static lemma LtIrreflexive(){}
 
-    /* Lemma: proof that lt is asymmetric */
+    /* Lemma: demuestra que lt is asimetrico */
     static lemma LtAntisymmetric(){}
 
-    /* Lemma: proof that lt is transitive */
+    /* Lemma: demuestra que lt is transitivo */
     static lemma LtTransitive(){}
 
-    /* Lemma: proof that le is transitive */
+    /* Lemma: demuestra que le is transitivo */
     static lemma LeTransitive() {}
 
-    /* Lemma: proof that lt satisfies transitive incomparability */
+    /* Lemma: demuestra que lt cumple la incomparabilidad transitiva */
     static lemma LtTransitiveIncomparability(){}
 
 
@@ -246,8 +306,7 @@ module KnapsackPQ refines PQ {
 
 
     /* 
-    Predicate: checks whether the solution represents a valid upper bound for the problem model defined 
-    by the given input.
+    Predicate: verifica si la solución representa una cota superior válida para el problema definido por el input dado.
     */
     ghost predicate IsUpperBound(input : Input)
       reads this, this.itemsAssign, input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
