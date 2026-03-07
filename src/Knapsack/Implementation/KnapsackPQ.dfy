@@ -7,14 +7,42 @@ module KnapsackPQ refines PQ {
 
   import opened Input
   import opened InputData
-  //import opened SolutionData
 
+
+  /* 
+  Función: devuelve la solución parcial inicial con todos sus elementos a false.
+  */
   ghost function rootData(input : InputData) : SolutionData
   {
     SolutionData(seq(|input.items|, i => false), 0)
   }
 
-  //Una SolutionData que extiende a otra que no es parcial no puede ser solucion valida
+
+
+  /* 
+  Lema: todas las SolutionData válidas extienden a la raiz del arbol y por tanto estan en sus extensiones.
+  //
+  Propósito: 
+  //
+  Demostración: usando el lema ExtendsInExtensions.
+  */  
+  lemma AllSolutions(input : InputData, s : SolutionData)
+    requires input.Valid()
+    requires s.Valid(input)
+    ensures s.Extends(rootData(input))
+    ensures s in rootData(input).Extensions()
+  {
+    ExtendsInExtensions(input, s, rootData(input));
+  }
+
+
+  /* 
+  Lema: una SolutionData s que extiende a otra f que no es parcial, no puede ser solucion valida.
+  //
+  Propósito: demostrar el lema ExtendsInExtensions
+  //
+  Demostración: por inducción en f.
+  */
   lemma ExtendsNotPartialNotValid(input : InputData, s : SolutionData, f : SolutionData)
     decreases |input.items| - f.k
     requires input.Valid()
@@ -46,7 +74,13 @@ module KnapsackPQ refines PQ {
   }
 
 
-  //Una SolutionData valida que extiende a otra parcial ha de estar en el conjunto Extensions de dicha solucion parcial
+  /* 
+  Lema: una SolutionData s valida que extiende a otra f parcial ha de estar en el conjunto Extensions de f.
+  //
+  Propósito: demostrar el lema AllSolutions.
+  //
+  Demostración: por inducción en f.
+  */
   lemma ExtendsInExtensions(input : InputData, s : SolutionData, f : SolutionData)
     decreases |input.items| - f.k
     requires input.Valid()
@@ -64,84 +98,124 @@ module KnapsackPQ refines PQ {
       var ffalse := SolutionData(f.itemsAssign[f.k := false], f.k + 1);
       assert s.Extends(ftrue) || s.Extends(ffalse);
       if (s.Extends(ftrue)) {
-        if (ftrue.Partial(input)) { }
+        if (ftrue.Partial(input)) {}
         else { ExtendsNotPartialNotValid(input, s, ftrue);}
       }
       else {
-        if (ffalse.Partial(input)) { }
+        if (ffalse.Partial(input)) {}
         else { ExtendsNotPartialNotValid(input, s, ffalse);}
       }
     }
   }
 
 
-  //Todas las SolutionData extienden a la raiz del arbol y por tanto estan en sus extensiones
-  lemma AllSolutions(input : InputData, s : SolutionData)
-    requires input.Valid()
-    requires s.Valid(input)
-    ensures s.Extends(rootData(input))
-    ensures s in rootData(input).Extensions()
-  {
-    ExtendsInExtensions(input, s, rootData(input));
-  }
-
-
+  /* 
+  Lema: Todas las SolutionData parciales extienden a la raiz del arbol y por tanto estan en sus extensiones.
   //
-  lemma AllNodes(input: InputData, s: SolutionData)
+  Propósito: demostrar que todas las soluciones parciales están en PartialPending, el conjunto de soluciones parciales de la cola que no han sido procesadas.
+  //
+  Demostración: usando el lema ExtendsInPartialExtensions.
+  */
+  lemma AllNodes(input: InputData, s : SolutionData)
     requires input.Valid()
     requires s.Partial(input)
-    requires |s.itemsAssign| == |input.items|
+    requires s.itemsAssign[s.k..] == rootData(input).itemsAssign[s.k..]
     ensures s.Extends(rootData(input))
     ensures s in rootData(input).PartialExtensions()
   {
     ExtendsInPartialExtensions(input, s, rootData(input));
   }
 
-
-  lemma SamePrefixSameNode(s : SolutionData, f : SolutionData)
-    decreases |s.itemsAssign| - s.k
-    requires 0 <= s.k < |s.itemsAssign| == |f.itemsAssign|
-    requires 0 <= f.k < |f.itemsAssign|
-    requires s.itemsAssign[0..s.k] == f.itemsAssign[0..s.k]
-    ensures s == f
+  lemma AllNodesG(input : Input, pq : PriorityQueue, ps : Solution)
+    requires input.Valid()
+    requires pq.Valid()
+    requires ps.Partial(input)
+    ensures forall sd : SolutionData | sd.Partial(input.Model()) && sd.AllFalsesFromK() :: sd in pq.PartialPending(input)
   // {
-  //   if (s.k == |s.itemsAssign|) {
-  //     //assert s == f;
-  //   }
-  //   else {
-  //     ghost var s' := SolutionData(s.itemsAssign, s.k + 1);
-  //     ghost var f' := SolutionData(f.itemsAssign[f.k := s'.itemsAssign[s'.k]], f.k + 1);
-  //     assert s'.itemsAssign[0..s'.k] == f'.itemsAssign[0..f'.k];
-  //     SamePrefixSameNode(s', f);
+  //   forall sd : SolutionData | sd.Partial(input.Model()) && sd.AllFalsesFromK()
+  //     ensures sd in pq.PartialPending(input)
+  //   {
+  //     assert forall i | 0 <= i < |ps.Model().itemsAssign| :: ps.itemsAssign[i] == false;
+  //     assert ps.Model() == rootData(input.Model());
+  //     AllNodes(input.Model(), sd);
+  //     assert sd in ps.Model().PartialExtensions();
   //   }
   // }
 
 
+  /* 
+  Lema: una SolutionData s parcial que extiende a otra f parcial ha de estar en el conjunto Extensions de f.
+  //
+  Propósito: demostrar el lema AllSolutions.
+  //
+  Demostración: por inducción en f.
+  */
   lemma ExtendsInPartialExtensions(input : InputData, s : SolutionData, f : SolutionData)
-    //decreases |input.items| - f.k
+    decreases |input.items| - f.k
     requires input.Valid()
     requires f.k <= s.k
     requires s.Partial(input) && f.Partial(input)
     requires s.Extends(f)
+    requires s.itemsAssign[s.k..] == f.itemsAssign[s.k..]
     ensures s in f.PartialExtensions()
   {
     if (s.k == f.k) {
-      if (s.k == |input.items|) {
-        assert s == f;
-      }
-      else {
-        assert s.itemsAssign[0..s.k] == f.itemsAssign[0..f.k];
-        assert forall i | 0 <= i < f.k :: f.itemsAssign[i] == f.itemsAssign[i];
-        assert f in f.PartialExtensions(); //demo de forall del extends ==> la linea anterior
-        assume false;
-        //SamePrefixSameNode(s, f);
-      }
+      assert s.itemsAssign[..s.k] == f.itemsAssign[..f.k];
+      assert s == f;
     }
     else {
-      assume s == f;
+      var ftrue := SolutionData(f.itemsAssign[f.k := true], f.k + 1);
+      var ffalse := SolutionData(f.itemsAssign[f.k := false], f.k + 1);
+      assert s.Extends(ftrue) || s.Extends(ffalse);
+
+      if (s.Extends(ftrue)) {
+        if (ftrue.Partial(input)) { }
+        else { ExtendsNotPartialNotPartial(input, s, ftrue);}
+      }
+      else {
+        if (ffalse.Partial(input)) { }
+        else { ExtendsNotPartialNotPartial(input, s, ffalse);}
+      }
     }
   }
 
+
+  /* 
+  Lema: una SolutionData s que extiende a otra f que no es parcial, no puede ser solucion parcial.
+  //
+  Propósito: demostrar el lema ExtendsInPartialExtensions
+  //
+  Demostración: por inducción en f.
+  */
+  lemma ExtendsNotPartialNotPartial(input : InputData, s : SolutionData, f : SolutionData)
+    decreases |input.items| - f.k
+    requires input.Valid()
+    requires !f.Partial(input)
+    requires f.k <= s.k <= |s.itemsAssign| == |f.itemsAssign| == |input.items|
+    requires s.Extends(f)
+    requires s.itemsAssign[s.k..] == f.itemsAssign[s.k..]
+    ensures !s.Partial(input)
+  {
+    if (f.k == s.k) {
+      assert s.itemsAssign[..] == f.itemsAssign[..];
+    }
+    else {
+      var ftrue := SolutionData(f.itemsAssign[f.k := true], f.k + 1);
+      var ffalse := SolutionData(f.itemsAssign[f.k := false], f.k + 1);
+      assert s.Extends(ftrue) || s.Extends(ffalse);
+      assert !f.Implicit(input.items, input.maxWeight);
+
+      if (s.Extends(ftrue)) {
+        SolutionData.AddTrueMaintainsSumConsistency(f, ftrue, input);
+        assert !ftrue.Partial(input);
+        ExtendsNotPartialNotPartial(input, s, ftrue);
+      } else {
+        SolutionData.AddFalsePreservesWeightValue(f, ffalse, input);
+        assert !ffalse.Partial(input);
+        ExtendsNotPartialNotPartial(input, s, ffalse);
+      }
+    }
+  }
 
 
   class PriorityQueue ... {
@@ -157,7 +231,7 @@ module KnapsackPQ refines PQ {
         && sd in s.Model().Extensions() ::sd
     }
 
-
+    //para la terminación
     ghost function PartialPending(input : Input) : set<SolutionData>
       reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
       reads this, this.arr,set i | 0 <= i < this.arr.Length :: this.arr[i]
@@ -177,7 +251,7 @@ module KnapsackPQ refines PQ {
       requires input.Valid()
       requires Valid()
     {
-      forall s | s in Model() ::s.Partial(input)
+      forall s | s in Model() :: s.Partial(input) // && forall lo de falsos
     }
 
     static ghost function RecPartialPending(input:Input, model:multiset<Solution>):set<SolutionData>
@@ -199,7 +273,7 @@ module KnapsackPQ refines PQ {
       requires input.Valid()
       requires Valid()
       requires AllPartial(input)
-    { 
+    {
       forall s1, s2 | s1 in Model() && s2 in Model() && s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions()
     }
 

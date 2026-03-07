@@ -68,9 +68,9 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   bs := new Solution(bs_itemsAssign, bs_totalValue, bs_totalWeight, bs_k, bs_priority);
   bs.priority := ps.priority; // puede que sea muy feo esto, le quiero poner la misma prioridad que ps, la de coger todos los objetos restantes, porque bs es completa y tiene total value = 0, que implica 0 <= ps.priority
 
-  assert bs.Valid(input) by {
-    bs.Model().SumOfFalsesEqualsZero(input.Model());
-  }
+  // assert bs.Valid(input) by {
+  //   bs.Model().SumOfFalsesEqualsZero(input.Model());
+  // }
 
   /* Branch and Bound */
 
@@ -79,19 +79,20 @@ method ComputeSolution(input: Input) returns (bs: Solution)
 
   ghost var pending : set<SolutionData>:= pq.Pending(input); // soluciones alcanzables desde las soluciones que estan en la cola
   ghost var processed : multiset<SolutionData>;
-  
-  forall sd:SolutionData | sd.Partial(input.Model()) ensures sd in pq.PartialPending(input)
-  {  assert ps.Model() == rootData(input.Model());
-     AllNodes(input.Model(),sd);
-     assert sd in ps.Model().PartialExtensions();
+
+  forall sd : SolutionData | sd.Partial(input.Model()) && sd.AllFalsesFromK()
+  ensures sd in pq.PartialPending(input)
+  {  
+    assert ps.Model() == rootData(input.Model());
+    AllNodes(input.Model(), sd);
+    assert sd in ps.Model().PartialExtensions();
   }
 
-
-  while (!pq.IsEmpty() && pq.Min().priority > bs.totalValue)
-    invariant pq.Valid()
-    invariant pq.AllPartial(input)
+  //while (!pq.IsEmpty() && pq.Min().priority > bs.totalValue)
+  //invariant pq.Valid()
+  //invariant pq.AllPartial(input)
   //   invariant forall sd : SolutionData | !(sd in pq.Pending(input)) :: sd.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
-   {
+  //{
   //   var father := pq.Min();
   //   pq.DeleteMin();
   //   //var son := Solution.CCopy(father);
@@ -126,7 +127,7 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   // //   }
 
   // //   // A pending le quitamos las soluciones alcanzables del nodo procesado
-  }
+  //}
 
 
 

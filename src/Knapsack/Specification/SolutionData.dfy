@@ -86,14 +86,13 @@ module SolutionData {
     }
 
 
-
     /* Predicates */
 
     /*
       Predicate: restricciones explícitas del problema.
     */
     ghost predicate Explicit (items: seq<ItemData>){
-      0 <= k <= |items| == |itemsAssign|
+      && 0 <= k <= |items| == |itemsAssign|
     }
 
 
@@ -103,7 +102,7 @@ module SolutionData {
     ghost predicate Implicit(items: seq<ItemData>, maxWeight : real)
       requires Explicit(items)
     {
-      this.TotalWeight(items) <= maxWeight
+      TotalWeight(items) <= maxWeight
     }
 
 
@@ -147,7 +146,7 @@ module SolutionData {
     */
     ghost predicate Optimal(input: InputData)
       requires input.Valid()
-      requires this.Valid(input)
+      requires Valid(input)
     {
       forall s: SolutionData | s.Valid(input) :: s.TotalValue(input.items) <= TotalValue(input.items)
     }
@@ -158,24 +157,24 @@ module SolutionData {
       hasta el índice k.
     */
     ghost predicate Extends(ps : SolutionData) // ps es prefijo de ps' (el que llama a la Function), (ps y ps' iguales hasta k)
-      requires this.k <= |this.itemsAssign| == |ps.itemsAssign|
-      requires ps.k <= this.k
+      requires k <= |itemsAssign| == |ps.itemsAssign|
+      requires ps.k <= k
     {
-      forall i | 0 <= i < ps.k :: this.itemsAssign[i] == ps.itemsAssign[i]
+      forall i | 0 <= i < ps.k :: itemsAssign[i] == ps.itemsAssign[i]
     }
 
 
     /*
       Predicate: verifica que una solución (this) es una extensión óptima de la solución parcial ps, garantizando que no haya 
-      soluciones válidas con un mayor valor total que this.
+      soluciones válidas con un mayor valor total que 
     */
     ghost predicate OptimalExtension(ps : SolutionData, input : InputData)
       requires input.Valid()
     {
-      && this.Valid(input)
+      && Valid(input)
       && ps.Partial(input)
-      && this.Extends(ps)
-      && forall s : SolutionData | s.Valid(input) && s.Extends(ps) :: s.TotalValue(input.items) <= this.TotalValue(input.items)
+      && Extends(ps)
+      && forall s : SolutionData | s.Valid(input) && s.Extends(ps) :: s.TotalValue(input.items) <= TotalValue(input.items)
     }
 
 
@@ -184,17 +183,31 @@ module SolutionData {
       misma asignación de objetos seleccionados.
     */
     ghost predicate Equals(s : SolutionData)
-      requires |this.itemsAssign| == |s.itemsAssign|
-      requires this.k <= |this.itemsAssign|
+      requires |itemsAssign| == |s.itemsAssign|
+      requires k <= |itemsAssign|
       requires s.k <= |s.itemsAssign|
     {
-      && this.k == s.k
-      && forall i | 0 <= i < this.k :: this.itemsAssign[i] == s.itemsAssign[i]
+      && k == s.k
+      && forall i | 0 <= i < k :: itemsAssign[i] == s.itemsAssign[i]
+    }
+
+    /*
+      Predicate: verifica que una solución tenga a partir de k todos sus elementos a false.
+    */
+    ghost predicate AllFalsesFromK()
+    {
+      forall i | k <= i < |itemsAssign| :: itemsAssign[i] == false
     }
 
 
 
     /* Funciones */
+
+    static ghost function rootData(input : InputData) : SolutionData
+    {
+      SolutionData(seq(|input.items|, i => false), 0)
+    }
+
 
     ghost function Extensions() : set<SolutionData>
       decreases |itemsAssign| - k
@@ -222,6 +235,7 @@ module SolutionData {
 
 
     /* Lemas */
+
 
     /* 
     Lema: dado un itemsAssign cuyas posiciones son todas a false, es decir, que ningun objeto ha 
@@ -306,12 +320,12 @@ module SolutionData {
     lemma EqualValueWeightFromEquals(s : SolutionData, input : InputData)
       decreases k
       requires input.Valid()
-      requires |input.items| == |this.itemsAssign| == |s.itemsAssign|
-      requires this.k <= |this.itemsAssign|
+      requires |input.items| == |itemsAssign| == |s.itemsAssign|
+      requires k <= |itemsAssign|
       requires s.k <= |s.itemsAssign|
-      requires this.Equals(s)
-      ensures this.TotalValue(input.items) == s.TotalValue(input.items)
-      ensures this.TotalWeight(input.items) == s.TotalWeight(input.items)
+      requires Equals(s)
+      ensures TotalValue(input.items) == s.TotalValue(input.items)
+      ensures TotalWeight(input.items) == s.TotalWeight(input.items)
     {
       if k == 0 {
 
@@ -325,29 +339,29 @@ module SolutionData {
     /* 
     Lema: sea una solución s que extiende a this, entonces el peso total y valor total de s deben ser al menos 
     iguales al peso total y valor total de ps. Esto es por que el contenido de employeesAssign de cada solución es 
-    igual hasta this.k.
+    igual hasta k.
     //
     Propósito: demostrar el lema InvalidExtensionsFromInvalidPs de BT.dfy.
     //
-    Demostración: mediante inducción en s, esta se va reduciendo hasta this.k.
+    Demostración: mediante inducción en s, esta se va reduciendo hasta k.
     */
     lemma GreaterOrEqualValueWeightFromExtends(s: SolutionData, input: InputData)
       decreases s.k
       requires input.Valid()
-      requires |this.itemsAssign| == |s.itemsAssign| == |input.items|
-      requires this.k <= |this.itemsAssign|
+      requires |itemsAssign| == |s.itemsAssign| == |input.items|
+      requires k <= |itemsAssign|
       requires s.k <= |s.itemsAssign|
-      requires this.k <= s.k
+      requires k <= s.k
       requires s.Extends(this)
-      ensures s.TotalWeight(input.items) >= this.TotalWeight(input.items)
-      ensures s.TotalValue(input.items) >= this.TotalValue(input.items)
+      ensures s.TotalWeight(input.items) >= TotalWeight(input.items)
+      ensures s.TotalValue(input.items) >= TotalValue(input.items)
     {
-      if this.k == s.k {
-        this.EqualValueWeightFromEquals(s, input);
+      if k == s.k {
+        EqualValueWeightFromEquals(s, input);
       }
       else {
         ghost var s := SolutionData(s.itemsAssign, s.k-1);
-        this.GreaterOrEqualValueWeightFromExtends(s, input);
+        GreaterOrEqualValueWeightFromExtends(s, input);
       }
     }
 
@@ -362,25 +376,25 @@ module SolutionData {
     */
     lemma EqualsOptimalExtensionFromEquals(ps1 : SolutionData, ps2: SolutionData, input : InputData)
       requires input.Valid()
-      requires this.Valid(input)
+      requires Valid(input)
       requires |ps1.itemsAssign| == |ps2.itemsAssign|
       requires ps1.k <= |ps1.itemsAssign|
       requires ps2.k <= |ps2.itemsAssign|
       requires ps1.Equals(ps2)
-      requires this.OptimalExtension(ps1, input)
-      ensures this.OptimalExtension(ps2, input)
+      requires OptimalExtension(ps1, input)
+      ensures OptimalExtension(ps2, input)
     {
 
       assert ps1.k == ps2.k && forall i | 0 <= i < ps1.k :: ps1.itemsAssign[i] == ps2.itemsAssign[i]; //def clave de Equals
 
-      assert this.OptimalExtension(ps2, input) by {
+      assert OptimalExtension(ps2, input) by {
         assert ps2.Partial(input) by {
           assert ps2.TotalWeight(input.items) <= input.maxWeight by {
             ps1.EqualValueWeightFromEquals(ps2, input);
           }
         }
-        assert this.Extends(ps2);
-        assert forall s : SolutionData | s.Valid(input) && s.Extends(ps2) :: s.TotalValue(input.items) <= this.TotalValue(input.items);
+        assert Extends(ps2);
+        assert forall s : SolutionData | s.Valid(input) && s.Extends(ps2) :: s.TotalValue(input.items) <= TotalValue(input.items);
       }
     }
 
