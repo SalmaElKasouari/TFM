@@ -7,17 +7,7 @@ module KnapsackPQ refines PQ {
 
   import opened Input
   import opened InputData
-
-
-  /* 
-  Función: devuelve la solución parcial inicial con todos sus elementos a false.
-  */
-  ghost function rootData(input : InputData) : SolutionData
-  {
-    SolutionData(seq(|input.items|, i => false), 0)
-  }
-
-
+  import opened SolutionData
 
   /* 
   Lema: todas las SolutionData válidas extienden a la raiz del arbol y por tanto estan en sus extensiones.
@@ -29,10 +19,10 @@ module KnapsackPQ refines PQ {
   lemma AllSolutions(input : InputData, s : SolutionData)
     requires input.Valid()
     requires s.Valid(input)
-    ensures s.Extends(rootData(input))
-    ensures s in rootData(input).Extensions()
+    ensures s.Extends(SolutionData.rootData(input))
+    ensures s in SolutionData.rootData(input).Extensions()
   {
-    ExtendsInExtensions(input, s, rootData(input));
+    ExtendsInExtensions(input, s, SolutionData.rootData(input));
   }
 
 
@@ -119,11 +109,11 @@ module KnapsackPQ refines PQ {
   lemma AllNodes(input: InputData, s : SolutionData)
     requires input.Valid()
     requires s.Partial(input)
-    requires s.itemsAssign[s.k..] == rootData(input).itemsAssign[s.k..]
-    ensures s.Extends(rootData(input))
-    ensures s in rootData(input).PartialExtensions()
+    requires s.itemsAssign[s.k..] == SolutionData.rootData(input).itemsAssign[s.k..]
+    ensures s.Extends(SolutionData.rootData(input))
+    ensures s in SolutionData.rootData(input).PartialExtensions()
   {
-    ExtendsInPartialExtensions(input, s, rootData(input));
+    ExtendsInPartialExtensions(input, s, SolutionData.rootData(input));
   }
 
   lemma AllNodesG(input : Input, pq : PriorityQueue, ps : Solution)

@@ -83,7 +83,7 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   forall sd : SolutionData | sd.Partial(input.Model()) && sd.AllFalsesFromK()
   ensures sd in pq.PartialPending(input)
   {  
-    assert ps.Model() == rootData(input.Model());
+    assert ps.Model() == SolutionData.rootData(input.Model());
     AllNodes(input.Model(), sd);
     assert sd in ps.Model().PartialExtensions();
   }

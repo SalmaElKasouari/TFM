@@ -2,7 +2,7 @@ include "../Specification/SolutionData.dfy"
 
 abstract module PQ {
 
-  import opened SolutionData
+  //import opened SolutionData
 
   class Solution {
 
