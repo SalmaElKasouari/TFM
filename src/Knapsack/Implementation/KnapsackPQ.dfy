@@ -126,7 +126,7 @@ module KnapsackPQ refines PQ {
   //     ensures sd in pq.PartialPending(input)
   //   {
   //     assert forall i | 0 <= i < |ps.Model().itemsAssign| :: ps.itemsAssign[i] == false;
-  //     assert ps.Model() == rootData(input.Model());
+  //     assert ps.Model() == SolutionData.rootData(input.Model());
   //     AllNodes(input.Model(), sd);
   //     assert sd in ps.Model().PartialExtensions();
   //   }
@@ -216,7 +216,8 @@ module KnapsackPQ refines PQ {
       reads set i | 0 <= i < this.arr.Length :: this.arr[i].itemsAssign
       requires input.Valid()
       requires Valid()
-    { set s : Solution, sd : SolutionData |
+    { 
+      set s : Solution, sd : SolutionData |
         && s in Model() && s.Partial(input) && sd.Valid(input.Model())
         && sd in s.Model().Extensions() ::sd
     }
@@ -256,7 +257,7 @@ module KnapsackPQ refines PQ {
         else RecPartialPending(input,model-multiset{s})
     }
 
-    ghost predicate disJointTrees(input:Input)
+    ghost predicate DisJointTrees(input:Input)
       reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
       reads this, this.arr,set i | 0 <= i < this.arr.Length :: this.arr[i]
       reads set i | 0 <= i < this.arr.Length :: this.arr[i].itemsAssign

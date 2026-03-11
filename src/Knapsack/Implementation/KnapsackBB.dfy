@@ -53,10 +53,10 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   var ps := new Solution(ps_itemsAssign, ps_totalValue, ps_totalWeight, ps_k, ps_priority); // primero la creo con 0 y luego la asigno
   ps.priority := CalculateUpperBound(ps_itemsAssign, ps_k, ps_totalValue, input); // la cota superior es selccionar todos los objetos restantes
 
-  // assert ps.Partial(input) by {
-  //   assert ps.Model().Partial(input.Model());
-  //   assert ps.IsUpperBound(input);
-  // }
+  assert ps.Partial(input) by {
+    assert ps.Model().Partial(input.Model());
+    assert ps.IsUpperBound(input);
+  }
 
 
   /* Construimos una solución mejor (bs) */
@@ -68,9 +68,9 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   bs := new Solution(bs_itemsAssign, bs_totalValue, bs_totalWeight, bs_k, bs_priority);
   bs.priority := ps.priority; // puede que sea muy feo esto, le quiero poner la misma prioridad que ps, la de coger todos los objetos restantes, porque bs es completa y tiene total value = 0, que implica 0 <= ps.priority
 
-  // assert bs.Valid(input) by {
-  //   bs.Model().SumOfFalsesEqualsZero(input.Model());
-  // }
+  assert bs.Valid(input) by {
+    bs.Model().SumOfFalsesEqualsZero(input.Model());
+  }
 
   /* Branch and Bound */
 
@@ -88,13 +88,27 @@ method ComputeSolution(input: Input) returns (bs: Solution)
     assert sd in ps.Model().PartialExtensions();
   }
 
-  //while (!pq.IsEmpty() && pq.Min().priority > bs.totalValue)
-  //invariant pq.Valid()
-  //invariant pq.AllPartial(input)
-  //   invariant forall sd : SolutionData | !(sd in pq.Pending(input)) :: sd.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
-  //{
-  //   var father := pq.Min();
-  //   pq.DeleteMin();
+  
+
+  while (!pq.IsEmpty() && pq.Min().priority > bs.totalValue)
+    decreases pq.PartialPending(input)
+    invariant pq.DisJointTrees(input)
+    //invariant pq.Min().Model() !in pq.PartialPending(input)
+    invariant pq.Valid()
+    invariant pq.AllPartial(input)
+    // invariant forall sd : SolutionData | !(sd in pq.Pending(input)) :: sd.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
+  {
+    var father := pq.Min();
+    pq.DeleteMin();
+
+    // todos los hijos estan partialPending
+    assert forall s : SolutionData | s.Partial(input.Model()) && s in father.Model().PartialExtensions() :: s in pq.PartialPending(input);
+
+    
+    // father no esta en partialPending
+    assert father.Model() !in pq.PartialPending(input);
+
+
   //   //var son := Solution.CCopy(father);
   //   //son.k := son.k + 1;
 
@@ -127,7 +141,7 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   // //   }
 
   // //   // A pending le quitamos las soluciones alcanzables del nodo procesado
-  //}
+  }
 
 
 
