@@ -27,6 +27,40 @@ module KnapsackPQ refines PQ {
 
 
   /* 
+  Lema: una SolutionData s valida que extiende a otra f parcial ha de estar en el conjunto Extensions de f.
+  //
+  Propósito: demostrar el lema AllSolutions.
+  //
+  Demostración: por inducción en f.
+  */
+  lemma ExtendsInExtensions(input : InputData, s : SolutionData, f : SolutionData)
+    decreases |input.items| - f.k
+    requires input.Valid()
+    requires s.Valid(input) && f.Partial(input)
+    requires s.Extends(f)
+    ensures s in f.Extensions()
+  {
+    if (s.k == f.k) {
+      assert s.k == |input.items|;
+      assert s.itemsAssign[..] == f.itemsAssign[..];
+      assert s == f;
+    }
+    else {
+      var ftrue := SolutionData(f.itemsAssign[f.k := true], f.k + 1);
+      var ffalse := SolutionData(f.itemsAssign[f.k := false], f.k + 1);
+      assert s.Extends(ftrue) || s.Extends(ffalse);
+      if (s.Extends(ftrue)) {
+        if (ftrue.Partial(input)) {}
+        else { ExtendsNotPartialNotValid(input, s, ftrue);}
+      }
+      else {
+        if (ffalse.Partial(input)) {}
+        else { ExtendsNotPartialNotValid(input, s, ffalse);}
+      }
+    }
+  }
+
+  /* 
   Lema: una SolutionData s que extiende a otra f que no es parcial, no puede ser solucion valida.
   //
   Propósito: demostrar el lema ExtendsInExtensions
@@ -65,41 +99,6 @@ module KnapsackPQ refines PQ {
 
 
   /* 
-  Lema: una SolutionData s valida que extiende a otra f parcial ha de estar en el conjunto Extensions de f.
-  //
-  Propósito: demostrar el lema AllSolutions.
-  //
-  Demostración: por inducción en f.
-  */
-  lemma ExtendsInExtensions(input : InputData, s : SolutionData, f : SolutionData)
-    decreases |input.items| - f.k
-    requires input.Valid()
-    requires s.Valid(input) && f.Partial(input)
-    requires s.Extends(f)
-    ensures s in f.Extensions()
-  {
-    if (s.k == f.k) {
-      assert s.k == |input.items|;
-      assert s.itemsAssign[..] == f.itemsAssign[..];
-      assert s == f;
-    }
-    else {
-      var ftrue := SolutionData(f.itemsAssign[f.k := true], f.k + 1);
-      var ffalse := SolutionData(f.itemsAssign[f.k := false], f.k + 1);
-      assert s.Extends(ftrue) || s.Extends(ffalse);
-      if (s.Extends(ftrue)) {
-        if (ftrue.Partial(input)) {}
-        else { ExtendsNotPartialNotValid(input, s, ftrue);}
-      }
-      else {
-        if (ffalse.Partial(input)) {}
-        else { ExtendsNotPartialNotValid(input, s, ffalse);}
-      }
-    }
-  }
-
-
-  /* 
   Lema: Todas las SolutionData parciales extienden a la raiz del arbol y por tanto estan en sus extensiones.
   //
   Propósito: demostrar que todas las soluciones parciales están en PartialPending, el conjunto de soluciones parciales de la cola que no han sido procesadas.
@@ -116,21 +115,16 @@ module KnapsackPQ refines PQ {
     ExtendsInPartialExtensions(input, s, SolutionData.rootData(input));
   }
 
-  lemma AllNodesG(input : Input, pq : PriorityQueue, ps : Solution)
+  lemma AllNodesG(input : InputData)
     requires input.Valid()
-    requires pq.Valid()
-    requires ps.Partial(input)
-    ensures forall sd : SolutionData | sd.Partial(input.Model()) && sd.AllFalsesFromK() :: sd in pq.PartialPending(input)
-  // {
-  //   forall sd : SolutionData | sd.Partial(input.Model()) && sd.AllFalsesFromK()
-  //     ensures sd in pq.PartialPending(input)
-  //   {
-  //     assert forall i | 0 <= i < |ps.Model().itemsAssign| :: ps.itemsAssign[i] == false;
-  //     assert ps.Model() == SolutionData.rootData(input.Model());
-  //     AllNodes(input.Model(), sd);
-  //     assert sd in ps.Model().PartialExtensions();
-  //   }
-  // }
+    ensures forall sd : SolutionData | sd.Partial(input) && sd.AllFalsesFromK() :: sd in SolutionData.rootData(input).PartialExtensions()
+  {
+    forall sd : SolutionData | sd.Partial(input) && sd.AllFalsesFromK()
+      ensures sd in SolutionData.rootData(input).PartialExtensions()  
+    {
+      AllNodes(input, sd);
+    }
+  }
 
 
   /* 

@@ -80,68 +80,61 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   ghost var pending : set<SolutionData>:= pq.Pending(input); // soluciones alcanzables desde las soluciones que estan en la cola
   ghost var processed : multiset<SolutionData>;
 
-  forall sd : SolutionData | sd.Partial(input.Model()) && sd.AllFalsesFromK()
-  ensures sd in pq.PartialPending(input)
-  {  
-    assert ps.Model() == SolutionData.rootData(input.Model());
-    AllNodes(input.Model(), sd);
-    assert sd in ps.Model().PartialExtensions();
-  }
-
+  AllNodesG(input.Model());
   
 
-  while (!pq.IsEmpty() && pq.Min().priority > bs.totalValue)
-    decreases pq.PartialPending(input)
-    invariant pq.DisJointTrees(input)
-    //invariant pq.Min().Model() !in pq.PartialPending(input)
-    invariant pq.Valid()
-    invariant pq.AllPartial(input)
-    // invariant forall sd : SolutionData | !(sd in pq.Pending(input)) :: sd.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
-  {
-    var father := pq.Min();
-    pq.DeleteMin();
+  // while (!pq.IsEmpty() && pq.Min().priority > bs.totalValue)
+  //     decreases pq.PartialPending(input)
+  //   //invariant pq.Valid()
+  //   //invariant pq.DisJointTrees(input)
+  //   //invariant pq.Min().Model() !in pq.PartialPending(input)    
+  //   //invariant pq.AllPartial(input)
+  //   // invariant forall sd : SolutionData | !(sd in pq.Pending(input)) :: sd.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
+  // {
+  //   var father := pq.Min();
+  //   pq.DeleteMin();
 
-    // todos los hijos estan partialPending
-    assert forall s : SolutionData | s.Partial(input.Model()) && s in father.Model().PartialExtensions() :: s in pq.PartialPending(input);
+  //   // todos los hijos estan partialPending
+  //   assert forall s : SolutionData | s.Partial(input.Model()) && s in father.Model().PartialExtensions() :: s in pq.PartialPending(input);
 
     
-    // father no esta en partialPending
-    assert father.Model() !in pq.PartialPending(input);
+  //   // father no esta en partialPending
+  //   assert father.Model() !in pq.PartialPending(input);
 
 
-  //   //var son := Solution.CCopy(father);
-  //   //son.k := son.k + 1;
+  // //   //var son := Solution.CCopy(father);
+  // //   //son.k := son.k + 1;
 
-  // //   // Seleccionar el objeto
-  // //   if (father.totalWeight + input.items[son.k].weight <= input.maxWeight) {
-  // //     son.itemsAssign[son.k] := true;
-  // //     son.totalWeight := father.totalWeight + input.items[son.k].weight;
-  // //     son.totalValue := father.totalValue + input.items[son.k].value;
-  // //     son.priority := father.priority;
-  // //     if (son.k == son.itemsAssign.Length) {
-  // //       bs.Copy(ps);
-  // //     }
-  // //     else {
-  // //       pq.Insert(son);
-  // //     }
-  // //   }
+  // // //   // Seleccionar el objeto
+  // // //   if (father.totalWeight + input.items[son.k].weight <= input.maxWeight) {
+  // // //     son.itemsAssign[son.k] := true;
+  // // //     son.totalWeight := father.totalWeight + input.items[son.k].weight;
+  // // //     son.totalValue := father.totalValue + input.items[son.k].value;
+  // // //     son.priority := father.priority;
+  // // //     if (son.k == son.itemsAssign.Length) {
+  // // //       bs.Copy(ps);
+  // // //     }
+  // // //     else {
+  // // //       pq.Insert(son);
+  // // //     }
+  // // //   }
 
-  // //   // No seleccionar el objeto
-  // //   son.itemsAssign[son.k] := false;
-  // //   son.totalWeight := father.totalWeight;
-  // //   son.totalValue := father.totalValue;
-  // //   son.priority := CalculateUpperBound(son.itemsAssign, son.k, son.totalValue, input);
-  // //   if (son.priority > bs.totalValue) {
-  // //     if (son.k == son.itemsAssign.Length) {
-  // //       bs.Copy(ps);
-  // //     }
-  // //     else {
-  // //       pq.Insert(son);
-  // //     }
-  // //   }
+  // // //   // No seleccionar el objeto
+  // // //   son.itemsAssign[son.k] := false;
+  // // //   son.totalWeight := father.totalWeight;
+  // // //   son.totalValue := father.totalValue;
+  // // //   son.priority := CalculateUpperBound(son.itemsAssign, son.k, son.totalValue, input);
+  // // //   if (son.priority > bs.totalValue) {
+  // // //     if (son.k == son.itemsAssign.Length) {
+  // // //       bs.Copy(ps);
+  // // //     }
+  // // //     else {
+  // // //       pq.Insert(son);
+  // // //     }
+  // // //   }
 
-  // //   // A pending le quitamos las soluciones alcanzables del nodo procesado
-  }
+  // // //   // A pending le quitamos las soluciones alcanzables del nodo procesado
+  // }
 
 
 
