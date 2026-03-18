@@ -46,6 +46,60 @@ module KnapsackPQ refines PQ {
       forall s | s in Model() :: s.Partial(input) // && forall lo de falsos
     }
 
+    ghost predicate DisJointTrees(input:Input)
+      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads this, arr,set i | 0 <= i < arr.Length :: arr[i]
+      reads set i | 0 <= i < arr.Length :: arr[i].itemsAssign
+      requires input.Valid()
+      requires Valid()
+      requires AllPartial(input)
+    {
+      && (forall s | s in Model() :: Model()[s] == 1)
+      && (forall s1, s2 | s1 in Model() && s2 in Model() && s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions())
+    }
+
+    static ghost function StaticPartialPending(m: multiset<Solution>, input : Input) : set<SolutionData>
+      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads m, set s <- m :: s.itemsAssign
+      requires input.Valid()
+    {
+      set s : Solution, sd : SolutionData |
+        && s in m && s.Partial(input) && sd.Partial(input.Model())
+        && sd in s.Model().PartialExtensions() :: sd
+    }
+
+    static lemma StaticPartialPendingDecreases(m: multiset<Solution>, s: Solution, input : Input)
+      requires s in m
+      requires input.Valid()
+      requires forall s <- m :: s.Partial(input) // && s.Model().Partial(input.Model()) && s.Model().k <= |s.Model().itemsAssign|
+      requires assert (forall s <- m :: s.Partial(input) && s.Model().Partial(input.Model()) && s.Model().k <= |s.Model().itemsAssign|); true
+      requires (forall s | s in m :: m[s] == 1)
+      requires (forall s1 <- m, s2 <- m | s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions())
+      ensures StaticPartialPending(m - multiset{s}, input)
+            < StaticPartialPending(m, input)
+    {
+      assert StaticPartialPending(m - multiset{s}, input) <= StaticPartialPending(m, input);
+      assert s.Model() in StaticPartialPending(m, input);
+      forall S
+        | S in m - multiset{s} && S.Partial(input) && s.Model().Partial(input.Model())
+        ensures s.Model() !in S.Model().PartialExtensions()
+      {
+        assert s != S;
+      }
+      assert s.Model() !in StaticPartialPending(m - multiset{s}, input);
+    }
+    
+
+    lemma MinInPartialPending(input: Input)
+      requires input.Valid()
+      requires Valid()
+      requires !IsEmpty()
+      requires AllPartial(input)
+      ensures Min().Model() in PartialPending(input)
+    {}
+
+    //--------------------------------------
+
     static ghost function RecPartialPending(input:Input, model:multiset<Solution>):set<SolutionData>
       reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
       reads model, set s:Solution | s in model ::s.itemsAssign
@@ -57,19 +111,7 @@ module KnapsackPQ refines PQ {
         if (s.Partial(input)) then s.Model().PartialExtensions() + RecPartialPending(input,model-multiset{s})
         else RecPartialPending(input,model-multiset{s})
     }
-
-    ghost predicate DisJointTrees(input:Input)
-      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
-      reads this, arr,set i | 0 <= i < arr.Length :: arr[i]
-      reads set i | 0 <= i < arr.Length :: arr[i].itemsAssign
-      requires input.Valid()
-      requires Valid()
-      requires AllPartial(input)
-    {
-      && forall s | s in Model() :: Model()[s] == 1
-      && forall s1, s2 | s1 in Model() && s2 in Model() && s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions()
-    }
-
+    
     static ghost function RecMPartialPending(input:Input, model:multiset<Solution>):multiset<SolutionData>
       reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
       reads model, set s:Solution | s in model ::s.itemsAssign
@@ -82,7 +124,7 @@ module KnapsackPQ refines PQ {
         else RecMPartialPending(input,model-multiset{s})
     }
 
-    lemma nonEmpty(input:Input)
+    lemma NonEmpty(input:Input)
       requires input.Valid()
       requires Valid()
       requires forall s:Solution | s in Model() :: s.Partial(input)
@@ -96,7 +138,6 @@ module KnapsackPQ refines PQ {
       assert sd in s.Model().PartialExtensions();
       assert sd in PartialPending(input);
     }
-
   }
 
 

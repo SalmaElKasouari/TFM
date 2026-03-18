@@ -235,10 +235,10 @@ module SolutionData {
       decreases |itemsAssign| - k
       requires 0 <= k <= |itemsAssign|
     {
+      { this } + 
       if k == |itemsAssign| then
-        { this }
+        {}
       else
-        { this } +
         SolutionData(itemsAssign[k := false], k + 1).PartialExtensions() +
         SolutionData(itemsAssign[k := true],  k + 1).PartialExtensions()
     }

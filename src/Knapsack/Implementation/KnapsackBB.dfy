@@ -84,57 +84,18 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   SolutionData.rootData(input.Model()).AllNodesG(input.Model());
 
 
-  while (!pq.IsEmpty() && pq.Min().priority > bs.totalValue)
-      decreases pq.PartialPending(input)
-    //   //invariant pq.Valid()
-    //   //invariant pq.DisJointTrees(input)
-    //   //invariant pq.Min().Model() !in pq.PartialPending(input)
-    //   //invariant pq.AllPartial(input)
-    //   // invariant forall sd : SolutionData | !(sd in pq.Pending(input)) :: sd.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
+  while !pq.IsEmpty() && pq.Min().priority > bs.totalValue
+    decreases pq.PartialPending(input)
+    invariant LoopInvariant(pq, ps, bs, input)
+    invariant fresh(pq)
+    invariant fresh(pq.arr)
+    //invariant pq.DisJointTrees(input)
+    //invariant pq.Min().Model() !in pq.PartialPending(input)
+    //invariant pq.AllPartial(input)
+    //invariant forall sd : SolutionData | !(sd in pq.Pending(input)) :: sd.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
   {
-
     LoopBody(ps, bs, pq, input);
-
-    // var father := pq.Min();
-    // pq.DeleteMin();
-
-    // var LeftSon := new CCopy(father);
-    // LeftSon.k := LeftSon.k + 1;
-
-    // // Seleccionar el objeto
-    // if (father.totalWeight + input.items[LeftSon.k].weight <= input.maxWeight) {
-    //   LeftSon.itemsAssign[LeftSon.k] := true;
-    //   LeftSon.totalWeight := father.totalWeight + input.items[LeftSon.k].weight;
-    //   LeftSon.totalValue := father.totalValue + input.items[LeftSon.k].value;
-    //   LeftSon.priority := father.priority;
-    //   if (LeftSon.k == LeftSon.itemsAssign.Length) {
-    //     bs.Copy(ps);
-    //   }
-    //   else {
-    //     pq.Insert(LeftSon);
-    //   }
-    // }
-
-    // // No seleccionar el objeto
-    // var RightSon := LeftSon;
-    // RightSon.itemsAssign[RightSon.k] := false;
-    // RightSon.totalWeight := father.totalWeight;
-    // RightSon.totalValue := father.totalValue;
-    // RightSon.priority := CalculateUpperBound(RightSon.itemsAssign, RightSon.k, RightSon.totalValue, input);
-    // if (RightSon.priority > bs.totalValue) {
-    //   if (RightSon.k == RightSon.itemsAssign.Length) {
-    //     bs.Copy(ps);
-    //   }
-    //   else {
-    //     pq.Insert(RightSon);
-    //   }
-    // }
-
-    // //   // A pending le quitamos las soluciones alcanzables del nodo procesado
   }
-
-
-
 
   /* Primera postcondición: bs.Valid(input) 
    Se verifica gracias a la postcondición en BB que asegura que bs es válida.
@@ -152,23 +113,49 @@ method ComputeSolution(input: Input) returns (bs: Solution)
 }
 
 method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
-  requires input.Valid()
-  requires ps.Partial(input)
-  requires bs.Valid(input)
-  requires pq.Valid()
-  requires !pq.IsEmpty()
   modifies pq, pq.arr
-  ensures pq.Valid()
+  requires input.Valid()
+  requires LoopInvariant(pq, ps, bs, input)
+  requires !pq.IsEmpty() && pq.Min().priority > bs.totalValue // condición del bucle  
+  ensures LoopInvariant(pq, ps, bs, input)
+  ensures pq.arr == old(pq.arr) || fresh(pq.arr) // el array es el mismo que el antiguo (iteraciñon anterior) o se acaba de crear (es fresco)
+  ensures pq.PartialPending(input) < old(pq.PartialPending(input))
+
 {
   var father := pq.Min();
   pq.DeleteMin();
 
+  assert pq.PartialPending(input) < old(pq.PartialPending(input)) by {
+    PriorityQueue.StaticPartialPendingDecreases(old(pq.Model()), old(pq.Min()), input);
+  }
+
+  assert pq.AllPartial(input) by {
+    assume false;
+  }
+  assert pq.DisJointTrees(input) by {
+    assume false;
+  }
+
   // todos los hijos estan partialPending
   //assert forall s : SolutionData | s.Partial(input.Model()) && s in father.Model().PartialExtensions() :: s in pq.PartialPending(input);
 
-
   // father no esta en partialPending
   //assert father.Model() !in pq.PartialPending(input);
+}
+
+ghost predicate LoopInvariant(pq: PriorityQueue, ps: Solution, bs: Solution, input: Input)
+  reads pq, pq.arr, pq.arr[..]
+  reads input, input.items, input.items[..]
+  reads ps, ps.itemsAssign
+  reads bs, bs.itemsAssign
+  reads set i | 0 <= i < pq.arr.Length :: pq.arr[i].itemsAssign
+{
+  && pq.Valid()
+  && input.Valid()
+  && ps.Partial(input)
+  && bs.Valid(input)
+  && pq.AllPartial(input)
+  && pq.DisJointTrees(input)
 }
 
 

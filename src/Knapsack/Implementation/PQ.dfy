@@ -440,6 +440,7 @@ abstract module PQ {
       requires !IsEmpty()
       ensures Valid()
       ensures Model() == old(Model()) - multiset{old(Min())}
+      ensures arr == old(arr) || fresh(arr)
     {
       var oldMin := arr[0];
       assert oldMin == old(Min()) == Min();
