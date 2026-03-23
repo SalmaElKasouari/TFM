@@ -83,15 +83,15 @@ method ComputeSolution(input: Input) returns (bs: Solution)
 
   SolutionData.rootData(input.Model()).AllNodesG(input.Model());
 
+  assert pq.AllPartial(input); // trivial, en pq solo tenemos a ps que sabemos que es Partial
+  assert pq.DisjointTrees(input); // trivial, en pq solo tenemos a ps
 
   while !pq.IsEmpty() && pq.Min().priority > bs.totalValue
     decreases pq.PartialPending(input)
     invariant LoopInvariant(pq, ps, bs, input)
     invariant fresh(pq)
     invariant fresh(pq.arr)
-    //invariant pq.DisJointTrees(input)
     //invariant pq.Min().Model() !in pq.PartialPending(input)
-    //invariant pq.AllPartial(input)
     //invariant forall sd : SolutionData | !(sd in pq.Pending(input)) :: sd.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
   {
     LoopBody(ps, bs, pq, input);
@@ -120,7 +120,6 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   ensures LoopInvariant(pq, ps, bs, input)
   ensures pq.arr == old(pq.arr) || fresh(pq.arr) // el array es el mismo que el antiguo (iteraciñon anterior) o se acaba de crear (es fresco)
   ensures pq.PartialPending(input) < old(pq.PartialPending(input))
-
 {
   var father := pq.Min();
   pq.DeleteMin();
@@ -129,12 +128,19 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
     PriorityQueue.StaticPartialPendingDecreases(old(pq.Model()), old(pq.Min()), input);
   }
 
-  assert pq.AllPartial(input) by {
-    assume false;
-  }
-  assert pq.DisJointTrees(input) by {
-    assume false;
-  }
+  var LeftSon := new CCopy(father);
+  //LeftSon.k := LeftSon.k + 1;
+
+  assert pq.AllPartial(input);
+  assert pq.DisjointTrees(input);
+
+  // assert pq.AllPartial(input) by { // no se modifican --> siguen siendo Partial, Dafny lo sabe
+  //   assert forall s | s in pq.Model() :: s.Partial(input) && s.Model().AllFalsesFromK();
+  // }
+
+  // assert pq.DisjointTrees(input) by {
+  //   assume false;
+  // }
 
   // todos los hijos estan partialPending
   //assert forall s : SolutionData | s.Partial(input.Model()) && s in father.Model().PartialExtensions() :: s in pq.PartialPending(input);
@@ -155,7 +161,7 @@ ghost predicate LoopInvariant(pq: PriorityQueue, ps: Solution, bs: Solution, inp
   && ps.Partial(input)
   && bs.Valid(input)
   && pq.AllPartial(input)
-  && pq.DisJointTrees(input)
+  && pq.DisjointTrees(input)
 }
 
 
@@ -223,11 +229,14 @@ method Main() {
   print "The bag admits a weight of: ", input.maxWeight, "\n";
   print "The maximum value achievable is: ", bs.totalValue, "\n";
   print "By putting inside:\n";
-  // for i := 0 to input.items.Length {
-  //   if (bs.itemsAssign[i]) {
-  //     print "Item ", i," with weight: ", input.items[i].weight, " and value: ", input.items[i].value;
-  //   }
-  // }
+
+  assume bs.Valid(input); // esta es una postcondición de ComputeSolution que de momento esta comentada
+
+  for i := 0 to bs.itemsAssign.Length {
+    if (bs.itemsAssign[i]) {
+      print "Item ", i," with weight: ", input.items[i].weight, " and value: ", input.items[i].value;
+    }
+  }
   print "\nTotal weight: ", bs.totalWeight, "\n";
 
 }

@@ -12,8 +12,8 @@ module KnapsackPQ refines PQ {
   class PriorityQueue ... {
 
     ghost function Pending(input : Input) : set<SolutionData>
-      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
-      reads this, arr,set i | 0 <= i < arr.Length :: arr[i]
+      reads input, input.items, input.items[..]
+      reads this, arr, arr[..]
       reads set i | 0 <= i < arr.Length :: arr[i].itemsAssign
       requires input.Valid()
       requires Valid()
@@ -25,7 +25,7 @@ module KnapsackPQ refines PQ {
 
     //para la terminación
     ghost function PartialPending(input : Input) : set<SolutionData>
-      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads input, input.items, input.items[..]
       reads this, arr,set i | 0 <= i < arr.Length :: arr[i]
       reads set i | 0 <= i < arr.Length :: arr[i].itemsAssign
       requires input.Valid()
@@ -37,17 +37,17 @@ module KnapsackPQ refines PQ {
     }
 
     ghost predicate AllPartial(input:Input)
-      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads input, input.items, input.items[..]
       reads this, arr,set i | 0 <= i < arr.Length :: arr[i]
       reads set i | 0 <= i < arr.Length :: arr[i].itemsAssign
       requires input.Valid()
       requires Valid()
     {
-      forall s | s in Model() :: s.Partial(input) // && forall lo de falsos
+      forall s | s in Model() :: s.Partial(input) && s.Model().AllFalsesFromK()
     }
 
-    ghost predicate DisJointTrees(input:Input)
-      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+    ghost predicate DisjointTrees(input:Input)
+      reads input, input.items, input.items[..]
       reads this, arr,set i | 0 <= i < arr.Length :: arr[i]
       reads set i | 0 <= i < arr.Length :: arr[i].itemsAssign
       requires input.Valid()
@@ -59,7 +59,7 @@ module KnapsackPQ refines PQ {
     }
 
     static ghost function StaticPartialPending(m: multiset<Solution>, input : Input) : set<SolutionData>
-      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads input, input.items, input.items[..]
       reads m, set s <- m :: s.itemsAssign
       requires input.Valid()
     {
@@ -70,6 +70,31 @@ module KnapsackPQ refines PQ {
 
     static lemma StaticPartialPendingDecreases(m: multiset<Solution>, s: Solution, input : Input)
       requires s in m
+      requires input.Valid()
+      requires forall s <- m :: s.Partial(input) // && s.Model().Partial(input.Model()) && s.Model().k <= |s.Model().itemsAssign|
+      requires assert (forall s <- m :: s.Partial(input) && s.Model().Partial(input.Model()) && s.Model().k <= |s.Model().itemsAssign|); true
+      requires (forall s | s in m :: m[s] == 1)
+      requires (forall s1 <- m, s2 <- m | s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions())
+      ensures StaticPartialPending(m - multiset{s}, input)
+            < StaticPartialPending(m, input)
+    {
+      assert StaticPartialPending(m - multiset{s}, input) <= StaticPartialPending(m, input);
+      assert s.Model() in StaticPartialPending(m, input);
+      forall S
+        | S in m - multiset{s} && S.Partial(input) && s.Model().Partial(input.Model())
+        ensures s.Model() !in S.Model().PartialExtensions()
+      {
+        assert s != S;
+      }
+      assert s.Model() !in StaticPartialPending(m - multiset{s}, input);
+    }
+
+    //sin terminar
+    static lemma StaticPartialPendingWithSonsDecreases(m: multiset<Solution>, s: Solution, leftSon: Solution, rightSon: Solution, input : Input)
+      requires s in m
+      requires leftSon in m && leftSon.Model().Extends(s.Model())
+      requires rightSon in m && rightSon.Model().Extends(s.Model())
+      requires leftSon in pq.PartialPending()
       requires input.Valid()
       requires forall s <- m :: s.Partial(input) // && s.Model().Partial(input.Model()) && s.Model().k <= |s.Model().itemsAssign|
       requires assert (forall s <- m :: s.Partial(input) && s.Model().Partial(input.Model()) && s.Model().k <= |s.Model().itemsAssign|); true
@@ -101,7 +126,7 @@ module KnapsackPQ refines PQ {
     //--------------------------------------
 
     static ghost function RecPartialPending(input:Input, model:multiset<Solution>):set<SolutionData>
-      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads input, input.items, input.items[..]
       reads model, set s:Solution | s in model ::s.itemsAssign
       requires input.Valid()
     {
@@ -113,7 +138,7 @@ module KnapsackPQ refines PQ {
     }
     
     static ghost function RecMPartialPending(input:Input, model:multiset<Solution>):multiset<SolutionData>
-      reads input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads input, input.items, input.items[..]
       reads model, set s:Solution | s in model ::s.itemsAssign
       requires input.Valid()
     {
@@ -202,7 +227,7 @@ module KnapsackPQ refines PQ {
     objetos seleccionados coincidan con los valores del modelo.
     */
     ghost predicate Partial (input : Input)
-      reads this, itemsAssign, input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads this, itemsAssign, input, input.items, input.items[..]
       requires input.Valid()
     {
       && 0 <= k <= itemsAssign.Length
@@ -217,7 +242,7 @@ module KnapsackPQ refines PQ {
     Predicate: verifica si la solución representa una cota superior válida para el problema definido por el input dado.
     */
     ghost predicate IsUpperBound(input : Input)
-      reads this, itemsAssign, input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads this, itemsAssign, input, input.items, input.items[..]
       requires input.Valid()
     {
       Model().IsUpperBound(priority, input.Model())
@@ -228,7 +253,7 @@ module KnapsackPQ refines PQ {
     Predicate: verifica si la solución es válida y completa (todos los objetos han sido tratados (k == itemsAssign.Length).
     */
     ghost predicate Valid (input : Input)
-      reads this, itemsAssign, input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads this, itemsAssign, input, input.items, input.items[..]
       requires input.Valid()
 
     {
@@ -241,7 +266,7 @@ module KnapsackPQ refines PQ {
     Predicate: garantiza que una solución válida sea óptima en relación con el modelo del problema.
     */
     ghost predicate Optimal(input: Input)
-      reads this, itemsAssign, input, input.items, set i | 0 <= i < input.items.Length :: input.items[i]
+      reads this, itemsAssign, input, input.items, input.items[..]
       requires input.Valid()
       requires Valid(input)
     {
