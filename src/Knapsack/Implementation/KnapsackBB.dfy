@@ -116,7 +116,7 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   modifies pq, pq.arr
   requires input.Valid()
   requires LoopInvariant(pq, ps, bs, input)
-  requires !pq.IsEmpty() && pq.Min().priority > bs.totalValue // condición del bucle  
+  requires !pq.IsEmpty() && pq.Min().priority > bs.totalValue // condición del bucle
   ensures LoopInvariant(pq, ps, bs, input)
   ensures pq.arr == old(pq.arr) || fresh(pq.arr) // el array es el mismo que el antiguo (iteraciñon anterior) o se acaba de crear (es fresco)
   ensures pq.PartialPending(input) < old(pq.PartialPending(input))
@@ -128,25 +128,30 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
     PriorityQueue.StaticPartialPendingDecreases(old(pq.Model()), old(pq.Min()), input);
   }
 
-  var LeftSon := new CCopy(father);
-  //LeftSon.k := LeftSon.k + 1;
-
   assert pq.AllPartial(input);
   assert pq.DisjointTrees(input);
 
-  // assert pq.AllPartial(input) by { // no se modifican --> siguen siendo Partial, Dafny lo sabe
-  //   assert forall s | s in pq.Model() :: s.Partial(input) && s.Model().AllFalsesFromK();
-  // }
+  assume false;
 
-  // assert pq.DisjointTrees(input) by {
-  //   assume false;
-  // }
+  var leftSon : Solution := new Solution.CCopy(father);
+  leftSon.k := leftSon.k + 1;
 
-  // todos los hijos estan partialPending
-  //assert forall s : SolutionData | s.Partial(input.Model()) && s in father.Model().PartialExtensions() :: s in pq.PartialPending(input);
+  var rightSon : Solution := new Solution.CCopy(father);
+  rightSon.k := rightSon.k + 1;
+  //assume false;
 
-  // father no esta en partialPending
-  //assert father.Model() !in pq.PartialPending(input);
+  pq.Insert(leftSon);  
+  pq.Insert(rightSon);
+
+  PriorityQueue.StaticPartialPendingWithSonsDecreases(pq.Model(), father, leftSon, rightSon, input);
+
+
+
+  assume false;
+
+
+
+
 }
 
 ghost predicate LoopInvariant(pq: PriorityQueue, ps: Solution, bs: Solution, input: Input)
@@ -240,3 +245,40 @@ method Main() {
   print "\nTotal weight: ", bs.totalWeight, "\n";
 
 }
+
+
+// Seleccionar el objeto
+  // if (father.totalWeight + input.items[leftSon.k].weight <= input.maxWeight) {
+  //   leftSon.itemsAssign[leftSon.k] := true;
+  //   leftSon.totalWeight := father.totalWeight + input.items[leftSon.k].weight;
+  //   leftSon.totalValue := father.totalValue + input.items[leftSon.k].value;
+  //   leftSon.priority := father.priority;
+  //   if (leftSon.k == leftSon.itemsAssign.Length) {
+  //     bs.Copy(ps);
+  //   }
+  //   else {
+  //     pq.Insert(leftSon);
+  //   }
+  // }
+
+
+
+  // rightSon.itemsAssign[rightSon.k] := false;
+  // rightSon.totalWeight := father.totalWeight;
+  // rightSon.totalValue := father.totalValue;
+  // rightSon.priority := CalculateUpperBound(rightSon.itemsAssign, rightSon.k, rightSon.totalValue, input);
+  // if (rightSon.priority > bs.totalValue) {
+  //   if (rightSon.k == rightSon.itemsAssign.Length) {
+  //     bs.Copy(ps);
+  //   }
+  //   else {
+  //     pq.Insert(rightSon);
+  //   }
+  // }
+
+
+  // todos los hijos estan partialPending
+  //assert forall s : SolutionData | s.Partial(input.Model()) && s in father.Model().PartialExtensions() :: s in pq.PartialPending(input);
+
+  // father no esta en partialPending
+  //assert father.Model() !in pq.PartialPending(input);

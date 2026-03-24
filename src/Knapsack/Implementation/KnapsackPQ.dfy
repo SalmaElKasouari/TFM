@@ -11,6 +11,45 @@ module KnapsackPQ refines PQ {
 
   class PriorityQueue ... {
 
+    /* Predicados */
+
+    /* 
+      Predicado: verifica que todas las soluciones de la cola sean parciales.
+    */
+    ghost predicate AllPartial(input:Input)
+      reads input, input.items, input.items[..]
+      reads this, arr,set i | 0 <= i < arr.Length :: arr[i]
+      reads set i | 0 <= i < arr.Length :: arr[i].itemsAssign
+      requires input.Valid()
+      requires Valid()
+    {
+      forall s | s in Model() :: s.Partial(input) && s.Model().AllFalsesFromK()
+    }
+
+    /* 
+      Predicado: verifica que el modelo de la cola sea un conjunto, esto es, que todas las soluciones de la cola aparecen 
+      exactamente una vez en el modelo. Además verifica que todo par de soluciones del modelo de la cola son disjuntas, es decir,
+      que ninfuna solución se encuentra en las extensiones parciales de otra.
+    */
+    ghost predicate DisjointTrees(input : Input)
+      reads input, input.items, input.items[..]
+      reads this, arr,set i | 0 <= i < arr.Length :: arr[i]
+      reads set i | 0 <= i < arr.Length :: arr[i].itemsAssign
+      requires input.Valid()
+      requires Valid()
+      requires AllPartial(input)
+    {
+      && (forall s | s in Model() :: Model()[s] == 1)
+      && (forall s1, s2 | s1 in Model() && s2 in Model() && s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions())
+    }
+
+
+
+    /* Funciones */
+
+    /* 
+      Función: devuelve el conjunto de soluciones válidas (completas) de la cola que todavía no han sido procesadas. 
+    */
     ghost function Pending(input : Input) : set<SolutionData>
       reads input, input.items, input.items[..]
       reads this, arr, arr[..]
@@ -23,7 +62,10 @@ module KnapsackPQ refines PQ {
         && sd in s.Model().Extensions() ::sd
     }
 
-    //para la terminación
+    /* 
+      Función: devuelve el conjunto de soluciones parciales de la cola que todavía no han sido procesadas. Sirve para la 
+      terminación del bucle del algoritmo RyP.
+    */
     ghost function PartialPending(input : Input) : set<SolutionData>
       reads input, input.items, input.items[..]
       reads this, arr,set i | 0 <= i < arr.Length :: arr[i]
@@ -36,28 +78,9 @@ module KnapsackPQ refines PQ {
         && sd in s.Model().PartialExtensions() :: sd
     }
 
-    ghost predicate AllPartial(input:Input)
-      reads input, input.items, input.items[..]
-      reads this, arr,set i | 0 <= i < arr.Length :: arr[i]
-      reads set i | 0 <= i < arr.Length :: arr[i].itemsAssign
-      requires input.Valid()
-      requires Valid()
-    {
-      forall s | s in Model() :: s.Partial(input) && s.Model().AllFalsesFromK()
-    }
-
-    ghost predicate DisjointTrees(input:Input)
-      reads input, input.items, input.items[..]
-      reads this, arr,set i | 0 <= i < arr.Length :: arr[i]
-      reads set i | 0 <= i < arr.Length :: arr[i].itemsAssign
-      requires input.Valid()
-      requires Valid()
-      requires AllPartial(input)
-    {
-      && (forall s | s in Model() :: Model()[s] == 1)
-      && (forall s1, s2 | s1 in Model() && s2 in Model() && s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions())
-    }
-
+    /* 
+      Función: devuelve el conjunto de soluciones parciales del modelo (m) que todavía no han sido procesadas.
+    */
     static ghost function StaticPartialPending(m: multiset<Solution>, input : Input) : set<SolutionData>
       reads input, input.items, input.items[..]
       reads m, set s <- m :: s.itemsAssign
@@ -66,8 +89,19 @@ module KnapsackPQ refines PQ {
       set s : Solution, sd : SolutionData |
         && s in m && s.Partial(input) && sd.Partial(input.Model())
         && sd in s.Model().PartialExtensions() :: sd
-    }
+    }   
 
+
+    /*
+      Lemma: garantiza que al eliminar una solución s (el mínimo) de modelo de la cola, el conjunto de soluciones parciales 
+      pendientes decrece. 
+      //
+      Propósito: para demostrar la terminación del algoritmo RyP cuando se saca el mínimo de la cola.
+      //
+      Demostración: StaticPartialPending decrece porque s pertenece al modelo original de la cola (m). Al eliminar s,
+      el nuevo modelo deja de incluirla, lo cual hace que sea estrictamente menor. Esto se verifica con la ayuda de la propiedad de 
+      disjunción que nos dice que ninguno de los hijos de s contiene a s.
+    */
     static lemma StaticPartialPendingDecreases(m: multiset<Solution>, s: Solution, input : Input)
       requires s in m
       requires input.Valid()
@@ -80,39 +114,88 @@ module KnapsackPQ refines PQ {
     {
       assert StaticPartialPending(m - multiset{s}, input) <= StaticPartialPending(m, input);
       assert s.Model() in StaticPartialPending(m, input);
-      forall S
-        | S in m - multiset{s} && S.Partial(input) && s.Model().Partial(input.Model())
-        ensures s.Model() !in S.Model().PartialExtensions()
-      {
-        assert s != S;
-      }
-      assert s.Model() !in StaticPartialPending(m - multiset{s}, input);
+      // forall S
+      //   | S in m - multiset{s} && S.Partial(input) && s.Model().Partial(input.Model())
+      //   ensures s.Model() !in S.Model().PartialExtensions()
+      // {
+      //   assert s != S;
+      // }
+      //assert s.Model() !in StaticPartialPending(m - multiset{s}, input);
     }
 
-    //sin terminar
+    /*
+      Lemma: garantiza que al eliminar una solución s (el mínimo) de modelo de la cola, el conjunto de soluciones parciales 
+      pendientes decrece. 
+      //
+      Propósito: para demostrar la terminación del algoritmo RyP cuando se saca el mínimo de la cola y se añaden sus hijos.
+      //
+      Demostración: 
+    */
     static lemma StaticPartialPendingWithSonsDecreases(m: multiset<Solution>, s: Solution, leftSon: Solution, rightSon: Solution, input : Input)
       requires s in m
-      requires leftSon in m && leftSon.Model().Extends(s.Model())
-      requires rightSon in m && rightSon.Model().Extends(s.Model())
-      requires leftSon in pq.PartialPending()
+      requires 0 <= s.k <= |s.Model().itemsAssign|
+      requires leftSon.Model() in s.Model().PartialExtensions() // leftSon es hijo de s
+      requires rightSon.Model() in s.Model().PartialExtensions() // rightSon es hijo de s
       requires input.Valid()
-      requires forall s <- m :: s.Partial(input) // && s.Model().Partial(input.Model()) && s.Model().k <= |s.Model().itemsAssign|
+      requires forall s <- m :: s.Partial(input)
+      requires leftSon.Partial(input)
+      requires rightSon.Partial(input)
+
       requires assert (forall s <- m :: s.Partial(input) && s.Model().Partial(input.Model()) && s.Model().k <= |s.Model().itemsAssign|); true
       requires (forall s | s in m :: m[s] == 1)
       requires (forall s1 <- m, s2 <- m | s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions())
-      ensures StaticPartialPending(m - multiset{s}, input)
+
+      ensures StaticPartialPending((m - multiset{s}) + multiset{leftSon, rightSon}, input)
             < StaticPartialPending(m, input)
     {
       assert StaticPartialPending(m - multiset{s}, input) <= StaticPartialPending(m, input);
       assert s.Model() in StaticPartialPending(m, input);
-      forall S
-        | S in m - multiset{s} && S.Partial(input) && s.Model().Partial(input.Model())
-        ensures s.Model() !in S.Model().PartialExtensions()
-      {
-        assert s != S;
-      }
-      assert s.Model() !in StaticPartialPending(m - multiset{s}, input);
+      PriorityQueue.StaticPartialPendingDecreases(m, s, input);
+
+      assume false;
     }
+
+    /*
+      Lemma: garantiza que al eliminar una solución s (el mínimo) de modelo de la cola, el conjunto de soluciones parciales 
+      pendientes decrece. 
+      //
+      Propósito: para demostrar la terminación del algoritmo RyP cuando se saca el mínimo de la cola y se añaden sus hijos.
+      //
+      Demostración: 
+    */
+    // static lemma StaticPartialPendingWithSonsDecreases2(m: multiset<Solution>, s: Solution, input : Input)
+    //   requires s in m
+    //   requires 0 <= s.k <= |s.Model().itemsAssign|
+    //   requires input.Valid()
+    //   requires forall s <- m :: s.Partial(input)
+    //   requires assert (forall s <- m :: s.Partial(input) && s.Model().Partial(input.Model()) && s.Model().k <= |s.Model().itemsAssign|); true
+    //   requires (forall s | s in m :: m[s] == 1)
+    //   requires (forall s1 <- m, s2 <- m | s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions())
+
+    //   ensures StaticPartialPending(m - multiset{s} + multiset(s.Model().PartialExtensions()), input)
+    //         < StaticPartialPending(m, input)
+    // {
+    //   assert StaticPartialPending(m - multiset{s}, input) <= StaticPartialPending(m, input);
+    //   assert s.Model() in StaticPartialPending(m, input);
+    //   PriorityQueue.StaticPartialPendingDecreases(m, s, input);
+    //   assert leftSon.Model() !in StaticPartialPending(m, input);
+    //   assert rightSon.Model() !in StaticPartialPending(m, input);
+
+    //   assert StaticPartialPending(m - multiset{s} + multiset{leftSon} + multiset{rightSon}, input) <= StaticPartialPending(m, input);
+    //   assert s.Model() in StaticPartialPending(m, input);
+    //   forall S
+    //     | S in m - multiset{s} && S.Partial(input) && s.Model().Partial(input.Model())
+    //     ensures s.Model() !in S.Model().PartialExtensions()
+    //   {
+    //     assert s != S;
+    //   }
+    //   assert s.Model() !in StaticPartialPending(m - multiset{s}, input);
+    // }
+
+
+    
+
+
     
 
     lemma MinInPartialPending(input: Input)
