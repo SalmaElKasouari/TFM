@@ -121,7 +121,7 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   ensures pq.arr == old(pq.arr) || fresh(pq.arr) // el array es el mismo que el antiguo (iteraciñon anterior) o se acaba de crear (es fresco)
   ensures pq.PartialPending(input) < old(pq.PartialPending(input))
 {
-  var father := pq.Min();
+  var parent := pq.Min();
   pq.DeleteMin();
 
   assert pq.PartialPending(input) < old(pq.PartialPending(input)) by {
@@ -133,23 +133,41 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
 
   
 
-  var leftSon : Solution := new Solution.CCopy(father);
-  leftSon.k := leftSon.k + 1;
-  // si se queja de q no es partial, llamar al lema AddFalse... 
+  
+  if (parent.totalWeight + input.items[parent.k + 1].weight <= input.maxWeight) {
+    var trueSon : Solution := new Solution.CCopy(parent);
+    trueSon.k := trueSon.k + 1;
+    trueSon.itemsAssign[trueSon.k] := true;
+    trueSon.totalWeight := parent.totalWeight + input.items[trueSon.k].weight;
+    trueSon.totalValue := parent.totalValue + input.items[trueSon.k].value;
+    trueSon.priority := parent.priority;
+    if (trueSon.k == trueSon.itemsAssign.Length) {
+      bs.Copy(ps);
+    }
+    else {
+      pq.Insert(trueSon);
+    }
+  }
   
 
-  var rightSon : Solution := new Solution.CCopy(father);
-  rightSon.k := rightSon.k + 1;
+  var falseSon : Solution := new Solution.CCopy(parent);
+  falseSon.k := falseSon.k + 1;  
+  falseSon.itemsAssign[falseSon.k] := false;
+  falseSon.totalWeight := parent.totalWeight;
+  falseSon.totalValue := parent.totalValue;
+  falseSon.priority := CalculateUpperBound(falseSon.itemsAssign, falseSon.k, falseSon.totalValue, input);
+  if (falseSon.priority > bs.totalValue) {
+    if (falseSon.k == falseSon.itemsAssign.Length) {
+      bs.Copy(ps);
+    }
+    else {
+      pq.Insert(falseSon);
+    }
+  }
+
   
 
-  pq.Insert(leftSon);
-
-  assume false;
-  pq.Insert(rightSon);
-
-  
-
-  // PriorityQueue.StaticPartialPendingWithSonsDecreases(pq.Model(), father, leftSon, rightSon, input);
+  // PriorityQueue.StaticPartialPendingWithSonsDecreases(pq.Model(), parent, trueSon, falseSon, input);
 
 
 }
@@ -248,37 +266,37 @@ method Main() {
 
 
 // Seleccionar el objeto
-  // if (father.totalWeight + input.items[leftSon.k].weight <= input.maxWeight) {
-  //   leftSon.itemsAssign[leftSon.k] := true;
-  //   leftSon.totalWeight := father.totalWeight + input.items[leftSon.k].weight;
-  //   leftSon.totalValue := father.totalValue + input.items[leftSon.k].value;
-  //   leftSon.priority := father.priority;
-  //   if (leftSon.k == leftSon.itemsAssign.Length) {
+  // if (parent.totalWeight + input.items[trueSon.k].weight <= input.maxWeight) {
+  //   trueSon.itemsAssign[trueSon.k] := true;
+  //   trueSon.totalWeight := parent.totalWeight + input.items[trueSon.k].weight;
+  //   trueSon.totalValue := parent.totalValue + input.items[trueSon.k].value;
+  //   trueSon.priority := parent.priority;
+  //   if (trueSon.k == trueSon.itemsAssign.Length) {
   //     bs.Copy(ps);
   //   }
   //   else {
-  //     pq.Insert(leftSon);
+  //     pq.Insert(trueSon);
   //   }
   // }
 
 
 
-  // rightSon.itemsAssign[rightSon.k] := false;
-  // rightSon.totalWeight := father.totalWeight;
-  // rightSon.totalValue := father.totalValue;
-  // rightSon.priority := CalculateUpperBound(rightSon.itemsAssign, rightSon.k, rightSon.totalValue, input);
-  // if (rightSon.priority > bs.totalValue) {
-  //   if (rightSon.k == rightSon.itemsAssign.Length) {
+  // falseSon.itemsAssign[falseSon.k] := false;
+  // falseSon.totalWeight := parent.totalWeight;
+  // falseSon.totalValue := parent.totalValue;
+  // falseSon.priority := CalculateUpperBound(falseSon.itemsAssign, falseSon.k, falseSon.totalValue, input);
+  // if (falseSon.priority > bs.totalValue) {
+  //   if (falseSon.k == falseSon.itemsAssign.Length) {
   //     bs.Copy(ps);
   //   }
   //   else {
-  //     pq.Insert(rightSon);
+  //     pq.Insert(falseSon);
   //   }
   // }
 
 
   // todos los hijos estan partialPending
-  //assert forall s : SolutionData | s.Partial(input.Model()) && s in father.Model().PartialExtensions() :: s in pq.PartialPending(input);
+  //assert forall s : SolutionData | s.Partial(input.Model()) && s in parent.Model().PartialExtensions() :: s in pq.PartialPending(input);
 
-  // father no esta en partialPending
-  //assert father.Model() !in pq.PartialPending(input);
+  // parent no esta en partialPending
+  //assert parent.Model() !in pq.PartialPending(input);
