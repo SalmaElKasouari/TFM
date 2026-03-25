@@ -131,25 +131,25 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   assert pq.AllPartial(input);
   assert pq.DisjointTrees(input);
 
-  assume false;
+  
 
   var leftSon : Solution := new Solution.CCopy(father);
   leftSon.k := leftSon.k + 1;
+  // si se queja de q no es partial, llamar al lema AddFalse... 
+  
 
   var rightSon : Solution := new Solution.CCopy(father);
   rightSon.k := rightSon.k + 1;
-  //assume false;
+  
 
-  pq.Insert(leftSon);  
-  pq.Insert(rightSon);
-
-  PriorityQueue.StaticPartialPendingWithSonsDecreases(pq.Model(), father, leftSon, rightSon, input);
-
-
+  pq.Insert(leftSon);
 
   assume false;
+  pq.Insert(rightSon);
 
+  
 
+  // PriorityQueue.StaticPartialPendingWithSonsDecreases(pq.Model(), father, leftSon, rightSon, input);
 
 
 }
