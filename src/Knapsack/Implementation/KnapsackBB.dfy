@@ -51,7 +51,7 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   var ps_k := 0;
   var ps_priority := 0.0;
   var ps := new Solution(ps_itemsAssign, ps_totalValue, ps_totalWeight, ps_k, ps_priority); // primero la creo con 0 y luego la asigno
-  ps.priority := CalculateUpperBound(ps_itemsAssign, ps_k, ps_totalValue, input); // la cota superior es selccionar todos los objetos restantes
+  ps.priority := ps.CalculateUpperBound(ps_itemsAssign, ps_k, ps_totalValue, input); // la cota superior es seleccionar todos los objetos restantes
 
   assert ps.Partial(input) by {
     assert ps.Model().Partial(input.Model());
@@ -133,43 +133,30 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
 
 
   
-  if (parent.totalWeight + input.items[parent.k + 1].weight <= input.maxWeight) {
-    var trueChild : Solution := new Solution.CCopy(parent);
-    trueChild.k := trueChild.k + 1;
-    trueChild.itemsAssign[trueChild.k] := true;
-    trueChild.totalWeight := parent.totalWeight + input.items[trueChild.k].weight;
-    trueChild.totalValue := parent.totalValue + input.items[trueChild.k].value;
-    trueChild.priority := parent.priority;
-    if (trueChild.k == trueChild.itemsAssign.Length) {
-      bs.Copy(ps);
-    }
-    else {
-      pq.Insert(trueChild);
-    }
-  }
+  // if (parent.totalWeight + input.items[parent.k + 1].weight <= input.maxWeight) {
+  //    parent.newChild();
+  //   if (trueChild.k == trueChild.itemsAssign.Length) {
+  //     bs.Copy(ps);
+  //   }
+  //   else {
+  //     pq.Insert(trueChild);
+  //   }
+  // }
   
 
-  var falseChild : Solution := new Solution.CCopy(parent);
-  falseChild.k := falseChild.k + 1;  
-  falseChild.itemsAssign[falseChild.k] := false;
-  falseChild.totalWeight := parent.totalWeight;
-  falseChild.totalValue := parent.totalValue;
-  falseChild.priority := CalculateUpperBound(falseChild.itemsAssign, falseChild.k, falseChild.totalValue, input);
-  if (falseChild.priority > bs.totalValue) {
-    if (falseChild.k == falseChild.itemsAssign.Length) {
-      bs.Copy(ps);
-    }
-    else {
-      pq.Insert(falseChild);
-    }
-  }
+  
+  // if (falseChild.priority > bs.totalValue) {
+  //   if (falseChild.k == falseChild.itemsAssign.Length) {
+  //     bs.Copy(ps);
+  //   }
+  //   else {
+  //     pq.Insert(falseChild);
+  //   }
+  // }
 
   assume false;
 
   
-
-  // PriorityQueue.StaticPartialPendingWithSonsDecreases(pq.Model(), parent, trueChild, falseChild, input);
-
 
 }
 
@@ -188,44 +175,6 @@ ghost predicate LoopInvariant(pq: PriorityQueue, ps: Solution, bs: Solution, inp
   && pq.DisjointTrees(input)
 }
 
-
-/*
-Método: cálculo la cota superior de la mejor solución alcanzable. La cota superior consiste en seleccionar todos los objetos restantes.
-//
-Verificación: usando el lema AllTruesIsUpperBoundForAll.
-*/
-method CalculateUpperBound(itemsAssign : array<bool>, k : int, totalValue : real, input : Input) returns (upperBound : real)
-  requires input.Valid()
-  requires 0 <= k <= itemsAssign.Length
-  requires 0 <= k <= input.items.Length == itemsAssign.Length
-  requires SolutionData(itemsAssign[..], k).TotalValue(input.Model().items) == totalValue
-  ensures forall s : SolutionData | && |s.itemsAssign| == |SolutionData(itemsAssign[..], k).itemsAssign|
-                                    && s.k == |s.itemsAssign|
-                                    && k <= s.k
-                                    && s.Extends(SolutionData(itemsAssign[..], k))
-                                    && s.Valid(input.Model())
-            :: s.TotalValue(input.Model().items) <= upperBound
-{
-  ghost var ps' := SolutionData(itemsAssign[..], k);
-  assert |ps'.itemsAssign| == |itemsAssign[..]|;
-  upperBound := totalValue;
-
-  assert upperBound == ps'.TotalValue(input.Model().items);
-
-  for i := k to itemsAssign.Length
-    invariant k <= ps'.k <= |ps'.itemsAssign| == |itemsAssign[..]|
-    invariant ps'.Extends(SolutionData(itemsAssign[..], k))
-    invariant forall j | k <= j < i :: ps'.itemsAssign[j]
-    invariant i == ps'.k
-    invariant upperBound == ps'.TotalValue(input.Model().items)
-  {
-    var oldps' := ps';
-    ps' := SolutionData(ps'.itemsAssign[ps'.k := true], ps'.k+1);
-    upperBound := upperBound + input.items[i].value;
-    SolutionData.AddTrueMaintainsSumConsistency(oldps', ps', input.Model());
-  }
-  SolutionData.AllTruesIsUpperBoundForAll(SolutionData(itemsAssign[..], k), ps', input.Model());
-}
 
 /*
 Método: main que ejecuta el programa principal resolviendo el problema de la mochila con una lista de objetos 

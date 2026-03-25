@@ -54,7 +54,7 @@ se invoca el lema InvalidExtensionsFromInvalidPs(ps, input).
     tres posibles escenarios
 */
 method KnapsackBB(input: Input, ps: Solution, bs: Solution)
-  decreases ps.Bound(),1 // Función de bound
+  decreases ps.Bound(),1 // Function de bound
   modifies ps`totalValue, ps`totalWeight, ps`k, ps.itemsAssign
   modifies bs`totalValue, bs`totalWeight, bs`k, bs.itemsAssign
 

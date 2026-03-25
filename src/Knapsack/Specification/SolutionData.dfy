@@ -10,7 +10,7 @@ Estructura del fichero:
     valor almacenado indica si el objeto ha sido seleccionado (true) o no (false).
   - k: etapa del árbol de exploración de la solución. Denota el número de objetos tratados de itemsAssign. 
 
-  Funciones
+  Functions
     - TotalWeight: suma total de los pesos de los objetos seleccionados.
     - TotalValue: suma total de los valores de los objetos seleccionados.
   
@@ -48,7 +48,7 @@ module SolutionData {
 
   datatype SolutionData = SolutionData(itemsAssign: seq<bool>, k: nat) {
 
-    /* Funciones */
+    /* Functions */
 
     /*
       Function: calcula el peso total de los objetos seleccionados hasta el índice k. Si el objeto está seleccionado
@@ -201,11 +201,11 @@ module SolutionData {
 
 
 
-    /* Funciones */
+    /* Functions */
 
 
     /* 
-      Función: devuelve el nodo raíz cuyos componentes son false 
+      Function: devuelve el nodo raíz cuyos componentes son false 
     */
     static ghost function rootData(input : InputData) : SolutionData
     {
@@ -214,7 +214,7 @@ module SolutionData {
 
 
     /* 
-      Función: devuelve el conjunto de las soluciones completas (hojas) que son extensiones de this 
+      Function: devuelve el conjunto de las soluciones completas (hojas) que son extensiones de this 
     */
     ghost function Extensions() : set<SolutionData>
       decreases |itemsAssign| - k
@@ -229,7 +229,7 @@ module SolutionData {
 
 
     /* 
-      Función: devuelve el conjunto de las soluciones parciales que son extensiones de this 
+      Function: devuelve el conjunto de las soluciones parciales que son extensiones de this 
     */
     ghost function PartialExtensions() : set<SolutionData>
       decreases |itemsAssign| - k

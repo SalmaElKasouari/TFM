@@ -11,10 +11,10 @@ module KnapsackPQ refines PQ {
 
   class PriorityQueue ... {
 
-    /* Predicados */
+    /* Predicates */
 
     /* 
-      Predicado: verifica que todas las soluciones de la cola sean parciales.
+      Predicate: verifica que todas las soluciones de la cola sean parciales.
     */
     ghost predicate AllPartial(input:Input)
       reads input, input.items, input.items[..]
@@ -27,7 +27,7 @@ module KnapsackPQ refines PQ {
     }
 
     /* 
-      Predicado: verifica que el modelo de la cola sea un conjunto, esto es, que todas las soluciones de la cola aparecen 
+      Predicate: verifica que el modelo de la cola sea un conjunto, esto es, que todas las soluciones de la cola aparecen 
       exactamente una vez en el modelo. Además verifica que todo par de soluciones del modelo de la cola son disjuntas, es decir,
       que ninfuna solución se encuentra en las extensiones parciales de otra.
     */
@@ -45,10 +45,10 @@ module KnapsackPQ refines PQ {
 
 
 
-    /* Funciones */
+    /* Functions */
 
     /* 
-      Función: devuelve el conjunto de soluciones válidas (completas) de la cola que todavía no han sido procesadas. 
+      Function: devuelve el conjunto de soluciones válidas (completas) de la cola que todavía no han sido procesadas. 
     */
     ghost function Pending(input : Input) : set<SolutionData>
       reads input, input.items, input.items[..]
@@ -56,14 +56,14 @@ module KnapsackPQ refines PQ {
       reads set i | 0 <= i < arr.Length :: arr[i].itemsAssign
       requires input.Valid()
       requires Valid()
-    { 
+    {
       set s : Solution, sd : SolutionData |
         && s in Model() && s.Partial(input) && sd.Valid(input.Model())
         && sd in s.Model().Extensions() ::sd
     }
 
     /* 
-      Función: devuelve el conjunto de soluciones parciales de la cola que todavía no han sido procesadas. Sirve para la 
+      Function: devuelve el conjunto de soluciones parciales de la cola que todavía no han sido procesadas. Sirve para la 
       terminación del bucle del algoritmo RyP.
     */
     ghost function PartialPending(input : Input) : set<SolutionData>
@@ -79,7 +79,7 @@ module KnapsackPQ refines PQ {
     }
 
     /* 
-      Función: devuelve el conjunto de soluciones parciales del modelo (m) que todavía no han sido procesadas.
+      Function: devuelve el conjunto de soluciones parciales del modelo (m) que todavía no han sido procesadas.
     */
     static ghost function StaticPartialPending(m: multiset<Solution>, input : Input) : set<SolutionData>
       reads input, input.items, input.items[..]
@@ -89,7 +89,7 @@ module KnapsackPQ refines PQ {
       set s : Solution, sd : SolutionData |
         && s in m && s.Partial(input) && sd.Partial(input.Model())
         && sd in s.Model().PartialExtensions() :: sd
-    }   
+    }
 
 
     /*
@@ -193,10 +193,10 @@ module KnapsackPQ refines PQ {
     // }
 
 
-    
 
 
-    
+
+
 
     lemma MinInPartialPending(input: Input)
       requires input.Valid()
@@ -219,7 +219,7 @@ module KnapsackPQ refines PQ {
         if (s.Partial(input)) then s.Model().PartialExtensions() + RecPartialPending(input,model-multiset{s})
         else RecPartialPending(input,model-multiset{s})
     }
-    
+
     static ghost function RecMPartialPending(input:Input, model:multiset<Solution>):multiset<SolutionData>
       reads input, input.items, input.items[..]
       reads model, set s:Solution | s in model ::s.itemsAssign
@@ -357,6 +357,39 @@ module KnapsackPQ refines PQ {
     }
 
 
+    /* 
+    Predicate: verifica que this es el nodo hijo extendido con true de parent.
+    */
+    ghost predicate IsTrueChild(parent: Solution, input : Input)
+      reads this, itemsAssign, parent, parent.itemsAssign, input,  input.items, input.items[..]
+      requires k <= itemsAssign.Length == parent.itemsAssign.Length == input.items.Length
+    {
+      && k == parent.k + 1 // el hijo tiene una posición más
+      && Model().Extends(parent.Model()) // el hijo extiende al padre: son iguales hasta parent.k
+      && itemsAssign[k-1] == true // en esa posición adicional, el hijo tiene true
+      && totalWeight == parent.totalWeight + input.items[k-1].weight // el peso del hijo es el del padre mas el peso del nuevo objeto selccionado
+      && totalValue == parent.totalValue + input.items[k-1].value // el valor del hijo es el valor del padre mas el valor del nuevo objeto seleccionado
+      && priority == parent.priority
+    }
+
+
+    /* 
+    Predicate: verifica que this es el nodo hijo extendido con false de parent.
+    */
+    ghost predicate IsFalseChild(parent: Solution, input : Input)
+      reads this, itemsAssign, parent, parent.itemsAssign, input,  input.items, input.items[..]
+      requires k <= itemsAssign.Length == parent.itemsAssign.Length == input.items.Length
+    {
+      && k == parent.k + 1 // el hijo tiene una posición más
+      && Model().Extends(parent.Model()) // el hijo extiende al padre: son iguales hasta parent.k
+      && itemsAssign[k-1] == false // en esa posición adicional, el hijo tiene false
+      && totalWeight == parent.totalWeight // el peso del hijo es el del padre
+      && totalValue == parent.totalValue // el valor del hijo es el valor del padre
+      // prioridad?
+
+    }
+
+
 
     /* Functions */
 
@@ -414,7 +447,6 @@ module KnapsackPQ refines PQ {
       ensures forall i | 0 <= i < itemsAssign.Length :: itemsAssign[i] == s.itemsAssign[i]
       ensures Model() == s.Model()
     {
-
       // Copiar los elementos del array uno por uno
       for i := 0 to s.itemsAssign.Length
         invariant 0 <= i <= s.itemsAssign.Length
@@ -428,7 +460,9 @@ module KnapsackPQ refines PQ {
       priority := s.priority;
     }
 
-    constructor CCopy(s : Solution)
+
+    /* Método: constructor de copia. Crea un nuevo objeto solución que es copia de s. */
+    constructor CloneCopy(s : Solution)
       ensures itemsAssign.Length == s.itemsAssign.Length
       ensures k == s.k
       ensures totalValue == s.totalValue
@@ -454,6 +488,84 @@ module KnapsackPQ refines PQ {
       {
         itemsAssign[i] := s.itemsAssign[i];
       }
+    }
+
+
+    method NewTrueChild(input : Input) returns (trueChild : Solution)
+      requires k < itemsAssign.Length == input.items.Length
+      requires input.Valid()
+      ensures trueChild.k == k + 1 // el hijo tiene una posición más
+      ensures trueChild.k <= trueChild.itemsAssign.Length == itemsAssign.Length
+      ensures trueChild.Model().Extends(this.Model()) // el hijo extiende al padre: son iguales hasta parent.k
+      ensures trueChild.itemsAssign[trueChild.k-1] == true // en esa posición adicional tiene un true
+      // ensures trueChild.Partial()
+    {
+      trueChild := new Solution.CloneCopy(this);
+      trueChild.itemsAssign[trueChild.k] := true;
+      trueChild.totalWeight := totalWeight + input.items[trueChild.k].weight;
+      trueChild.totalValue := totalValue + input.items[trueChild.k].value;
+      trueChild.priority := priority;
+      trueChild.k := trueChild.k + 1;
+    }
+
+
+    method NewFalseChild(input : Input) returns (falseChild : Solution)
+      requires k < itemsAssign.Length == input.items.Length
+      requires input.Valid()
+      requires Partial(input)
+      ensures falseChild.k == k + 1 // el hijo tiene una posición más
+      ensures falseChild.k <= falseChild.itemsAssign.Length == itemsAssign.Length
+      ensures falseChild.Model().Extends(this.Model()) // el hijo extiende al padre: son iguales hasta parent.k
+      ensures falseChild.itemsAssign[falseChild.k-1] == false // en esa posición adicional tiene un true
+      //ensures falseChild.Partial()
+    {
+      falseChild := new Solution.CloneCopy(this);
+      falseChild.itemsAssign[falseChild.k] := false;
+      falseChild.totalWeight := totalWeight;
+      falseChild.totalValue := totalValue;
+      falseChild.k := falseChild.k + 1;
+
+      SolutionData.AddFalsePreservesWeightValue(Model(), falseChild.Model(), input.Model()); // necesaria para poder llamar a CalculateUpperBound que exige: SolutionData(itemsAssign[..], k).TotalValue(input.Model().items) == totalValue, propiedad que garantiza Partial()
+      falseChild.priority := falseChild.CalculateUpperBound(falseChild.itemsAssign, falseChild.k, falseChild.totalValue, input);
+    }
+
+
+    /*
+    Método: cálculo la cota superior de la mejor solución alcanzable. La cota superior consiste en seleccionar todos los objetos restantes.
+    //
+    Verificación: usando el lema AllTruesIsUpperBoundForAll.
+    */
+    method CalculateUpperBound(itemsAssign : array<bool>, k : int, totalValue : real, input : Input) returns (upperBound : real)
+      requires input.Valid()
+      requires 0 <= k <= itemsAssign.Length
+      requires 0 <= k <= input.items.Length == itemsAssign.Length
+      requires SolutionData(itemsAssign[..], k).TotalValue(input.Model().items) == totalValue
+      ensures forall s : SolutionData | && |s.itemsAssign| == |SolutionData(itemsAssign[..], k).itemsAssign|
+                                        && s.k == |s.itemsAssign|
+                                        && k <= s.k
+                                        && s.Extends(SolutionData(itemsAssign[..], k))
+                                        && s.Valid(input.Model())
+                :: s.TotalValue(input.Model().items) <= upperBound
+    {
+      ghost var ps' := SolutionData(itemsAssign[..], k);
+      assert |ps'.itemsAssign| == |itemsAssign[..]|;
+      upperBound := totalValue;
+
+      assert upperBound == ps'.TotalValue(input.Model().items);
+
+      for i := k to itemsAssign.Length
+        invariant k <= ps'.k <= |ps'.itemsAssign| == |itemsAssign[..]|
+        invariant ps'.Extends(SolutionData(itemsAssign[..], k))
+        invariant forall j | k <= j < i :: ps'.itemsAssign[j]
+        invariant i == ps'.k
+        invariant upperBound == ps'.TotalValue(input.Model().items)
+      {
+        var oldps' := ps';
+        ps' := SolutionData(ps'.itemsAssign[ps'.k := true], ps'.k+1);
+        upperBound := upperBound + input.items[i].value;
+        SolutionData.AddTrueMaintainsSumConsistency(oldps', ps', input.Model());
+      }
+      SolutionData.AllTruesIsUpperBoundForAll(SolutionData(itemsAssign[..], k), ps', input.Model());
     }
 
 
