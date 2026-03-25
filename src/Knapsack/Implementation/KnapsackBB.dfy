@@ -131,43 +131,44 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   assert pq.AllPartial(input);
   assert pq.DisjointTrees(input);
 
-  
 
   
   if (parent.totalWeight + input.items[parent.k + 1].weight <= input.maxWeight) {
-    var trueSon : Solution := new Solution.CCopy(parent);
-    trueSon.k := trueSon.k + 1;
-    trueSon.itemsAssign[trueSon.k] := true;
-    trueSon.totalWeight := parent.totalWeight + input.items[trueSon.k].weight;
-    trueSon.totalValue := parent.totalValue + input.items[trueSon.k].value;
-    trueSon.priority := parent.priority;
-    if (trueSon.k == trueSon.itemsAssign.Length) {
+    var trueChild : Solution := new Solution.CCopy(parent);
+    trueChild.k := trueChild.k + 1;
+    trueChild.itemsAssign[trueChild.k] := true;
+    trueChild.totalWeight := parent.totalWeight + input.items[trueChild.k].weight;
+    trueChild.totalValue := parent.totalValue + input.items[trueChild.k].value;
+    trueChild.priority := parent.priority;
+    if (trueChild.k == trueChild.itemsAssign.Length) {
       bs.Copy(ps);
     }
     else {
-      pq.Insert(trueSon);
+      pq.Insert(trueChild);
     }
   }
   
 
-  var falseSon : Solution := new Solution.CCopy(parent);
-  falseSon.k := falseSon.k + 1;  
-  falseSon.itemsAssign[falseSon.k] := false;
-  falseSon.totalWeight := parent.totalWeight;
-  falseSon.totalValue := parent.totalValue;
-  falseSon.priority := CalculateUpperBound(falseSon.itemsAssign, falseSon.k, falseSon.totalValue, input);
-  if (falseSon.priority > bs.totalValue) {
-    if (falseSon.k == falseSon.itemsAssign.Length) {
+  var falseChild : Solution := new Solution.CCopy(parent);
+  falseChild.k := falseChild.k + 1;  
+  falseChild.itemsAssign[falseChild.k] := false;
+  falseChild.totalWeight := parent.totalWeight;
+  falseChild.totalValue := parent.totalValue;
+  falseChild.priority := CalculateUpperBound(falseChild.itemsAssign, falseChild.k, falseChild.totalValue, input);
+  if (falseChild.priority > bs.totalValue) {
+    if (falseChild.k == falseChild.itemsAssign.Length) {
       bs.Copy(ps);
     }
     else {
-      pq.Insert(falseSon);
+      pq.Insert(falseChild);
     }
   }
 
+  assume false;
+
   
 
-  // PriorityQueue.StaticPartialPendingWithSonsDecreases(pq.Model(), parent, trueSon, falseSon, input);
+  // PriorityQueue.StaticPartialPendingWithSonsDecreases(pq.Model(), parent, trueChild, falseChild, input);
 
 
 }
@@ -266,31 +267,31 @@ method Main() {
 
 
 // Seleccionar el objeto
-  // if (parent.totalWeight + input.items[trueSon.k].weight <= input.maxWeight) {
-  //   trueSon.itemsAssign[trueSon.k] := true;
-  //   trueSon.totalWeight := parent.totalWeight + input.items[trueSon.k].weight;
-  //   trueSon.totalValue := parent.totalValue + input.items[trueSon.k].value;
-  //   trueSon.priority := parent.priority;
-  //   if (trueSon.k == trueSon.itemsAssign.Length) {
+  // if (parent.totalWeight + input.items[trueChild.k].weight <= input.maxWeight) {
+  //   trueChild.itemsAssign[trueChild.k] := true;
+  //   trueChild.totalWeight := parent.totalWeight + input.items[trueChild.k].weight;
+  //   trueChild.totalValue := parent.totalValue + input.items[trueChild.k].value;
+  //   trueChild.priority := parent.priority;
+  //   if (trueChild.k == trueChild.itemsAssign.Length) {
   //     bs.Copy(ps);
   //   }
   //   else {
-  //     pq.Insert(trueSon);
+  //     pq.Insert(trueChild);
   //   }
   // }
 
 
 
-  // falseSon.itemsAssign[falseSon.k] := false;
-  // falseSon.totalWeight := parent.totalWeight;
-  // falseSon.totalValue := parent.totalValue;
-  // falseSon.priority := CalculateUpperBound(falseSon.itemsAssign, falseSon.k, falseSon.totalValue, input);
-  // if (falseSon.priority > bs.totalValue) {
-  //   if (falseSon.k == falseSon.itemsAssign.Length) {
+  // falseChild.itemsAssign[falseChild.k] := false;
+  // falseChild.totalWeight := parent.totalWeight;
+  // falseChild.totalValue := parent.totalValue;
+  // falseChild.priority := CalculateUpperBound(falseChild.itemsAssign, falseChild.k, falseChild.totalValue, input);
+  // if (falseChild.priority > bs.totalValue) {
+  //   if (falseChild.k == falseChild.itemsAssign.Length) {
   //     bs.Copy(ps);
   //   }
   //   else {
-  //     pq.Insert(falseSon);
+  //     pq.Insert(falseChild);
   //   }
   // }
 
