@@ -361,9 +361,9 @@ module KnapsackPQ refines PQ {
     Predicate: verifica que this es el nodo hijo extendido con true de parent.
     */
     ghost predicate IsTrueChild(parent: Solution, input : Input)
-      reads this, itemsAssign, parent, parent.itemsAssign, input,  input.items, input.items[..]
-      requires k <= itemsAssign.Length == parent.itemsAssign.Length == input.items.Length
+      reads this, itemsAssign, parent, parent.itemsAssign, input,  input.items, input.items[..] 
     {
+      && k <= itemsAssign.Length == parent.itemsAssign.Length == input.items.Length
       && k == parent.k + 1 // el hijo tiene una posición más
       && Model().Extends(parent.Model()) // el hijo extiende al padre: son iguales hasta parent.k
       && itemsAssign[k-1] == true // en esa posición adicional, el hijo tiene true
@@ -378,8 +378,8 @@ module KnapsackPQ refines PQ {
     */
     ghost predicate IsFalseChild(parent: Solution, input : Input)
       reads this, itemsAssign, parent, parent.itemsAssign, input,  input.items, input.items[..]
-      requires k <= itemsAssign.Length == parent.itemsAssign.Length == input.items.Length
     {
+      && k <= itemsAssign.Length == parent.itemsAssign.Length == input.items.Length
       && k == parent.k + 1 // el hijo tiene una posición más
       && Model().Extends(parent.Model()) // el hijo extiende al padre: son iguales hasta parent.k
       && itemsAssign[k-1] == false // en esa posición adicional, el hijo tiene false
@@ -490,15 +490,40 @@ module KnapsackPQ refines PQ {
       }
     }
 
+    /*
+    Método: inserta el hijo en cola si este no es solución completa.
+    //
+    Verificación: 
+    */
+    method InsertIfNotValid(bs : Solution, pq : PriorityQueue)
+      modifies bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.totalValue, bs.
+      totalWeight, bs`k, bs`itemsAssign, bs`priority
+      requires itemsAssign.Length == bs.itemsAssign.Length
+      requires this != bs
+      requires pq.Valid()
+    {
+      if (this.totalValue > bs.totalValue) {
+        if (k == itemsAssign.Length) {
+           bs.Copy(this);
+        }
+        else {
+          pq.Insert(this);
+        }
+      }
+    }
 
+
+    /*
+    Método: devuelve el hijo que extiende al padre con true.
+    //
+    Verificación: trivial.
+    */
     method NewTrueChild(input : Input) returns (trueChild : Solution)
       requires k < itemsAssign.Length == input.items.Length
       requires input.Valid()
-      ensures trueChild.k == k + 1 // el hijo tiene una posición más
-      ensures trueChild.k <= trueChild.itemsAssign.Length == itemsAssign.Length
-      ensures trueChild.Model().Extends(this.Model()) // el hijo extiende al padre: son iguales hasta parent.k
-      ensures trueChild.itemsAssign[trueChild.k-1] == true // en esa posición adicional tiene un true
-      // ensures trueChild.Partial()
+      requires totalWeight + input.items[k].weight <= input.maxWeight // es factible
+      ensures trueChild.IsTrueChild(this, input)
+      // ensures trueChild.Partial() ?
     {
       trueChild := new Solution.CloneCopy(this);
       trueChild.itemsAssign[trueChild.k] := true;
@@ -509,15 +534,17 @@ module KnapsackPQ refines PQ {
     }
 
 
+    /*
+    Método: devuelve el hijo que extiende al padre con false.
+    //
+    Verificación: con el lema AddFalsePreservesWeightValue.
+    */
     method NewFalseChild(input : Input) returns (falseChild : Solution)
       requires k < itemsAssign.Length == input.items.Length
       requires input.Valid()
       requires Partial(input)
-      ensures falseChild.k == k + 1 // el hijo tiene una posición más
-      ensures falseChild.k <= falseChild.itemsAssign.Length == itemsAssign.Length
-      ensures falseChild.Model().Extends(this.Model()) // el hijo extiende al padre: son iguales hasta parent.k
-      ensures falseChild.itemsAssign[falseChild.k-1] == false // en esa posición adicional tiene un true
-      //ensures falseChild.Partial()
+      ensures falseChild.IsFalseChild(this, input)
+      //ensures falseChild.Partial() ?
     {
       falseChild := new Solution.CloneCopy(this);
       falseChild.itemsAssign[falseChild.k] := false;

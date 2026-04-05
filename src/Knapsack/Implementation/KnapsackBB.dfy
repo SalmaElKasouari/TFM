@@ -136,7 +136,7 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   // if (parent.totalWeight + input.items[parent.k + 1].weight <= input.maxWeight) {
   //    parent.newChild();
   //   if (trueChild.k == trueChild.itemsAssign.Length) {
-  //     bs.Copy(ps);
+  //     bs.Copy(trueChild);
   //   }
   //   else {
   //     pq.Insert(trueChild);
@@ -147,7 +147,7 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   
   // if (falseChild.priority > bs.totalValue) {
   //   if (falseChild.k == falseChild.itemsAssign.Length) {
-  //     bs.Copy(ps);
+  //     bs.Copy(falseChild);
   //   }
   //   else {
   //     pq.Insert(falseChild);
