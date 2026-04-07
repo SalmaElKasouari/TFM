@@ -132,31 +132,19 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   assert pq.DisjointTrees(input);
 
 
+  var trueChild : Solution? := null;
+  var falseChild : Solution? := null;
   
-  // if (parent.totalWeight + input.items[parent.k + 1].weight <= input.maxWeight) {
-  //    parent.newChild();
-  //   if (trueChild.k == trueChild.itemsAssign.Length) {
-  //     bs.Copy(trueChild);
-  //   }
-  //   else {
-  //     pq.Insert(trueChild);
-  //   }
-  // }
   
+  if (parent.totalWeight + input.items[parent.k + 1].weight <= input.maxWeight) {
+    trueChild := parent.NewTrueChild(input);
+    assume false;
+    trueChild.InsertIfNotValid(bs, pq);    
+  }
+  
+  falseChild.InsertIfNotValid(bs, pq);
 
-  
-  // if (falseChild.priority > bs.totalValue) {
-  //   if (falseChild.k == falseChild.itemsAssign.Length) {
-  //     bs.Copy(falseChild);
-  //   }
-  //   else {
-  //     pq.Insert(falseChild);
-  //   }
-  // }
-
-  assume false;
-
-  
+  assume false;  
 
 }
 

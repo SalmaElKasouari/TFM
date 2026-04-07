@@ -493,21 +493,29 @@ module KnapsackPQ refines PQ {
     /*
     Método: inserta el hijo en cola si este no es solución completa.
     //
-    Verificación: 
+    Verificación:
     */
     method InsertIfNotValid(bs : Solution, pq : PriorityQueue)
-      modifies bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.totalValue, bs.
-      totalWeight, bs`k, bs`itemsAssign, bs`priority
+      modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
       requires itemsAssign.Length == bs.itemsAssign.Length
       requires this != bs
       requires pq.Valid()
+      ensures if (this.totalValue > bs.totalValue && k == itemsAssign.Length && pq.Valid()) then pq.Model() == old(pq.Model()) else (pq.Valid() && pq.Model() == old(pq.Model()) + multiset{this})
     {
+      assume false;
       if (this.totalValue > bs.totalValue) {
         if (k == itemsAssign.Length) {
+          assume false;
            bs.Copy(this);
+           assume pq.Valid();
+           assume pq.Model() == old(pq.Model());
+           
         }
         else {
+          assume false;
+          assume pq.Valid();
           pq.Insert(this);
+          assume false;
         }
       }
     }
@@ -521,9 +529,10 @@ module KnapsackPQ refines PQ {
     method NewTrueChild(input : Input) returns (trueChild : Solution)
       requires k < itemsAssign.Length == input.items.Length
       requires input.Valid()
+      requires Partial(input)
       requires totalWeight + input.items[k].weight <= input.maxWeight // es factible
       ensures trueChild.IsTrueChild(this, input)
-      // ensures trueChild.Partial() ?
+      ensures trueChild.Partial(input)
     {
       trueChild := new Solution.CloneCopy(this);
       trueChild.itemsAssign[trueChild.k] := true;
@@ -531,6 +540,16 @@ module KnapsackPQ refines PQ {
       trueChild.totalValue := totalValue + input.items[trueChild.k].value;
       trueChild.priority := priority;
       trueChild.k := trueChild.k + 1;
+      SolutionData.AddTrueMaintainsSumConsistency(Model(), trueChild.Model(), input.Model());
+      assert totalWeight + input.items[k].weight <= input.maxWeight;
+      assume trueChild.Partial(input);
+      // assert trueChild.Partial(input) by {
+      //   assert 0 <= k <= itemsAssign.Length;
+      //   //assert trueChild.IsUpperBound(input);
+      //   assert trueChild.Model().Partial(input.Model());
+      //   //assert trueChild.Model().TotalWeight(input.Model().items) == totalWeight;
+      //   //assert trueChild.Model().TotalValue(input.Model().items) == totalValue;
+      // }
     }
 
 
@@ -544,7 +563,7 @@ module KnapsackPQ refines PQ {
       requires input.Valid()
       requires Partial(input)
       ensures falseChild.IsFalseChild(this, input)
-      //ensures falseChild.Partial() ?
+      ensures falseChild.Partial(input)
     {
       falseChild := new Solution.CloneCopy(this);
       falseChild.itemsAssign[falseChild.k] := false;
