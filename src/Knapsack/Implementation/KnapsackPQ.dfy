@@ -507,7 +507,7 @@ module KnapsackPQ refines PQ {
           assume false;
            bs.Copy(this);
            assume pq.Valid();
-           assume pq.Model() == old(pq.Model());s           
+           assume pq.Model() == old(pq.Model());         
         }
         else {
           assume pq.Valid();
