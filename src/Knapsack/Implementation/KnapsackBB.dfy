@@ -88,7 +88,7 @@ method ComputeSolution(input: Input) returns (bs: Solution)
 
   while !pq.IsEmpty() && pq.Min().priority > bs.totalValue
     decreases pq.PartialPending(input)
-    invariant LoopInvariant(pq, ps, bs, input)
+    invariant LoopInvariant(pq, bs, input)
     invariant fresh(pq)
     invariant fresh(pq.arr)
     //invariant pq.Min().Model() !in pq.PartialPending(input)
@@ -115,9 +115,9 @@ method ComputeSolution(input: Input) returns (bs: Solution)
 method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   modifies pq, pq.arr
   requires input.Valid()
-  requires LoopInvariant(pq, ps, bs, input)
+  requires LoopInvariant(pq, bs, input)
   requires !pq.IsEmpty() && pq.Min().priority > bs.totalValue // condición del bucle
-  ensures LoopInvariant(pq, ps, bs, input)
+  ensures LoopInvariant(pq, bs, input)
   ensures pq.arr == old(pq.arr) || fresh(pq.arr) // el array es el mismo que el antiguo (iteraciñon anterior) o se acaba de crear (es fresco)
   ensures pq.PartialPending(input) < old(pq.PartialPending(input))
 {
@@ -168,11 +168,12 @@ method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : 
   requires input.Valid()
   requires child.Partial(input)
   requires pq.Valid()
-  requires {bs.itemsAssign} !! {pq.arr as object} !! {pq} !! {bs} !! (set i | 0 <= i < pq.arr.Length :: pq.arr[i] as object)
+  requires bs !in (set i | 0 <= i < pq.arr.Length :: pq.arr[i])
+  //requires LoopInvariant(pq, bs, input)
+  //ensures LoopInvariant(pq, bs, input)
   ensures child != bs
-  requires allocated(bs) && allocated(pq) && allocated(bs.itemsAssign) && allocated(pq.arr)
   ensures bs == old(bs)
-  ensures pq.arr == old(pq.arr) || fresh(pq.arr)
+  //ensures pq.arr == old(pq.arr) || fresh(pq.arr)
   ensures pq.Valid()
   ensures if (child.k != child.itemsAssign.Length && child.priority > bs.priority)
           then pq.Model() ==  old(pq.Model()) + multiset{child}
@@ -188,22 +189,20 @@ method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : 
       assert pq.Valid();
     }
   }
-  //assume pq.Valid();
 }
 
-ghost predicate LoopInvariant(pq: PriorityQueue, ps: Solution, bs: Solution, input: Input)
+ghost predicate LoopInvariant(pq: PriorityQueue, bs: Solution, input: Input)
   reads pq, pq.arr, pq.arr[..]
   reads input, input.items, input.items[..]
-  reads ps, ps.itemsAssign
   reads bs, bs.itemsAssign
   reads set i | 0 <= i < pq.arr.Length :: pq.arr[i].itemsAssign
 {
   && pq.Valid()
   && input.Valid()
-  && ps.Partial(input)
   && bs.Valid(input)
   && pq.AllPartial(input)
   && pq.DisjointTrees(input)
+  && bs !in (set i | 0 <= i < pq.arr.Length :: pq.arr[i])
 }
 
 
