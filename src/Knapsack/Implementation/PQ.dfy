@@ -244,6 +244,7 @@ abstract module PQ {
       ensures Valid()
       ensures node in Model()
       ensures Model() == old(Model()) + multiset{node}
+      ensures arr == old(arr) || fresh(arr)
     {
       if (count == 0) { // array is empty
         var aux: array<Solution> := new Solution[1][node];

@@ -133,17 +133,17 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
 
 
   var trueChild : Solution? := null;
-  var falseChild : Solution? := null;  
+  var falseChild : Solution? := null;
 
   assume false;
 
-  if (parent.totalWeight + input.items[parent.k + 1].weight <= input.maxWeight) {
+  if (parent.totalWeight + input.items[parent.k].weight <= input.maxWeight) {
     trueChild := parent.NewTrueChild(input);
-    trueChild.InsertIfNotValid(bs, pq);
+    HandleChild(trueChild, bs, pq, input);
   }
-  
 
-  falseChild.InsertIfNotValid(bs, pq);
+  falseChild := parent.NewFalseChild(input);
+  HandleChild(falseChild, bs, pq, input);
 
   if (trueChild == null && falseChild == null) {
     //ya sabe que pq decrede por el lema invocado antes: PriorityQueue.StaticPartialPendingDecreases(old(pq.Model()), old(pq.Min()), input);
@@ -154,6 +154,41 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
 
   assume false;
 
+}
+
+/*
+    Método: inserta el hijo en cola si este no es solución completa.
+    //
+    Verificación: 
+    */
+method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : Input)
+  modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
+  requires child.itemsAssign.Length == bs.itemsAssign.Length
+  requires child != bs
+  requires input.Valid()
+  requires child.Partial(input)
+  requires pq.Valid()
+  requires {bs.itemsAssign} !! {pq.arr as object} !! {pq} !! {bs} !! (set i | 0 <= i < pq.arr.Length :: pq.arr[i] as object)
+  ensures child != bs
+  requires allocated(bs) && allocated(pq) && allocated(bs.itemsAssign) && allocated(pq.arr)
+  ensures bs == old(bs)
+  ensures pq.arr == old(pq.arr) || fresh(pq.arr)
+  ensures pq.Valid()
+  ensures if (child.k != child.itemsAssign.Length && child.priority > bs.priority)
+          then pq.Model() ==  old(pq.Model()) + multiset{child}
+          else pq.Model() == old(pq.Model())
+{
+  if (child.priority > bs.priority) {
+    if (child.k == child.itemsAssign.Length) {
+      bs.Copy(child);
+      assert pq.Valid();
+    }
+    else {
+      pq.Insert(child);
+      assert pq.Valid();
+    }
+  }
+  //assume pq.Valid();
 }
 
 ghost predicate LoopInvariant(pq: PriorityQueue, ps: Solution, bs: Solution, input: Input)

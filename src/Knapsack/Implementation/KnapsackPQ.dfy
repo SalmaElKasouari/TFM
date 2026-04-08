@@ -383,10 +383,6 @@ module KnapsackPQ refines PQ {
       && k == parent.k + 1 // el hijo tiene una posición más
       && Model().Extends(parent.Model()) // el hijo extiende al padre: son iguales hasta parent.k
       && itemsAssign[k-1] == false // en esa posición adicional, el hijo tiene false
-      && totalWeight == parent.totalWeight // el peso del hijo es el del padre
-      && totalValue == parent.totalValue // el valor del hijo es el valor del padre
-      // prioridad?
-
     }
 
 
@@ -487,32 +483,6 @@ module KnapsackPQ refines PQ {
         invariant forall j | 0 <= j < i :: itemsAssign[j] == s.itemsAssign[j]
       {
         itemsAssign[i] := s.itemsAssign[i];
-      }
-    }
-
-    /*
-    Método: inserta el hijo en cola si este no es solución completa.
-    //
-    Verificación: 
-    */
-    method InsertIfNotValid(bs : Solution, pq : PriorityQueue)
-      modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
-      requires itemsAssign.Length == bs.itemsAssign.Length
-      requires this != bs
-      requires pq.Valid()
-      //ensures if (this.totalValue > bs.totalValue && k == itemsAssign.Length && pq.Valid()) then pq.Model() == old(pq.Model()) else (pq.Valid() && pq.Model() == old(pq.Model()) + multiset{this})
-    {
-      if (this.totalValue > bs.totalValue) {
-        if (k == itemsAssign.Length) {
-          assume false;
-           bs.Copy(this);
-           assume pq.Valid();
-           assume pq.Model() == old(pq.Model());         
-        }
-        else {
-          assume pq.Valid();
-          pq.Insert(this);
-        }
       }
     }
 
