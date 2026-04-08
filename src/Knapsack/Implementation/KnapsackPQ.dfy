@@ -499,6 +499,7 @@ module KnapsackPQ refines PQ {
       requires totalWeight + input.items[k].weight <= input.maxWeight // es factible
       ensures trueChild.IsTrueChild(this, input)
       ensures trueChild.Partial(input)
+      ensures fresh(trueChild)
     {
       trueChild := new Solution.CloneCopy(this);
       trueChild.itemsAssign[trueChild.k] := true;
@@ -530,6 +531,7 @@ module KnapsackPQ refines PQ {
       requires Partial(input)
       ensures falseChild.IsFalseChild(this, input)
       ensures falseChild.Partial(input)
+      ensures fresh(falseChild)
     {
       falseChild := new Solution.CloneCopy(this);
       falseChild.itemsAssign[falseChild.k] := false;

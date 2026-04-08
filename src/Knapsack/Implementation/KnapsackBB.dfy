@@ -135,18 +135,19 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   var trueChild : Solution? := null;
   var falseChild : Solution? := null;
 
-  assume false;
+ 
 
-  if (parent.totalWeight + input.items[parent.k].weight <= input.maxWeight) {
-    trueChild := parent.NewTrueChild(input);
-    HandleChild(trueChild, bs, pq, input);
-  }
+  // if (parent.totalWeight + input.items[parent.k].weight <= input.maxWeight) {
+  //   trueChild := parent.NewTrueChild(input);
+  //   HandleChild(trueChild, bs, pq, input);
+  // }
+  assume false;
 
   falseChild := parent.NewFalseChild(input);
   HandleChild(falseChild, bs, pq, input);
 
   if (trueChild == null && falseChild == null) {
-    //ya sabe que pq decrede por el lema invocado antes: PriorityQueue.StaticPartialPendingDecreases(old(pq.Model()), old(pq.Min()), input);
+    // ya sabe que pq decrede por el lema invocado antes: PriorityQueue.StaticPartialPendingDecreases(old(pq.Model()), old(pq.Min()), input);
   }
   // else if (trueChild != null && falseChild == null) {
 
@@ -167,10 +168,8 @@ method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : 
   requires child != bs
   requires input.Valid()
   requires child.Partial(input)
-  requires pq.Valid()
-  requires bs !in (set i | 0 <= i < pq.arr.Length :: pq.arr[i])
-  //requires LoopInvariant(pq, bs, input)
-  //ensures LoopInvariant(pq, bs, input)
+  requires LoopInvariant(pq, bs, input)
+  //ensures LoopInvariant(pq, bs, input) //ir trozo por trozo
   ensures child != bs
   ensures bs == old(bs)
   //ensures pq.arr == old(pq.arr) || fresh(pq.arr)
@@ -179,7 +178,7 @@ method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : 
           then pq.Model() ==  old(pq.Model()) + multiset{child}
           else pq.Model() == old(pq.Model())
 {
-  if (child.priority > bs.priority) {
+  if (child.priority > bs.totalValue) {
     if (child.k == child.itemsAssign.Length) {
       bs.Copy(child);
       assert pq.Valid();
@@ -202,7 +201,8 @@ ghost predicate LoopInvariant(pq: PriorityQueue, bs: Solution, input: Input)
   && bs.Valid(input)
   && pq.AllPartial(input)
   && pq.DisjointTrees(input)
-  && bs !in (set i | 0 <= i < pq.arr.Length :: pq.arr[i])
+  && bs !in pq.Model()
+  && (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length) // StrictPartial
 }
 
 
