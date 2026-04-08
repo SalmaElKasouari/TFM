@@ -30,7 +30,7 @@ import opened Item
 Método: dado una entrada, encuentra la solución óptima mediante la llamada a un método de ramificación y poda (KnapsackBB)
 implementado en BB.dfy. Se construyen dos soluciones:
  - Una solución parcial (ps): va generando la solución actual (decide las asignaciones de los objetos).
- - Una mejor solución (bs): almacena la mejor solución encontrada hasta el momento. 
+ - Una mejor solución (bs): almacena la mejor solución encontrada hasta el momento.
 Ambas soluciones se inicializan con el array de asignaciones a falsos.
 //
 Verificación: se asegura que la mejor solución encontrada (bs) es tanto válida como óptima:
@@ -97,11 +97,11 @@ method ComputeSolution(input: Input) returns (bs: Solution)
     LoopBody(ps, bs, pq, input);
   }
 
-  /* Primera postcondición: bs.Valid(input) 
+  /* Primera postcondición: bs.Valid(input)
    Se verifica gracias a la postcondición en BB que asegura que bs es válida.
   */
 
-  /* Segunda postcondición: bs.Optimal(input) 
+  /* Segunda postcondición: bs.Optimal(input)
    Se verifica gracias a varias poscondiciones en BB que aseguran que bs es óptima.
   */
   // assert bs.Optimal(input) by {
@@ -133,18 +133,26 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
 
 
   var trueChild : Solution? := null;
-  var falseChild : Solution? := null;
-  
-  
+  var falseChild : Solution? := null;  
+
+  assume false;
+
   if (parent.totalWeight + input.items[parent.k + 1].weight <= input.maxWeight) {
     trueChild := parent.NewTrueChild(input);
-    assume false;
-    trueChild.InsertIfNotValid(bs, pq);    
+    trueChild.InsertIfNotValid(bs, pq);
   }
   
+
   falseChild.InsertIfNotValid(bs, pq);
 
-  assume false;  
+  if (trueChild == null && falseChild == null) {
+    //ya sabe que pq decrede por el lema invocado antes: PriorityQueue.StaticPartialPendingDecreases(old(pq.Model()), old(pq.Min()), input);
+  }
+  // else if (trueChild != null && falseChild == null) {
+
+  // }
+
+  assume false;
 
 }
 
@@ -165,7 +173,7 @@ ghost predicate LoopInvariant(pq: PriorityQueue, ps: Solution, bs: Solution, inp
 
 
 /*
-Método: main que ejecuta el programa principal resolviendo el problema de la mochila con una lista de objetos 
+Método: main que ejecuta el programa principal resolviendo el problema de la mochila con una lista de objetos
 y un peso máximo.
 */
 method Main() {
