@@ -361,15 +361,12 @@ module KnapsackPQ refines PQ {
     Predicate: verifica que this es el nodo hijo extendido con true de parent.
     */
     ghost predicate IsTrueChild(parent: Solution, input : Input)
-      reads this, itemsAssign, parent, parent.itemsAssign, input,  input.items, input.items[..] 
+      reads this, itemsAssign, parent, parent.itemsAssign, input,  input.items, input.items[..]
     {
       && k <= itemsAssign.Length == parent.itemsAssign.Length == input.items.Length
       && k == parent.k + 1 // el hijo tiene una posición más
       && Model().Extends(parent.Model()) // el hijo extiende al padre: son iguales hasta parent.k
       && itemsAssign[k-1] == true // en esa posición adicional, el hijo tiene true
-      && totalWeight == parent.totalWeight + input.items[k-1].weight // el peso del hijo es el del padre mas el peso del nuevo objeto selccionado
-      && totalValue == parent.totalValue + input.items[k-1].value // el valor del hijo es el valor del padre mas el valor del nuevo objeto seleccionado
-      && priority == parent.priority
     }
 
 
@@ -486,6 +483,78 @@ module KnapsackPQ refines PQ {
       }
     }
 
+    /*
+    Lema: si extendemos una solución parcial (parent) añadiendo un elemento asignado como (true) 
+    dando lugar a una nueva solución parcial (trueChild), entonces ps también cumple con las propiedades de consistencia 
+    parcial definidas por el método Partial. 
+    //
+    Propósito: garantizar que ps sigue siendo Partial en KnapsackBTTrueBranch después de añadirle un objeto cuyo peso 
+    no hacía exceder el peso maximo.
+    //
+    Verificación: se realizan cálculos formales para demostrar que el valor y peso de ps son consistentes con oldps:
+      - Primer calc: Se usa el lema AddTrueMaintainsSumConsistency para garantizar que el peso total de ps es la suma 
+        del peso de parent mas el nuevo Item. Se usa el lema InputDataItems para garantizar que el peso total de ps es la suma 
+        del peso de parent mas el nuevo ItemData. Finalmente se garantiza que el peso total es menor que el peso máximo.
+      - Segundo calc: se parte de ps.totalWeight y se reescribe como la suma de oldtotalWeight y el nuevo Item. Se 
+        asegura que oldtotalWeight es igual a parent.TotalWeight(input.Model().items). Y se usan los lemas InputDataItems 
+        y AddTrueMaintainsSumConsistency para demostrar que la transición de parent a ps es válida. Se asegura que la 
+        suma se puede reescribir como ps.Model().TotalWeight(input.Model().items).
+      - Tercer calc: análogo al anterior pero aplicado al valor total en lugar del peso.
+    */
+    static lemma PartialConsistency(ps: Solution, parent: SolutionData, input: Input, oldtotalWeight: real, oldtotalValue: real)
+      requires input.Valid()
+      requires 1 <= ps.k <= ps.itemsAssign.Length
+      requires 0 <= parent.k <= |parent.itemsAssign|
+      requires ps.k == parent.k + 1
+      requires ps.itemsAssign.Length == |parent.itemsAssign| == input.items.Length
+      requires parent.itemsAssign[..parent.k] + [true] == ps.itemsAssign[..ps.k]
+      requires parent.Partial(input.Model())
+      requires oldtotalWeight == parent.TotalWeight(input.Model().items)
+      requires oldtotalValue == parent.TotalValue(input.Model().items)
+      requires parent.TotalWeight(input.Model().items) + input.items[ps.k - 1].weight <= input.maxWeight
+      requires oldtotalWeight == ps.totalWeight - input.items[parent.k].weight
+      requires oldtotalValue == ps.totalValue - input.items[parent.k].value
+      ensures ps.Partial(input)
+    {
+      assert parent.Partial(input.Model());
+      assert oldtotalWeight == parent.TotalWeight(input.Model().items);
+      assert parent.TotalWeight(input.Model().items) + input.items[ps.k - 1].weight <= input.maxWeight;
+
+      calc {
+         ps.Model().TotalWeight(input.Model().items);
+        { SolutionData.AddTrueMaintainsSumConsistency(parent, ps.Model(), input.Model()); }
+         parent.TotalWeight(input.Model().items) + input.Model().items[ps.k - 1].weight;
+        { input.InputDataItems(ps.k - 1); }
+         parent.TotalWeight(input.Model().items) + input.items[ps.k - 1].weight;
+      <= input.maxWeight;
+      }
+
+      calc {
+        ps.totalWeight;
+        oldtotalWeight + input.items[ps.k - 1].weight;
+        parent.TotalWeight(input.Model().items) + input.items[ps.k - 1].weight;
+        { input.InputDataItems(ps.k - 1);
+          SolutionData.AddTrueMaintainsSumConsistency(parent, ps.Model(), input.Model());
+        }
+        ps.Model().TotalWeight(input.Model().items);
+      }
+
+      calc {
+        ps.totalValue;
+        oldtotalValue + input.items[ps.k - 1].value;
+        parent.TotalValue(input.Model().items) + input.items[ps.k - 1].value;
+        { input.InputDataItems(ps.k - 1);
+          SolutionData.AddTrueMaintainsSumConsistency(parent, ps.Model(), input.Model());
+        }
+        ps.Model().TotalValue(input.Model().items);
+      }
+      assume ps.Model().IsUpperBound(ps.priority, input.Model());
+      assert ps.Partial(input);
+    }
+
+    lemma hola(parent : Solution, trueChild : Solution, input : Input)
+    requires trueChild.IsTrueChild(parent, input)
+
 
     /*
     Método: devuelve el hijo que extiende al padre con true.
@@ -507,16 +576,8 @@ module KnapsackPQ refines PQ {
       trueChild.totalValue := totalValue + input.items[trueChild.k].value;
       trueChild.priority := priority;
       trueChild.k := trueChild.k + 1;
-      SolutionData.AddTrueMaintainsSumConsistency(Model(), trueChild.Model(), input.Model());
-      assert totalWeight + input.items[k].weight <= input.maxWeight;
-      assume trueChild.Partial(input);
-      // assert trueChild.Partial(input) by {
-      //   assert 0 <= k <= itemsAssign.Length;
-      //   //assert trueChild.IsUpperBound(input);
-      //   assert trueChild.Model().Partial(input.Model());
-      //   //assert trueChild.Model().TotalWeight(input.Model().items) == totalWeight;
-      //   //assert trueChild.Model().TotalValue(input.Model().items) == totalValue;
-      // }
+
+      Solution.PartialConsistency(trueChild, this.Model(), input, this.totalWeight, this.totalValue);
     }
 
 
