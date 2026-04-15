@@ -179,13 +179,14 @@ method {:only} HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, 
   requires child !in pq.Model()
   requires forall s1 <- pq.Model()+multiset{bs,child}, s2 <- pq.Model()+multiset{bs,child} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign
   //ensures LoopInvariant(pq, bs, input) //ir trozo por trozo
-
   ensures pq.Valid()
   ensures input.Valid()
   ensures bs !in pq.Model()
   ensures pq.AllPartial(input)
+  //ensures pq.DisjointTrees(input) // no demuestra
   ensures child != bs
   ensures child.itemsAssign != bs.itemsAssign 
+  ensures (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length)
   ensures pq.arr == old(pq.arr) || fresh(pq.arr)
   ensures if (child.k != child.itemsAssign.Length && child.priority > bs.totalValue)
           then pq.Model() ==  old(pq.Model()) + multiset{child}
@@ -216,6 +217,8 @@ ghost predicate LoopInvariant(pq: PriorityQueue, bs: Solution, input: Input)
   && pq.DisjointTrees(input)
   && bs !in pq.Model()
   && (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length) // StrictPartial
+  && (forall s1 <- pq.Model()+multiset{bs}, s2 <- pq.Model()+multiset{bs} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign)
+
 }
 
 

@@ -578,6 +578,7 @@ module KnapsackPQ refines PQ {
       ensures trueChild.Partial(input)
       ensures fresh(trueChild)
       ensures trueChild.Model().AllFalsesFromK()
+      ensures fresh(trueChild.itemsAssign)
     {
       trueChild := new Solution.CloneCopy(this);
       trueChild.itemsAssign[trueChild.k] := true;
@@ -603,6 +604,7 @@ module KnapsackPQ refines PQ {
       ensures falseChild.IsFalseChild(this, input)
       ensures falseChild.Partial(input)
       ensures fresh(falseChild)
+      ensures fresh(falseChild.itemsAssign)
       ensures falseChild.Model().AllFalsesFromK()
     {
       falseChild := new Solution.CloneCopy(this);
