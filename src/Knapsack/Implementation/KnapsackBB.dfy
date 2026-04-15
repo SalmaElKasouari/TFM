@@ -112,6 +112,12 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   // }
 }
 
+
+/*
+Método: cuerpo del bucle
+//
+Verificación: 
+*/
 method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   modifies pq, pq.arr
   requires input.Valid()
@@ -135,7 +141,7 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   var trueChild : Solution? := null;
   var falseChild : Solution? := null;
 
- 
+
 
   // if (parent.totalWeight + input.items[parent.k].weight <= input.maxWeight) {
   //   trueChild := parent.NewTrueChild(input);
@@ -158,11 +164,11 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
 }
 
 /*
-    Método: inserta el hijo en cola si este no es solución completa.
-    //
-    Verificación: 
-    */
-method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : Input)
+Método: inserta el hijo en cola si este no es solución completa.
+//
+Verificación: 
+*/
+method {:only} HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
   requires child.itemsAssign.Length == bs.itemsAssign.Length
   requires child != bs
@@ -170,10 +176,11 @@ method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : 
   requires child.Partial(input)
   requires LoopInvariant(pq, bs, input)
   //ensures LoopInvariant(pq, bs, input) //ir trozo por trozo
+  ensures pq.Valid()
+  ensures bs !in pq.Model()
   ensures child != bs
   ensures bs == old(bs)
-  //ensures pq.arr == old(pq.arr) || fresh(pq.arr)
-  ensures pq.Valid()
+  ensures pq.arr == old(pq.arr) || fresh(pq.arr)
   ensures if (child.k != child.itemsAssign.Length && child.priority > bs.priority)
           then pq.Model() ==  old(pq.Model()) + multiset{child}
           else pq.Model() == old(pq.Model())
