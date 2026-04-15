@@ -174,14 +174,20 @@ method {:only} HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, 
   requires child != bs
   requires input.Valid()
   requires child.Partial(input)
+  requires child.Model().AllFalsesFromK()
   requires LoopInvariant(pq, bs, input)
+  requires child !in pq.Model()
+  requires forall s1 <- pq.Model()+multiset{bs,child}, s2 <- pq.Model()+multiset{bs,child} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign
   //ensures LoopInvariant(pq, bs, input) //ir trozo por trozo
+
   ensures pq.Valid()
+  ensures input.Valid()
   ensures bs !in pq.Model()
+  ensures pq.AllPartial(input)
   ensures child != bs
-  ensures bs == old(bs)
+  ensures child.itemsAssign != bs.itemsAssign 
   ensures pq.arr == old(pq.arr) || fresh(pq.arr)
-  ensures if (child.k != child.itemsAssign.Length && child.priority > bs.priority)
+  ensures if (child.k != child.itemsAssign.Length && child.priority > bs.totalValue)
           then pq.Model() ==  old(pq.Model()) + multiset{child}
           else pq.Model() == old(pq.Model())
 {
