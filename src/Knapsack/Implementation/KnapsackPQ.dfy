@@ -501,7 +501,7 @@ module KnapsackPQ refines PQ {
         suma se puede reescribir como ps.Model().TotalWeight(input.Model().items).
       - Tercer calc: análogo al anterior pero aplicado al valor total en lugar del peso.
     */
-    static lemma {:only} PartialConsistency(ps: Solution, parent: Solution, input: Input, oldtotalWeight: real, oldtotalValue: real)
+    static lemma PartialConsistency(ps: Solution, parent: Solution, input: Input, oldtotalWeight: real, oldtotalValue: real)
       requires input.Valid()
       requires 1 <= ps.k <= ps.itemsAssign.Length
       requires 0 <= parent.k <= parent.itemsAssign.Length
@@ -555,12 +555,12 @@ module KnapsackPQ refines PQ {
       assert ps.Partial(input);
     }
 
-    static lemma {:only} EqualPriorityImpliesPartial(parent : Solution, trueChild : Solution, input : Input)
+    static lemma EqualPriorityImpliesPartial(parent : Solution, trueChild : Solution, input : Input)
       requires input.Valid()
       requires parent.Partial(input)
       requires trueChild.IsTrueChild(parent, input)
       requires trueChild.priority == parent.priority
-      ensures trueChild.Partial(input)
+      ensures trueChild.IsUpperBound(input) // trueChild.Model().IsUpperBound(trueChild.priority, input.Model())
     {}
 
     /*
@@ -627,7 +627,7 @@ module KnapsackPQ refines PQ {
                                         && k <= s.k
                                         && s.Extends(SolutionData(itemsAssign[..], k))
                                         && s.Valid(input.Model())
-                :: s.TotalValue(input.Model().items) <= upperBound
+                :: s.TotalValue(input.Model().items) <= upperBound 
     {
       ghost var ps' := SolutionData(itemsAssign[..], k);
       assert |ps'.itemsAssign| == |itemsAssign[..]|;

@@ -136,7 +136,9 @@ module SolutionData {
     ghost predicate IsUpperBound(priority : real, input : InputData)
       requires input.Valid()
     {
-      forall s : SolutionData | s.Valid(input) && s.OptimalExtension(this, input) :: s.TotalValue(input.items) <= priority
+      //forall s : SolutionData | s.Valid(input) && s.OptimalExtension(this, input) :: s.TotalValue(input.items) <= priority
+      forall s : SolutionData | s.Valid(input) && s.k <= |itemsAssign| == |s.itemsAssign| && k <= s.k && s.Extends(this) :: s.TotalValue(input.items) <= priority
+
     }
 
 
