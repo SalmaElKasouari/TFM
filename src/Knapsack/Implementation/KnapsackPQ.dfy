@@ -23,7 +23,7 @@ module KnapsackPQ refines PQ {
       requires input.Valid()
       requires Valid()
     {
-      forall s | s in Model() :: s.Partial(input) && s.Model().AllFalsesFromK()
+      forall s | s in Model() :: s.Partial(input) && s.Model().AllFalsesFromK() && s.k < s.itemsAssign.Length
     }
 
     /* 
@@ -483,6 +483,7 @@ module KnapsackPQ refines PQ {
       }
     }
 
+
     /*
     Lema: si extendemos una solución parcial (parent) añadiendo un elemento asignado como (true) 
     dando lugar a una nueva solución parcial (trueChild), entonces ps también cumple con las propiedades de consistencia 
@@ -501,7 +502,7 @@ module KnapsackPQ refines PQ {
         suma se puede reescribir como ps.Model().TotalWeight(input.Model().items).
       - Tercer calc: análogo al anterior pero aplicado al valor total en lugar del peso.
     */
-    static lemma PartialConsistency(ps: Solution, parent: Solution, input: Input, oldtotalWeight: real, oldtotalValue: real)
+    static lemma PartialConsistency(ps: Solution, parent: Solution, input: Input)
       requires input.Valid()
       requires 1 <= ps.k <= ps.itemsAssign.Length
       requires 0 <= parent.k <= parent.itemsAssign.Length
@@ -509,31 +510,25 @@ module KnapsackPQ refines PQ {
       requires ps.itemsAssign.Length == parent.itemsAssign.Length == input.items.Length
       requires parent.itemsAssign[..parent.k] + [true] == ps.itemsAssign[..ps.k]
       requires parent.Partial(input)
-      requires oldtotalWeight == parent.Model().TotalWeight(input.Model().items)
-      requires oldtotalValue == parent.Model().TotalValue(input.Model().items)
-      requires parent.Model().TotalWeight(input.Model().items) + input.items[ps.k - 1].weight <= input.maxWeight
-      requires oldtotalWeight == ps.totalWeight - input.items[parent.k].weight
-      requires oldtotalValue == ps.totalValue - input.items[parent.k].value
+      requires parent.totalWeight + input.items[ps.k - 1].weight <= input.maxWeight
+      requires parent.totalWeight == ps.totalWeight - input.items[parent.k].weight
+      requires parent.totalValue == ps.totalValue - input.items[parent.k].value
       requires ps.IsTrueChild(parent, input)
       requires ps.priority == parent.priority
       ensures ps.Partial(input)
     {
-      assert parent.Partial(input);
-      assert oldtotalWeight == parent.Model().TotalWeight(input.Model().items);
-      assert parent.Model().TotalWeight(input.Model().items) + input.items[ps.k - 1].weight <= input.maxWeight;
-
       calc {
-         ps.Model().TotalWeight(input.Model().items);
+         ps.totalWeight;
         { SolutionData.AddTrueMaintainsSumConsistency(parent.Model(), ps.Model(), input.Model()); }
-         parent.Model().TotalWeight(input.Model().items) + input.Model().items[ps.k - 1].weight;
+         parent.totalWeight + input.Model().items[ps.k - 1].weight;
         { input.InputDataItems(ps.k - 1); }
-         parent.Model().TotalWeight(input.Model().items) + input.items[ps.k - 1].weight;
+         parent.totalWeight + input.items[ps.k - 1].weight;
       <= input.maxWeight;
       }
 
       calc {
         ps.totalWeight;
-        oldtotalWeight + input.items[ps.k - 1].weight;
+        parent.totalWeight + input.items[ps.k - 1].weight;
         parent.Model().TotalWeight(input.Model().items) + input.items[ps.k - 1].weight;
         { input.InputDataItems(ps.k - 1);
           SolutionData.AddTrueMaintainsSumConsistency(parent.Model(), ps.Model(), input.Model());
@@ -543,18 +538,28 @@ module KnapsackPQ refines PQ {
 
       calc {
         ps.totalValue;
-        oldtotalValue + input.items[ps.k - 1].value;
+        parent.totalValue + input.items[ps.k - 1].value;
         parent.Model().TotalValue(input.Model().items) + input.items[ps.k - 1].value;
         { input.InputDataItems(ps.k - 1);
           SolutionData.AddTrueMaintainsSumConsistency(parent.Model(), ps.Model(), input.Model());
         }
         ps.Model().TotalValue(input.Model().items);
       }
+
       Solution.EqualPriorityImpliesPartial(parent, ps, input);
       assert ps.Model().IsUpperBound(ps.priority, input.Model());
       assert ps.Partial(input);
     }
 
+
+/*
+    Lema: si una solución parent es Partial (su prioridad es cota superior) y su hijo trueChild extendido con true tiene la misma 
+    prioridad que su padre, entonces la prioridad del hijo es cota superior.
+    //
+    Propósito: demostrar que ps es Partial en el lema PartialConsistency
+    //
+    Verificación: trivial.
+    */
     static lemma EqualPriorityImpliesPartial(parent : Solution, trueChild : Solution, input : Input)
       requires input.Valid()
       requires parent.Partial(input)
@@ -563,6 +568,7 @@ module KnapsackPQ refines PQ {
       ensures trueChild.IsUpperBound(input) // trueChild.Model().IsUpperBound(trueChild.priority, input.Model())
     {}
 
+    
     /*
     Método: devuelve el hijo que extiende al padre con true.
     //
@@ -587,7 +593,7 @@ module KnapsackPQ refines PQ {
       trueChild.priority := priority;
       trueChild.k := trueChild.k + 1;
 
-      Solution.PartialConsistency(trueChild, this, input, this.totalWeight, this.totalValue);
+      Solution.PartialConsistency(trueChild, this, input);
     }
 
 

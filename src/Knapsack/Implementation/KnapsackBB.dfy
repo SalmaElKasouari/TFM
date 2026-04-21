@@ -164,36 +164,42 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
 }
 
 /*
-Método: inserta el hijo en cola si este no es solución completa.
+Método: inserta el hijo en la cola si este no es solución completa.
 //
 Verificación: 
 */
 method {:only} HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
   requires child.itemsAssign.Length == bs.itemsAssign.Length
-  requires child != bs
   requires input.Valid()
-  requires child.Partial(input)
-  requires child.Model().AllFalsesFromK()
   requires LoopInvariant(pq, bs, input)
-  requires child !in pq.Model()
-  requires forall s1 <- pq.Model()+multiset{bs,child}, s2 <- pq.Model()+multiset{bs,child} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign
-  //requires child no esta en ninguno de los arboles de las soluciones de pq.Model()
-  requires (forall s | s in pq.Model() :: child.Model() !in s.Model().PartialExtensions())
-  //ensures LoopInvariant(pq, bs, input) //ir trozo por trozo
-  ensures pq.Valid()
-  ensures input.Valid()
-  ensures bs !in pq.Model()
-  ensures pq.AllPartial(input)
+  requires child.Partial(input)
+  requires child.Model().AllFalsesFromK()  
   
+  
+  requires child !in pq.Model() // el hijo no pertenece a la cola
+  requires child != bs // el hijo no es el objeto bs
+  requires (forall s <- pq.Model() :: s != child && s != bs) // ni el hijo ni bs son objetos de la cola
+  requires (forall s1 <- pq.Model() + multiset{bs,child}, s2 <- pq.Model() + multiset{bs,child} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign) // el hijo, bs y las soluciones de la cola tienen arrays diferentes
+  requires (forall s | s in pq.Model() :: child.Model() !in s.Model().PartialExtensions()) // child no esta en ninguno de los arboles de las soluciones de pq.Model()
+
+  
+  // LoopInvariant:
+  ensures input.Valid()
+  ensures pq.Valid() 
+  ensures pq.AllPartial(input)  
   ensures pq.DisjointTrees(input) // no demuestra
+  ensures bs !in pq.Model()
+  ensures bs.Valid(input)
+  ensures (forall s1 <- pq.Model() + multiset{bs}, s2 <- pq.Model() + multiset{bs} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign)
+  
   ensures child != bs
   ensures child.itemsAssign != bs.itemsAssign 
   ensures (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length)
   ensures (forall s1 <- pq.Model()+multiset{bs}, s2 <- pq.Model()+multiset{bs} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign)
   ensures pq.arr == old(pq.arr) || fresh(pq.arr)
   ensures if (child.k != child.itemsAssign.Length && child.priority > bs.totalValue)
-          then pq.Model() ==  old(pq.Model()) + multiset{child}
+          then pq.Model() == old(pq.Model()) + multiset{child}
           else pq.Model() == old(pq.Model())
 {
   if (child.priority > bs.totalValue) {
@@ -206,6 +212,10 @@ method {:only} HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, 
       assert pq.Valid();
     }
   }
+  assert pq.DisjointTrees(input) by {
+    assume (forall s | s in pq.Model() :: pq.Model()[s] == 1);
+    assert (forall s1, s2 | s1 in pq.Model() && s2 in pq.Model() && s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions());
+  }
 }
 
 ghost predicate LoopInvariant(pq: PriorityQueue, bs: Solution, input: Input)
@@ -214,15 +224,14 @@ ghost predicate LoopInvariant(pq: PriorityQueue, bs: Solution, input: Input)
   reads bs, bs.itemsAssign
   reads set i | 0 <= i < pq.arr.Length :: pq.arr[i].itemsAssign
 {
-  && pq.Valid()
-  && input.Valid()
-  && bs.Valid(input)
+  && input.Valid()  
+  && pq.Valid()  
   && pq.AllPartial(input)
   && pq.DisjointTrees(input)
+  && bs.Valid(input)
   && bs !in pq.Model()
-  && (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length) // StrictPartial
-  && (forall s1 <- pq.Model()+multiset{bs}, s2 <- pq.Model()+multiset{bs} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign)
-
+  && (forall s1 <- pq.Model() + multiset{bs}, s2 <- pq.Model() + multiset{bs} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign)
+  //&& (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length) AÑADIDO EN ALLPARTIAL
 }
 
 
