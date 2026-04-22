@@ -212,15 +212,14 @@ method {:only} HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, 
     if (child.k == child.itemsAssign.Length) {
       bs.Copy(child);
       assert pq.Valid();
+      //assert pq.DisjointTrees(input);
     }
     else {
       pq.Insert(child);
       assert pq.Valid();
+      assume false;
+      assume pq.DisjointTrees(input);
     }
-  }
-  assert pq.DisjointTrees(input) by {
-    assume (forall s | s in pq.Model() :: pq.Model()[s] == 1);
-    assume (forall s1, s2 | s1 in pq.Model() && s2 in pq.Model() && s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions());
   }
 }
 
