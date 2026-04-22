@@ -170,37 +170,43 @@ Verificación:
 */
 method {:only} HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
+
+  // Precondiciones para que los parámetros sean válidos
   requires child.itemsAssign.Length == bs.itemsAssign.Length
-  requires input.Valid()
-  requires LoopInvariant(pq, bs, input)
+  requires input.Valid()  
   requires child.Partial(input)
   requires child.Model().AllFalsesFromK()  
+  requires LoopInvariant(pq, bs, input) // Invariantes del bucle
   
-  
+  // Precondiciones acerca de la realción entre los diferentes objetos
   requires child !in pq.Model() // el hijo no pertenece a la cola
   requires child != bs // el hijo no es el objeto bs
+  //requires child.itemsAssign != bs.itemsAssign // el array de asignaciones del hijo es diferente al de bs
   requires (forall s <- pq.Model() :: s != child && s != bs) // ni el hijo ni bs son objetos de la cola
   requires (forall s1 <- pq.Model() + multiset{bs,child}, s2 <- pq.Model() + multiset{bs,child} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign) // el hijo, bs y las soluciones de la cola tienen arrays diferentes
   requires (forall s | s in pq.Model() :: child.Model() !in s.Model().PartialExtensions()) // child no esta en ninguno de los arboles de las soluciones de pq.Model()
 
   
-  // LoopInvariant:
+  // Invariantes del bucle (LoopInvariant: todas ok excepto DisjointTrees)
   ensures input.Valid()
   ensures pq.Valid() 
   ensures pq.AllPartial(input)  
-  ensures pq.DisjointTrees(input) // no demuestra
   ensures bs !in pq.Model()
   ensures bs.Valid(input)
   ensures (forall s1 <- pq.Model() + multiset{bs}, s2 <- pq.Model() + multiset{bs} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign)
   
+  // Postcondiciones de los diferentes objetos
   ensures child != bs
   ensures child.itemsAssign != bs.itemsAssign 
   ensures (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length)
   ensures (forall s1 <- pq.Model()+multiset{bs}, s2 <- pq.Model()+multiset{bs} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign)
+  
   ensures pq.arr == old(pq.arr) || fresh(pq.arr)
   ensures if (child.k != child.itemsAssign.Length && child.priority > bs.totalValue)
           then pq.Model() == old(pq.Model()) + multiset{child}
           else pq.Model() == old(pq.Model())
+
+  //ensures pq.DisjointTrees(input) // no demuestra
 {
   if (child.priority > bs.totalValue) {
     if (child.k == child.itemsAssign.Length) {
@@ -214,7 +220,7 @@ method {:only} HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, 
   }
   assert pq.DisjointTrees(input) by {
     assume (forall s | s in pq.Model() :: pq.Model()[s] == 1);
-    assert (forall s1, s2 | s1 in pq.Model() && s2 in pq.Model() && s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions());
+    assume (forall s1, s2 | s1 in pq.Model() && s2 in pq.Model() && s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions());
   }
 }
 
