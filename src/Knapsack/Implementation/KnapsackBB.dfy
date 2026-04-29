@@ -127,7 +127,9 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
   ensures pq.arr == old(pq.arr) || fresh(pq.arr) // el array es el mismo que el antiguo (iteraciñon anterior) o se acaba de crear (es fresco)
   //ensures pq.PartialPending(input) < old(pq.PartialPending(input))
 {
-  var parent := pq.Min();
+
+  label L :
+  var parent := pq.Min();  
   pq.DeleteMin();
 
   assert LoopInvariant(pq, bs, input);
@@ -138,27 +140,47 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
   var trueChild : Solution? := null;
   var falseChild : Solution? := null;
 
-
-
-  if (parent.totalWeight + input.items[parent.k].weight <= input.maxWeight) {
-    trueChild := parent.NewTrueChild(input);
-    HandleChild(trueChild, bs, pq, input) by { assume false;}
-  }
-
- // DEMOSTRAR PRECONDICIONES DE NEWFALSECHILD Y DE HADLECHILD
-  falseChild := parent.NewFalseChild(input);
-  HandleChild(falseChild, bs, pq, input) by { assume false;}
-
-  assume false;
-
-  if (trueChild == null && falseChild == null) {
-    // ya sabe que pq decrede por el lema invocado antes: PriorityQueue.StaticPartialPendingDecreases(old(pq.Model()), old(pq.Min()), input);
-  }
-  // else if (trueChild != null && falseChild == null) {
-
+  // if (parent.totalWeight + input.items[parent.k].weight <= input.maxWeight) {
+  //   trueChild := parent.NewTrueChild(input);
+  //   HandleChild(trueChild, bs, pq, input) by { assume false;}
   // }
 
-  assume false;
+  falseChild := parent.NewFalseChild(input);
+
+  hola@L(parent, falseChild, pq, input);
+
+
+
+  HandleChild(falseChild, bs, pq, input) by {       
+    assert input.Valid();    
+    assert falseChild.itemsAssign.Length == bs.itemsAssign.Length;     
+    assert falseChild.Partial(input);   
+    assert falseChild.Model().AllFalsesFromK();     
+    assert LoopInvariant(pq, bs, input);
+    assert falseChild !in pq.Model() && bs !in pq.Model();
+    assert falseChild != bs;
+    assume (forall s1 <- pq.Model() + multiset{bs,falseChild}, s2 <- pq.Model() + multiset{bs,falseChild} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign); // el hijo, bs y las soluciones de la cola tienen arrays diferentes
+
+    
+
+    assert (forall s | s in pq.Model() :: falseChild.Model() !in s.Model().PartialExtensions()) by {
+      hola@L(parent, falseChild, pq, input);
+    }
+    //assert (forall s | s in pq.Model() :: s.Model() !in falseChild.Model().PartialExtensions());
+    assume false;
+  }
+
+
+  // assume false;
+
+  // if (trueChild == null && falseChild == null) {
+  //   // ya sabe que pq decrede por el lema invocado antes: PriorityQueue.StaticPartialPendingDecreases(old(pq.Model()), old(pq.Min()), input);
+  // }
+  // // else if (trueChild != null && falseChild == null) {}
+
+
+
+  // assume false;
 
 }
 
@@ -170,33 +192,33 @@ Verificación:
 method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
 
-  requires input.Valid()  
-
   // Precondiciones para que los parámetros sean válidos
+  requires input.Valid()  
   requires child.itemsAssign.Length == bs.itemsAssign.Length
   requires child.Partial(input)
-  requires child.Model().AllFalsesFromK()  
+  requires child.Model().AllFalsesFromK()
 
   requires LoopInvariant(pq, bs, input) // Invariantes del bucle
 
-  // Precondiciones acerca de la realción entre los diferentes objetos
+  // Precondiciones acerca de la relación entre los diferentes objetos
   requires child !in pq.Model() && bs !in pq.Model()// el hijo no pertenece a la cola
   requires child != bs // el hijo no es el objeto bs
   requires (forall s1 <- pq.Model() + multiset{bs,child}, s2 <- pq.Model() + multiset{bs,child} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign) // el hijo, bs y las soluciones de la cola tienen arrays diferentes
   requires (forall s | s in pq.Model() :: child.Model() !in s.Model().PartialExtensions()) // child no esta en ninguno de los arboles de las soluciones de pq.Model()
-  requires (forall s | s in pq.Model() :: s.Model() !in child.Model().PartialExtensions()) // child no esta en ninguno de los arboles de las soluciones de pq.Model()
+  requires (forall s | s in pq.Model() :: s.Model() !in child.Model().PartialExtensions()) // ninguna solucion de pq.Model() está en los árboles de child
  
-  ensures LoopInvariant(pq, bs, input)
+  ensures LoopInvariant(pq, bs, input) // Invariantes del bucle
+
   // Postcondiciones de los diferentes objetos
   ensures child != bs
   ensures child.itemsAssign != bs.itemsAssign 
   ensures (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length)
   
+  // Postcondiciones sobre la cola
   ensures pq.arr == old(pq.arr) || fresh(pq.arr)
   ensures if (child.k != child.itemsAssign.Length && child.priority > bs.totalValue)
           then pq.Model() == old(pq.Model()) + multiset{child}
           else pq.Model() == old(pq.Model())
-
 {
   if (child.priority > bs.totalValue) {
     if (child.k == child.itemsAssign.Length) {
@@ -218,6 +240,32 @@ method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : 
   }
 }
 
+
+/*
+Lema: si tenemos un nodo child que es hijo de un nodo parent que ya no pertence a la cola, entonces child no esta en ninguno 
+de los arboles de las soluciones de pq.Model() y ninguna solucion de pq.Model() está en los árboles de child.
+//
+Propósito: demostrar precondición de HandleChild.
+//
+Verificación: 
+*/
+twostate lemma {:only} hola(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
+requires input.Valid()
+requires parent.Partial(input)
+requires child.IsFalseChild(parent, input)
+requires pq.Valid()
+requires old(pq.Valid())
+requires fresh(child)
+requires parent in old(pq.Model()) // parent estaba antes en la cola
+requires parent !in pq.Model() // parent ya no esta en la cola
+ensures (forall s | s in pq.Model() && 0 <= s.k <= s.itemsAssign.Length :: child.Model() !in s.Model().PartialExtensions()) // child no esta en ninguno de los arboles de las soluciones de pq.Model()
+ensures (forall s | s in pq.Model() :: s.Model() !in child.Model().PartialExtensions()) // ninguna solucion de pq.Model() está en los árboles de child
+
+
+
+/* 
+  Predicado: invariantes del bucle
+*/
 ghost predicate LoopInvariant(pq: PriorityQueue, bs: Solution, input: Input)
   reads pq, pq.arr, pq.arr[..]
   reads input, input.items, input.items[..]
@@ -233,6 +281,8 @@ ghost predicate LoopInvariant(pq: PriorityQueue, bs: Solution, input: Input)
   && (forall s1 <- pq.Model() + multiset{bs}, s2 <- pq.Model() + multiset{bs} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign)
   //&& (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length) AÑADIDO EN ALLPARTIAL
 }
+
+
 
 
 /*
