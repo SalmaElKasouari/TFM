@@ -23,7 +23,16 @@ module KnapsackPQ refines PQ {
       requires input.Valid()
       requires Valid()
     {
-      forall s | s in Model() :: s.Partial(input) && s.Model().AllFalsesFromK() && s.k < s.itemsAssign.Length
+      StaticAllPartial(input, Model())
+    }
+
+    static ghost predicate StaticAllPartial(input:Input, m : multiset<Solution>)
+      reads input, input.items, input.items[..]
+      requires input.Valid()
+      reads set i | i in m
+      reads set i | i in m :: i.itemsAssign
+    {
+      forall s | s in m :: s.Partial(input) && s.Model().AllFalsesFromK() && s.k < s.itemsAssign.Length
     }
 
     /* 
@@ -39,8 +48,19 @@ module KnapsackPQ refines PQ {
       requires Valid()
       requires AllPartial(input)
     {
-      && (forall s | s in Model() :: Model()[s] == 1)
-      && (forall s1, s2 | s1 in Model() && s2 in Model() && s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions())
+      StaticDisjointTrees(input, Model())
+    }
+
+    static ghost predicate StaticDisjointTrees(input : Input, m : multiset<Solution>)
+      reads input, input.items, input.items[..]
+      reads m
+      reads set i | i in m
+      reads set i | i in m :: i.itemsAssign
+      requires input.Valid()
+      requires StaticAllPartial(input, m)
+    {
+      && (forall s | s in m :: m[s] == 1)
+      && (forall s1, s2 | s1 in m && s2 in m && s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions())
     }
 
 
@@ -483,7 +503,7 @@ module KnapsackPQ refines PQ {
       }
     }
 
-    
+
     /*
     Método: devuelve el hijo que extiende al padre con true.
     //
@@ -554,7 +574,7 @@ module KnapsackPQ refines PQ {
                                         && k <= s.k
                                         && s.Extends(SolutionData(itemsAssign[..], k))
                                         && s.Valid(input.Model())
-                :: s.TotalValue(input.Model().items) <= upperBound 
+                :: s.TotalValue(input.Model().items) <= upperBound
     {
       ghost var ps' := SolutionData(itemsAssign[..], k);
       assert |ps'.itemsAssign| == |itemsAssign[..]|;

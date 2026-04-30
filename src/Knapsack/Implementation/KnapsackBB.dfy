@@ -136,10 +136,10 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
   var falseChild : Solution? := null;
   var oldpq := pq;
   var parent := pq.Min();
-
-  falseChild := parent.NewFalseChild(input);
-  label L : 
+  label L :
   pq.DeleteMin();
+  
+   
 
   // *** TRUE CHILD
   // if (parent.totalWeight + input.items[parent.k].weight <= input.maxWeight) {
@@ -151,16 +151,13 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
   // *** FALSE CHILD
   //NotInTrees@L(parent, falseChild, pq, input);
   //NotInTrees2(parent, falseChild, pq, oldpq, input);
+  falseChild := parent.NewFalseChild(input);
   
-  HandleChild(falseChild, bs, pq, input) by {     
+  HandleChild(falseChild, bs, pq, input) by {        
     
-    assert (forall s1 <- pq.Model() + multiset{bs,falseChild}, s2 <- pq.Model() + multiset{bs,falseChild} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign) by {
-      DifferentSolutionsDifferentArrays(bs, falseChild, pq);
-    }    
-    assume false;
-    // assert (forall s | s in pq.Model() :: falseChild.Model() !in s.Model().PartialExtensions()) by {
-    //   NotInTrees@L(parent, falseChild, pq, input);
-    // }
+    assert (forall s | s in pq.Model() :: falseChild.Model() !in s.Model().PartialExtensions()) by {
+      NotInTrees@L(parent, falseChild, pq, input);
+    }
     //assert (forall s | s in pq.Model() :: s.Model() !in falseChild.Model().PartialExtensions());
     
   }
@@ -175,11 +172,12 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
 }
 
 
-lemma {:only} DifferentSolutionsDifferentArrays (bs : Solution, child : Solution, pq : PriorityQueue)
+twostate lemma {:only} DifferentSolutionsDifferentArrays (bs : Solution, child : Solution, pq : PriorityQueue)
 requires pq.Valid() 
 requires child !in pq.Model() && bs !in pq.Model()
 requires child != bs
-ensures (forall s1 <- pq.Model() + multiset{bs,child}, s2 <- pq.Model() + multiset{bs,child} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign);
+requires fresh(child.itemsAssign)
+ensures (forall s1 <- pq.Model() + multiset{bs,child}, s2 <- pq.Model() + multiset{bs,child} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign)
 
 
 
@@ -198,6 +196,7 @@ requires child.IsFalseChild(parent, input)
 requires pq.Valid()
 requires old(pq.Valid())
 requires fresh(child)
+requires old(pq.DisjointTrees(input))
 requires parent in old(pq.Model()) // parent estaba antes en la cola
 requires parent !in pq.Model() // parent ya no esta en la cola
 ensures (forall s | s in pq.Model() && 0 <= s.k <= s.itemsAssign.Length :: child.Model() !in s.Model().PartialExtensions()) // child no esta en ninguno de los arboles de las soluciones de pq.Model()
@@ -214,6 +213,8 @@ requires parent in oldpq.Model() // parent estaba antes en la cola
 requires parent !in pq.Model() // parent ya no esta en la cola
 ensures (forall s | s in pq.Model() && 0 <= s.k <= s.itemsAssign.Length :: child.Model() !in s.Model().PartialExtensions()) // child no esta en ninguno de los arboles de las soluciones de pq.Model()
 ensures (forall s | s in pq.Model() :: s.Model() !in child.Model().PartialExtensions()) // ninguna solucion de pq.Model() está en los árboles de child
+
+
 
 
 /*
