@@ -155,7 +155,7 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
   HandleChild(falseChild, bs, pq, input) by {     
     
     assert (forall s1 <- pq.Model() + multiset{bs,falseChild}, s2 <- pq.Model() + multiset{bs,falseChild} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign) by {
-      DifferentSolutionDifferentArrays(bs, falseChild, pq);
+      DifferentSolutionsDifferentArrays(bs, falseChild, pq);
     }    
     assume false;
     // assert (forall s | s in pq.Model() :: falseChild.Model() !in s.Model().PartialExtensions()) by {
@@ -175,7 +175,7 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
 }
 
 
-lemma {:only} DifferentSolutionDifferentArrays (bs : Solution, child : Solution, pq : PriorityQueue)
+lemma {:only} DifferentSolutionsDifferentArrays (bs : Solution, child : Solution, pq : PriorityQueue)
 requires pq.Valid() 
 requires child !in pq.Model() && bs !in pq.Model()
 requires child != bs
