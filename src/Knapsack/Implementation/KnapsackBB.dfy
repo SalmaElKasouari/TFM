@@ -128,46 +128,41 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
   //ensures pq.PartialPending(input) < old(pq.PartialPending(input))
 {
 
-  label L :
-  var parent := pq.Min();  
-  pq.DeleteMin();
-
-  assert LoopInvariant(pq, bs, input);
   // assert pq.PartialPending(input) < old(pq.PartialPending(input)) by {
   //   PriorityQueue.StaticPartialPendingDecreases(old(pq.Model()), old(pq.Min()), input);
   // } 
 
   var trueChild : Solution? := null;
   var falseChild : Solution? := null;
+  var oldpq := pq;
+  var parent := pq.Min();
 
+  falseChild := parent.NewFalseChild(input);
+  label L : 
+  pq.DeleteMin();
+
+  // *** TRUE CHILD
   // if (parent.totalWeight + input.items[parent.k].weight <= input.maxWeight) {
   //   trueChild := parent.NewTrueChild(input);
   //   HandleChild(trueChild, bs, pq, input) by { assume false;}
   // }
 
-  falseChild := parent.NewFalseChild(input);
 
-  hola@L(parent, falseChild, pq, input);
-
-
-
-  HandleChild(falseChild, bs, pq, input) by {       
-    assert input.Valid();    
-    assert falseChild.itemsAssign.Length == bs.itemsAssign.Length;     
-    assert falseChild.Partial(input);   
-    assert falseChild.Model().AllFalsesFromK();     
-    assert LoopInvariant(pq, bs, input);
-    assert falseChild !in pq.Model() && bs !in pq.Model();
-    assert falseChild != bs;
-    assume (forall s1 <- pq.Model() + multiset{bs,falseChild}, s2 <- pq.Model() + multiset{bs,falseChild} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign); // el hijo, bs y las soluciones de la cola tienen arrays diferentes
-
+  // *** FALSE CHILD
+  //NotInTrees@L(parent, falseChild, pq, input);
+  //NotInTrees2(parent, falseChild, pq, oldpq, input);
+  
+  HandleChild(falseChild, bs, pq, input) by {     
     
-
-    assert (forall s | s in pq.Model() :: falseChild.Model() !in s.Model().PartialExtensions()) by {
-      hola@L(parent, falseChild, pq, input);
-    }
-    //assert (forall s | s in pq.Model() :: s.Model() !in falseChild.Model().PartialExtensions());
+    assert (forall s1 <- pq.Model() + multiset{bs,falseChild}, s2 <- pq.Model() + multiset{bs,falseChild} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign) by {
+      DifferentSolutionDifferentArrays(bs, falseChild, pq);
+    }    
     assume false;
+    // assert (forall s | s in pq.Model() :: falseChild.Model() !in s.Model().PartialExtensions()) by {
+    //   NotInTrees@L(parent, falseChild, pq, input);
+    // }
+    //assert (forall s | s in pq.Model() :: s.Model() !in falseChild.Model().PartialExtensions());
+    
   }
 
 
@@ -177,12 +172,49 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
   //   // ya sabe que pq decrede por el lema invocado antes: PriorityQueue.StaticPartialPendingDecreases(old(pq.Model()), old(pq.Min()), input);
   // }
   // // else if (trueChild != null && falseChild == null) {}
-
-
-
-  // assume false;
-
 }
+
+
+lemma {:only} DifferentSolutionDifferentArrays (bs : Solution, child : Solution, pq : PriorityQueue)
+requires pq.Valid() 
+requires child !in pq.Model() && bs !in pq.Model()
+requires child != bs
+ensures (forall s1 <- pq.Model() + multiset{bs,child}, s2 <- pq.Model() + multiset{bs,child} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign);
+
+
+
+/*
+Lema: si tenemos un nodo child que es hijo de un nodo parent que ya no pertence a la cola, entonces child no esta en ninguno 
+de los arboles de las soluciones de la cola y ninguna solucion de la cola está en los árboles de child.
+//
+Propósito: demostrar precondición de HandleChild.
+//
+Verificación: 
+*/
+twostate lemma {:only} NotInTrees(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
+requires input.Valid()
+requires parent.Partial(input)
+requires child.IsFalseChild(parent, input)
+requires pq.Valid()
+requires old(pq.Valid())
+requires fresh(child)
+requires parent in old(pq.Model()) // parent estaba antes en la cola
+requires parent !in pq.Model() // parent ya no esta en la cola
+ensures (forall s | s in pq.Model() && 0 <= s.k <= s.itemsAssign.Length :: child.Model() !in s.Model().PartialExtensions()) // child no esta en ninguno de los arboles de las soluciones de pq.Model()
+ensures (forall s | s in pq.Model() :: s.Model() !in child.Model().PartialExtensions()) // ninguna solucion de pq.Model() está en los árboles de child
+
+
+lemma {:only} NotInTrees2 (parent : Solution, child : Solution, pq : PriorityQueue, oldpq : PriorityQueue, input : Input)
+requires input.Valid()
+requires parent.Partial(input)
+requires child.IsFalseChild(parent, input)
+requires pq.Valid()
+requires oldpq.Valid()
+requires parent in oldpq.Model() // parent estaba antes en la cola
+requires parent !in pq.Model() // parent ya no esta en la cola
+ensures (forall s | s in pq.Model() && 0 <= s.k <= s.itemsAssign.Length :: child.Model() !in s.Model().PartialExtensions()) // child no esta en ninguno de los arboles de las soluciones de pq.Model()
+ensures (forall s | s in pq.Model() :: s.Model() !in child.Model().PartialExtensions()) // ninguna solucion de pq.Model() está en los árboles de child
+
 
 /*
 Método: inserta el hijo en la cola si este no es solución completa.
@@ -239,27 +271,6 @@ method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : 
     }
   }
 }
-
-
-/*
-Lema: si tenemos un nodo child que es hijo de un nodo parent que ya no pertence a la cola, entonces child no esta en ninguno 
-de los arboles de las soluciones de pq.Model() y ninguna solucion de pq.Model() está en los árboles de child.
-//
-Propósito: demostrar precondición de HandleChild.
-//
-Verificación: 
-*/
-twostate lemma {:only} hola(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
-requires input.Valid()
-requires parent.Partial(input)
-requires child.IsFalseChild(parent, input)
-requires pq.Valid()
-requires old(pq.Valid())
-requires fresh(child)
-requires parent in old(pq.Model()) // parent estaba antes en la cola
-requires parent !in pq.Model() // parent ya no esta en la cola
-ensures (forall s | s in pq.Model() && 0 <= s.k <= s.itemsAssign.Length :: child.Model() !in s.Model().PartialExtensions()) // child no esta en ninguno de los arboles de las soluciones de pq.Model()
-ensures (forall s | s in pq.Model() :: s.Model() !in child.Model().PartialExtensions()) // ninguna solucion de pq.Model() está en los árboles de child
 
 
 
