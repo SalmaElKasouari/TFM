@@ -199,9 +199,8 @@ requires fresh(child)
 requires old(pq.DisjointTrees(input))
 requires parent in old(pq.Model()) // parent estaba antes en la cola
 requires parent !in pq.Model() // parent ya no esta en la cola
-ensures (forall s | s in pq.Model() && 0 <= s.k <= s.itemsAssign.Length :: child.Model() !in s.Model().PartialExtensions()) // child no esta en ninguno de los arboles de las soluciones de pq.Model()
-ensures (forall s | s in pq.Model() :: s.Model() !in child.Model().PartialExtensions()) // ninguna solucion de pq.Model() está en los árboles de child
-
+ensures PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{child})
+{}
 
 lemma {:only} NotInTrees2 (parent : Solution, child : Solution, pq : PriorityQueue, oldpq : PriorityQueue, input : Input)
 requires input.Valid()
