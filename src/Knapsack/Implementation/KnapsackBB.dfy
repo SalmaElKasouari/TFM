@@ -149,21 +149,21 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
 
 
   // *** FALSE CHILD
-  //NotInTrees@L(parent, falseChild, pq, input);
+  
   //NotInTrees2(parent, falseChild, pq, oldpq, input);
   falseChild := parent.NewFalseChild(input);
-  
+  NotInTrees(parent, falseChild, pq, input);
   HandleChild(falseChild, bs, pq, input) by {        
     
     assert (forall s | s in pq.Model() :: falseChild.Model() !in s.Model().PartialExtensions()) by {
-      NotInTrees@L(parent, falseChild, pq, input);
+      NotInTrees(parent, falseChild, pq, input);
     }
     //assert (forall s | s in pq.Model() :: s.Model() !in falseChild.Model().PartialExtensions());
-    
+    assume false;
   }
 
 
-  // assume false;
+  assume false;
 
   // if (trueChild == null && falseChild == null) {
   //   // ya sabe que pq decrede por el lema invocado antes: PriorityQueue.StaticPartialPendingDecreases(old(pq.Model()), old(pq.Min()), input);
@@ -172,7 +172,7 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
 }
 
 
-twostate lemma {:only} DifferentSolutionsDifferentArrays (bs : Solution, child : Solution, pq : PriorityQueue)
+twostate lemma DifferentSolutionsDifferentArrays (bs : Solution, child : Solution, pq : PriorityQueue)
 requires pq.Valid() 
 requires child !in pq.Model() && bs !in pq.Model()
 requires child != bs
@@ -189,30 +189,16 @@ Propósito: demostrar precondición de HandleChild.
 //
 Verificación: 
 */
-twostate lemma {:only} NotInTrees(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
+lemma {:only} NotInTrees(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
 requires input.Valid()
 requires parent.Partial(input)
 requires child.IsFalseChild(parent, input)
 requires pq.Valid()
-requires old(pq.Valid())
-requires fresh(child)
-requires old(pq.DisjointTrees(input))
-requires parent in old(pq.Model()) // parent estaba antes en la cola
-requires parent !in pq.Model() // parent ya no esta en la cola
+requires PriorityQueue.StaticAllPartial(input, pq.Model() + multiset{parent})
+requires PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{parent})
+requires PriorityQueue.StaticAllPartial(input, pq.Model() + multiset{child})
 ensures PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{child})
 {}
-
-lemma {:only} NotInTrees2 (parent : Solution, child : Solution, pq : PriorityQueue, oldpq : PriorityQueue, input : Input)
-requires input.Valid()
-requires parent.Partial(input)
-requires child.IsFalseChild(parent, input)
-requires pq.Valid()
-requires oldpq.Valid()
-requires parent in oldpq.Model() // parent estaba antes en la cola
-requires parent !in pq.Model() // parent ya no esta en la cola
-ensures (forall s | s in pq.Model() && 0 <= s.k <= s.itemsAssign.Length :: child.Model() !in s.Model().PartialExtensions()) // child no esta en ninguno de los arboles de las soluciones de pq.Model()
-ensures (forall s | s in pq.Model() :: s.Model() !in child.Model().PartialExtensions()) // ninguna solucion de pq.Model() está en los árboles de child
-
 
 
 
