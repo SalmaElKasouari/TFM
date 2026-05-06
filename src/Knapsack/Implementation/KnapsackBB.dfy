@@ -119,7 +119,7 @@ Método: cuerpo del bucle
 Verificación: 
 */
 method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
-  modifies pq, pq.arr
+  modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
   requires input.Valid()
   requires LoopInvariant(pq, bs, input)
   requires !pq.IsEmpty() && pq.Min().priority > bs.totalValue // condición del bucle
@@ -130,7 +130,7 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
 
   // assert pq.PartialPending(input) < old(pq.PartialPending(input)) by {
   //   PriorityQueue.StaticPartialPendingDecreases(old(pq.Model()), old(pq.Min()), input);
-  // } 
+  // }
 
   var trueChild : Solution? := null;
   var falseChild : Solution? := null;
@@ -138,31 +138,33 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
   var parent := pq.Min();
   label L :
   pq.DeleteMin();
-  
-   
 
   // *** TRUE CHILD
   // if (parent.totalWeight + input.items[parent.k].weight <= input.maxWeight) {
   //   trueChild := parent.NewTrueChild(input);
-  //   HandleChild(trueChild, bs, pq, input) by { assume false;}
+  //   HandleChild(trueChild, bs, pq, input) by {
+  //     assume false;
+  //   }
   // }
 
-
   // *** FALSE CHILD
-  
-  //NotInTrees2(parent, falseChild, pq, oldpq, input);
   falseChild := parent.NewFalseChild(input);
-  NotInTrees(parent, falseChild, pq, input);
-  HandleChild(falseChild, bs, pq, input) by {        
+
+  NotInTrees(parent, falseChild, pq, input) by {assume false;}
+
+  HandleChild(falseChild, bs, pq, input) by {
+    assert input.Valid();
+    assert falseChild.itemsAssign.Length == bs.itemsAssign.Length;
+    assert falseChild.Partial(input);
+    assert falseChild.Model().AllFalsesFromK();
+    assume LoopInvariant(pq, bs, input);
+    assert falseChild !in pq.Model() && bs !in pq.Model();
+    assert falseChild != bs;
     
-    assert (forall s | s in pq.Model() :: falseChild.Model() !in s.Model().PartialExtensions()) by {
-      NotInTrees(parent, falseChild, pq, input);
-    }
-    //assert (forall s | s in pq.Model() :: s.Model() !in falseChild.Model().PartialExtensions());
-    assume false;
+    assume (forall s1 <- pq.Model() + multiset{bs,falseChild}, s2 <- pq.Model() + multiset{bs,falseChild} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign);
+    assume (forall s | s in pq.Model() :: falseChild.Model() !in s.Model().PartialExtensions());
+    assume (forall s | s in pq.Model() :: s.Model() !in falseChild.Model().PartialExtensions());
   }
-
-
   assume false;
 
   // if (trueChild == null && falseChild == null) {
@@ -170,15 +172,6 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
   // }
   // // else if (trueChild != null && falseChild == null) {}
 }
-
-
-twostate lemma DifferentSolutionsDifferentArrays (bs : Solution, child : Solution, pq : PriorityQueue)
-requires pq.Valid() 
-requires child !in pq.Model() && bs !in pq.Model()
-requires child != bs
-requires fresh(child.itemsAssign)
-ensures (forall s1 <- pq.Model() + multiset{bs,child}, s2 <- pq.Model() + multiset{bs,child} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign)
-
 
 
 /*
@@ -189,17 +182,34 @@ Propósito: demostrar precondición de HandleChild.
 //
 Verificación: 
 */
-lemma {:only} NotInTrees(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
-requires input.Valid()
-requires parent.Partial(input)
-requires child.IsFalseChild(parent, input)
-requires pq.Valid()
-requires PriorityQueue.StaticAllPartial(input, pq.Model() + multiset{parent})
-requires PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{parent})
-requires PriorityQueue.StaticAllPartial(input, pq.Model() + multiset{child})
-ensures PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{child})
-{}
+lemma NotInTrees(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
+  requires input.Valid()
+  requires parent.Partial(input)
+  requires child.IsFalseChild(parent, input)
+  requires pq.Valid()
+  requires child !in pq.Model()
+  requires parent !in pq.Model()
+  requires PriorityQueue.StaticAllPartial(input, pq.Model() + multiset{parent})
+  requires PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{parent})
+  ensures PriorityQueue.StaticAllPartial(input, pq.Model() + multiset{child})
+  ensures PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{child})
+{
+  var m := pq.Model() + multiset{child};
+  assume false;
+  assert (forall s | s in m :: m[s] == 1);
 
+  forall s1, s2 | s1 in m && s2 in m && s1 != s2
+    ensures s1.Model() !in s2.Model().PartialExtensions() {
+
+    assume false;
+  }
+
+  forall s1, s2 | s1 in m && s2 in m && s1 != s2
+    ensures s1.Model() !in s2.Model().PartialExtensions() {
+
+    assume false;
+  }
+}
 
 
 /*
@@ -211,7 +221,7 @@ method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : 
   modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
 
   // Precondiciones para que los parámetros sean válidos
-  requires input.Valid()  
+  requires input.Valid()
   requires child.itemsAssign.Length == bs.itemsAssign.Length
   requires child.Partial(input)
   requires child.Model().AllFalsesFromK()
@@ -224,14 +234,15 @@ method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : 
   requires (forall s1 <- pq.Model() + multiset{bs,child}, s2 <- pq.Model() + multiset{bs,child} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign) // el hijo, bs y las soluciones de la cola tienen arrays diferentes
   requires (forall s | s in pq.Model() :: child.Model() !in s.Model().PartialExtensions()) // child no esta en ninguno de los arboles de las soluciones de pq.Model()
   requires (forall s | s in pq.Model() :: s.Model() !in child.Model().PartialExtensions()) // ninguna solucion de pq.Model() está en los árboles de child
- 
+
+
   ensures LoopInvariant(pq, bs, input) // Invariantes del bucle
 
   // Postcondiciones de los diferentes objetos
   ensures child != bs
-  ensures child.itemsAssign != bs.itemsAssign 
+  ensures child.itemsAssign != bs.itemsAssign
   ensures (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length)
-  
+
   // Postcondiciones sobre la cola
   ensures pq.arr == old(pq.arr) || fresh(pq.arr)
   ensures if (child.k != child.itemsAssign.Length && child.priority > bs.totalValue)
@@ -242,18 +253,26 @@ method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : 
     if (child.k == child.itemsAssign.Length) {
       bs.Copy(child);
       assert pq.Valid();
+      assert if (child.k != child.itemsAssign.Length && child.priority > bs.totalValue)
+        then pq.Model() == old(pq.Model()) + multiset{child}
+        else pq.Model() == old(pq.Model());
+      assert pq.arr == old(pq.arr) || fresh(pq.arr);
+      assert child != bs;      
+      assert child.itemsAssign != bs.itemsAssign;      
+      assert (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length);
     }
     else {
       pq.Insert(child);
       assert pq.Valid();
-      forall s1, s2 | s1 in pq.Model() && s2 in pq.Model() && s1 != s2 
-      ensures s1.Model() !in s2.Model().PartialExtensions()
-      { if s1 in old(pq.Model()) && s2 in old(pq.Model()) {}
-        else 
-          { assert forall s | s in pq.Model()  && s!= child :: child.Model() !in s.Model().PartialExtensions(); // child no esta en ninguno de los arboles de las soluciones de pq.Model()
-            assert forall s | s in pq.Model() && s != child:: s.Model() !in child.Model().PartialExtensions(); // child no esta en ninguno de los arboles de las soluciones de pq.Model()
-          }
+      forall s1, s2 | s1 in pq.Model() && s2 in pq.Model() && s1 != s2
+        ensures s1.Model() !in s2.Model().PartialExtensions()
+      {
+        if s1 in old(pq.Model()) && s2 in old(pq.Model()) {}
+        else {
+          assert forall s | s in pq.Model()  && s != child :: child.Model() !in s.Model().PartialExtensions(); // child no esta en ninguno de los arboles de las soluciones de pq.Model()
+          assert forall s | s in pq.Model() && s != child:: s.Model() !in child.Model().PartialExtensions(); // nignuna solucion de pq.Model() está en los arboles de child
         }
+      }
     }
   }
 }
@@ -269,8 +288,8 @@ ghost predicate LoopInvariant(pq: PriorityQueue, bs: Solution, input: Input)
   reads bs, bs.itemsAssign
   reads set i | 0 <= i < pq.arr.Length :: pq.arr[i].itemsAssign
 {
-  && input.Valid()  
-  && pq.Valid()  
+  && input.Valid()
+  && pq.Valid()
   && pq.AllPartial(input)
   && pq.DisjointTrees(input)
   && bs.Valid(input)
