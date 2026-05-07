@@ -149,20 +149,19 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
 
   // *** FALSE CHILD
   falseChild := parent.NewFalseChild(input);
-
-  NotInTrees(parent, falseChild, pq, input) by {assume false;}
-
   HandleChild(falseChild, bs, pq, input) by {
     assert input.Valid();
     assert falseChild.itemsAssign.Length == bs.itemsAssign.Length;
     assert falseChild.Partial(input);
     assert falseChild.Model().AllFalsesFromK();
-    assume LoopInvariant(pq, bs, input);
+    assert LoopInvariant(pq, bs, input); // Si verifica pero tarda
     assert falseChild !in pq.Model() && bs !in pq.Model();
     assert falseChild != bs;
     
-    assume (forall s1 <- pq.Model() + multiset{bs,falseChild}, s2 <- pq.Model() + multiset{bs,falseChild} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign);
-    assume (forall s | s in pq.Model() :: falseChild.Model() !in s.Model().PartialExtensions());
+    assert (forall s1 <- pq.Model() + multiset{bs,falseChild}, s2 <- pq.Model() + multiset{bs,falseChild} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign); // no verifica
+    assert (forall s | s in pq.Model() :: falseChild.Model() !in s.Model().PartialExtensions()) by {
+      NotInTrees(parent, falseChild, pq, input);
+    }
     assume (forall s | s in pq.Model() :: s.Model() !in falseChild.Model().PartialExtensions());
   }
   assume false;
@@ -211,6 +210,17 @@ lemma NotInTrees(parent : Solution, child : Solution, pq : PriorityQueue, input 
   }
 }
 
+lemma PqSolutionsNotInChildTrees(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
+  requires input.Valid()
+  requires parent.Partial(input)
+  requires child.IsFalseChild(parent, input)
+  requires pq.Valid()
+  requires child !in pq.Model()
+  requires parent !in pq.Model()
+  requires PriorityQueue.StaticAllPartial(input, pq.Model() + multiset{parent})
+  requires PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{parent})
+  ensures PriorityQueue.StaticAllPartial(input, pq.Model() + multiset{child})
+  ensures PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{child})
 
 /*
 Método: inserta el hijo en la cola si este no es solución completa.
