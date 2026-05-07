@@ -159,10 +159,15 @@ method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input 
     assert falseChild != bs;
     
     assert (forall s1 <- pq.Model() + multiset{bs,falseChild}, s2 <- pq.Model() + multiset{bs,falseChild} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign); // no verifica
-    assert (forall s | s in pq.Model() :: falseChild.Model() !in s.Model().PartialExtensions()) by {
+    // assert (forall s | s in pq.Model() :: falseChild.Model() !in s.Model().PartialExtensions()) by {
+    //   NotInTrees(parent, falseChild, pq, input);
+    // }
+    // assert (forall s | s in pq.Model() :: s.Model() !in falseChild.Model().PartialExtensions()) by {
+    // }
+    assert PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{falseChild}) by {
       NotInTrees(parent, falseChild, pq, input);
+
     }
-    assume (forall s | s in pq.Model() :: s.Model() !in falseChild.Model().PartialExtensions());
   }
   assume false;
 
@@ -210,17 +215,6 @@ lemma NotInTrees(parent : Solution, child : Solution, pq : PriorityQueue, input 
   }
 }
 
-lemma PqSolutionsNotInChildTrees(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
-  requires input.Valid()
-  requires parent.Partial(input)
-  requires child.IsFalseChild(parent, input)
-  requires pq.Valid()
-  requires child !in pq.Model()
-  requires parent !in pq.Model()
-  requires PriorityQueue.StaticAllPartial(input, pq.Model() + multiset{parent})
-  requires PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{parent})
-  ensures PriorityQueue.StaticAllPartial(input, pq.Model() + multiset{child})
-  ensures PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{child})
 
 /*
 Método: inserta el hijo en la cola si este no es solución completa.
@@ -242,8 +236,7 @@ method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : 
   requires child !in pq.Model() && bs !in pq.Model()// el hijo no pertenece a la cola
   requires child != bs // el hijo no es el objeto bs
   requires (forall s1 <- pq.Model() + multiset{bs,child}, s2 <- pq.Model() + multiset{bs,child} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign) // el hijo, bs y las soluciones de la cola tienen arrays diferentes
-  requires (forall s | s in pq.Model() :: child.Model() !in s.Model().PartialExtensions()) // child no esta en ninguno de los arboles de las soluciones de pq.Model()
-  requires (forall s | s in pq.Model() :: s.Model() !in child.Model().PartialExtensions()) // ninguna solucion de pq.Model() está en los árboles de child
+  requires PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{child})
 
 
   ensures LoopInvariant(pq, bs, input) // Invariantes del bucle
