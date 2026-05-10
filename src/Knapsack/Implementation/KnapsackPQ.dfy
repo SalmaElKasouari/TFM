@@ -400,6 +400,7 @@ module KnapsackPQ refines PQ {
       && k == parent.k + 1 // el hijo tiene una posición más
       && Model().Extends(parent.Model()) // el hijo extiende al padre: son iguales hasta parent.k
       && itemsAssign[k-1] == false // en esa posición adicional, el hijo tiene false
+      && Model().itemsAssign == parent.Model().itemsAssign[parent.k := false] // NUEVO
     }
 
 
