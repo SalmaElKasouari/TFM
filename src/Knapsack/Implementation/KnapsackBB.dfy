@@ -151,19 +151,8 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   falseChild := parent.NewFalseChild(input);
   HandleChild(falseChild, bs, pq, input) by {
     NotInTrees(parent, falseChild, pq, input);
-    // assert input.Valid();
-    // assert falseChild.itemsAssign.Length == bs.itemsAssign.Length;
-    // assert falseChild.Partial(input);
-    // assert falseChild.Model().AllFalsesFromK();
-    // assert falseChild !in pq.Model() && bs !in pq.Model();
-    // assert falseChild != bs;
-    // assert LoopInvariant(pq, bs, input);
-
-    // assert (forall s1 <- pq.Model() + multiset{bs,falseChild}, s2 <- pq.Model() + multiset{bs,falseChild} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign);
-    // assert PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{falseChild}) by {
-    //   NotInTrees(parent, falseChild, pq, input);
-    // }
   }
+
   assume false;
 
   // if (trueChild == null && falseChild == null) {
@@ -183,8 +172,9 @@ Verificación:
 */
 lemma {:only} NotInTrees(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
   requires input.Valid()
-  requires parent.Partial(input)
-  requires child.IsFalseChild(parent, input) // || isTrueChild
+  requires parent.Partial(input) && parent.Model().AllFalsesFromK()
+  requires child.Partial(input) && child.Model().AllFalsesFromK()
+  requires (child.IsFalseChild(parent, input) || child.IsTrueChild(parent, input))
   requires pq.Valid()
   requires child !in pq.Model()
   requires parent !in pq.Model()
@@ -204,12 +194,16 @@ lemma {:only} NotInTrees(parent : Solution, child : Solution, pq : PriorityQueue
   }
 
   assert PriorityQueue.StaticAllPartial(input, pq.Model() + multiset{child}) by {
-    // lemma propiedad conjuntos: solo para quedar con pq.Model()
-    // lemma propiedad para añadir el hijo
     SubsetDisjointTrees(input, pq.Model() + multiset{parent}, pq.Model());
     assert PriorityQueue.StaticAllPartial(input, pq.Model());
-    SolutionData.AddFalsePreservesWeightValue(parent.Model(), child.Model(), input.Model());
-    assume false;
+    forall s | s in pq.Model() + multiset{child}
+    ensures s.Partial(input) && s.Model().AllFalsesFromK() && s.k < s.itemsAssign.Length
+    {
+      if (s != child) {}
+      else {        
+        assume s.k < s.itemsAssign.Length;
+      }      
+    }    
   }
 
   assert PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{child}) by {
@@ -226,16 +220,7 @@ Propósito:
 //
 Verificación: 
 */
-lemma {:only} SubsetDisjointTrees(input:Input, s:multiset<Solution>, s':multiset<Solution>)
-  requires input.Valid()
-  requires PriorityQueue.StaticAllPartial(input,s)
-  requires PriorityQueue.StaticDisjointTrees(input, s)
-  requires s' <= s
-  ensures PriorityQueue.StaticAllPartial(input,s')
-  ensures PriorityQueue.StaticDisjointTrees(input, s')
-{}
-
-lemma {:only} SubsetDisjointTrees2(input:Input, s:multiset<Solution>, s':multiset<Solution>)
+lemma SubsetDisjointTrees(input:Input, s:multiset<Solution>, s':multiset<Solution>)
   requires input.Valid()
   requires PriorityQueue.StaticAllPartial(input,s)
   requires PriorityQueue.StaticDisjointTrees(input, s)
@@ -252,7 +237,7 @@ Propósito:
 //
 Verificación: 
 */
-lemma {:only} AddDisjointTrees(c:Solution, input:Input, s:multiset<Solution>)
+lemma AddDisjointTrees(c:Solution, input:Input, s:multiset<Solution>)
   requires input.Valid()
   requires PriorityQueue.StaticAllPartial(input,s)
   requires PriorityQueue.StaticDisjointTrees(input, s)
@@ -263,6 +248,7 @@ lemma {:only} AddDisjointTrees(c:Solution, input:Input, s:multiset<Solution>)
   ensures PriorityQueue.StaticDisjointTrees(input, s + multiset{c})
 
 
+
 /*
 Lema: si c es hijo de p, p no está en las arboles de los nodos de la cola y ninguno de estos está en los arboles de p, 
 entonces c tampoco pertenece a los arboles de los nodos de la cola y viceversa.
@@ -271,9 +257,9 @@ Propósito:
 //
 Verificación: por contradicción ?
 */
-lemma {:only} ChildPreservesTreeDisjointness(p : Solution, c : Solution, input : Input, s:multiset<Solution>)
+lemma ChildPreservesTreeDisjointness(p : Solution, c : Solution, input : Input, s:multiset<Solution>)
   requires input.Valid()
-  requires c.IsFalseChild(p, input) // y true?
+  requires c.IsFalseChild(p, input) || c.IsTrueChild(p, input) // y true?
   requires forall z | z in s && 0 <= z.k <= z.itemsAssign.Length :: p.Model() !in z.Model().PartialExtensions()
   requires forall z | z in s :: z.Model() !in p.Model().PartialExtensions()
   ensures forall z | z in s && 0 <= z.k <= z.itemsAssign.Length :: c.Model() !in z.Model().PartialExtensions()
@@ -284,9 +270,8 @@ lemma {:only} ChildPreservesTreeDisjointness(p : Solution, c : Solution, input :
   forall z | z in s
   ensures z.Model() !in c.Model().PartialExtensions()
   {
-    assert (c.itemsAssign[..c.k] == p.itemsAssign[..p.k] + [false]);
     assert c.Model().PartialExtensions() <= p.Model().PartialExtensions();
-    // La línea anterior verifica porque he puesto la linea 403 en IsFalseChild, al aprecer hay que decir que las secuencias del modelo son iguales a excepción de la posicion k
+    // La línea anterior verifica porque he puesto la linea 390 y 403 en IsTrueChild y IsFalseChild, al aprecer hay que decir que las secuencias del modelo son iguales a excepción de la posicion k
   }  
 }
 
