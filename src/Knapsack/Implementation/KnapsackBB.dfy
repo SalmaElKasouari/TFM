@@ -193,22 +193,12 @@ lemma {:only} NotInTrees(parent : Solution, child : Solution, pq : PriorityQueue
     }
   }
 
-  assert PriorityQueue.StaticAllPartial(input, pq.Model() + multiset{child}) by {
-    SubsetDisjointTrees(input, pq.Model() + multiset{parent}, pq.Model());
-    assert PriorityQueue.StaticAllPartial(input, pq.Model());
-    forall s | s in pq.Model() + multiset{child}
-    ensures s.Partial(input) && s.Model().AllFalsesFromK() && s.k < s.itemsAssign.Length
-    {
-      if (s != child) {}
-      else {        
-        assume s.k < s.itemsAssign.Length;
-      }      
-    }    
-  }
-
-  assert PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{child}) by {
+  ghost var m := pq.Model() + multiset{child};
+  forall s1, s2 | s1 in m && s2 in m && s1 != s2
+    ensures s1.Model() !in s2.Model().PartialExtensions()
+  {
     ChildPreservesTreeDisjointness(parent, child, input, pq.Model());
-  }  
+  }
 }
 
 
@@ -237,7 +227,7 @@ Propósito:
 //
 Verificación: 
 */
-lemma AddDisjointTrees(c:Solution, input:Input, s:multiset<Solution>)
+lemma {:only} AddDisjointTrees(c:Solution, input:Input, s:multiset<Solution>)
   requires input.Valid()
   requires PriorityQueue.StaticAllPartial(input,s)
   requires PriorityQueue.StaticDisjointTrees(input, s)
@@ -257,22 +247,21 @@ Propósito:
 //
 Verificación: por contradicción ?
 */
-lemma ChildPreservesTreeDisjointness(p : Solution, c : Solution, input : Input, s:multiset<Solution>)
+lemma {:only} ChildPreservesTreeDisjointness(p : Solution, c : Solution, input : Input, s:multiset<Solution>)
   requires input.Valid()
-  requires c.IsFalseChild(p, input) || c.IsTrueChild(p, input) // y true?
+  requires c.IsFalseChild(p, input) || c.IsTrueChild(p, input)
   requires forall z | z in s && 0 <= z.k <= z.itemsAssign.Length :: p.Model() !in z.Model().PartialExtensions()
   requires forall z | z in s :: z.Model() !in p.Model().PartialExtensions()
   ensures forall z | z in s && 0 <= z.k <= z.itemsAssign.Length :: c.Model() !in z.Model().PartialExtensions()
   ensures forall z | z in s :: z.Model() !in c.Model().PartialExtensions()
-{  
+{
   assume forall z | z in s && 0 <= z.k <= z.itemsAssign.Length :: c.Model() !in z.Model().PartialExtensions();
 
   forall z | z in s
   ensures z.Model() !in c.Model().PartialExtensions()
   {
-    assert c.Model().PartialExtensions() <= p.Model().PartialExtensions();
-    // La línea anterior verifica porque he puesto la linea 390 y 403 en IsTrueChild y IsFalseChild, al aprecer hay que decir que las secuencias del modelo son iguales a excepción de la posicion k
-  }  
+    assert c.Model().PartialExtensions() <= p.Model().PartialExtensions(); // Esta línea anterior verifica porque he puesto la linea 390 y 403 en IsTrueChild y IsFalseChild, al aprecer hay que decir que las secuencias del modelo son iguales a excepción de la posicion k
+  }
 }
 
 
@@ -358,7 +347,7 @@ ghost predicate LoopInvariant(pq: PriorityQueue, bs: Solution, input: Input)
   && bs.Valid(input)
   && bs !in pq.Model()
   && (forall s1 <- pq.Model() + multiset{bs}, s2 <- pq.Model() + multiset{bs} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign)
-  //&& (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length) AÑADIDO EN ALLPARTIAL
+  && (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length) // no AÑADIDO EN ALLPARTIAL
 }
 
 

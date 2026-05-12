@@ -32,7 +32,7 @@ module KnapsackPQ refines PQ {
       reads set i | i in m
       reads set i | i in m :: i.itemsAssign
     {
-      forall s | s in m :: s.Partial(input) && s.Model().AllFalsesFromK() && s.k < s.itemsAssign.Length
+      forall s | s in m :: s.Partial(input) && s.Model().AllFalsesFromK()
     }
 
     /* 
