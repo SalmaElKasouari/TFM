@@ -307,7 +307,7 @@ module SolutionData {
     //
     Demostración: por inducción en f.
     */
-    lemma ExtendsNotPartialNotValid(input : InputData, s : SolutionData, f : SolutionData)
+    static lemma ExtendsNotPartialNotValid(input : InputData, s : SolutionData, f : SolutionData)
       decreases |input.items| - f.k
       requires input.Valid()
       requires !f.Partial(input)
@@ -352,7 +352,7 @@ module SolutionData {
       ensures s.Extends(rootData(input))
       ensures s in rootData(input).PartialExtensions()
     {
-      ExtendsInPartialExtensions(input, s, rootData(input));
+       ExtendsInPartialExtensions(input, s, rootData(input));
     }
 
 
@@ -376,7 +376,7 @@ module SolutionData {
     //
     Demostración: por inducción en f.
     */
-    lemma ExtendsInPartialExtensions(input : InputData, s : SolutionData, f : SolutionData)
+    static lemma ExtendsInPartialExtensions(input : InputData, s : SolutionData, f : SolutionData)
       decreases |input.items| - f.k
       requires input.Valid()
       requires f.k <= s.k
@@ -384,6 +384,7 @@ module SolutionData {
       requires s.Extends(f)
       requires s.itemsAssign[s.k..] == f.itemsAssign[s.k..]
       ensures s in f.PartialExtensions()
+      ensures s.PartialExtensions() <= f.PartialExtensions()
     {
       if (s.k == f.k) {
         assert s.itemsAssign[..s.k] == f.itemsAssign[..f.k];
@@ -413,7 +414,7 @@ module SolutionData {
     //
     Demostración: por inducción en f.
     */
-    lemma ExtendsNotPartialNotPartial(input : InputData, s : SolutionData, f : SolutionData)
+    static lemma ExtendsNotPartialNotPartial(input : InputData, s : SolutionData, f : SolutionData)
       decreases |input.items| - f.k
       requires input.Valid()
       requires !f.Partial(input)
