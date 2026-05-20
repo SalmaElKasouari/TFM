@@ -118,7 +118,7 @@ Método: cuerpo del bucle
 //
 Verificación: 
 */
-method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
+method {:only} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
   requires input.Valid()
   requires LoopInvariant(pq, bs, input)
@@ -139,17 +139,25 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   label L :
   pq.DeleteMin();
 
+  
+  assert LoopInvariant(pq, bs, input);     
+  
   // *** TRUE CHILD
-  // if (parent.totalWeight + input.items[parent.k].weight <= input.maxWeight) {
-  //   trueChild := parent.NewTrueChild(input);
-  //   HandleChild(trueChild, bs, pq, input) by {
-  //     assume false;
-  //   }
-  // }
+  if (parent.totalWeight + input.items[parent.k].weight <= input.maxWeight) {
+    trueChild := parent.NewTrueChild(input);
+    NotInTrees(parent, trueChild, pq, input);
+    
+    HandleChild(trueChild, bs, pq, input) by {    
+      assume LoopInvariant(pq, bs, input);      
+      assert (forall s1 <- pq.Model() + multiset{bs,trueChild}, s2 <- pq.Model() + multiset{bs,trueChild} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign); // el hijo, bs y las soluciones de la cola tienen arrays diferentes
+      assert PriorityQueue.StaticDisjointTrees(input, pq.Model() + multiset{trueChild});
+    }
+  }
 
   // *** FALSE CHILD
   falseChild := parent.NewFalseChild(input);
   HandleChild(falseChild, bs, pq, input) by {
+    assume LoopInvariant(pq, bs, input);
     NotInTrees(parent, falseChild, pq, input);
   }
 
@@ -226,7 +234,7 @@ Método: inserta el hijo en la cola si este no es solución completa.
 //
 Verificación: 
 */
-method {:only} HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : Input) // tarda 197 segundos
+method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : Input) // tarda 197 segundos
   modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
 
   // Precondiciones para que los parámetros sean válidos
@@ -258,18 +266,11 @@ method {:only} HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, 
           else pq.Model() == old(pq.Model())
 {
   if (child.priority > bs.totalValue) {
-    if (child.k == child.itemsAssign.Length) {
+    if (child.k == child.itemsAssign.Length) {      
       bs.Copy(child);
       assert pq.Valid();
-      assert if (child.k != child.itemsAssign.Length && child.priority > bs.totalValue)
-        then pq.Model() == old(pq.Model()) + multiset{child}
-        else pq.Model() == old(pq.Model());
-      assert pq.arr == old(pq.arr) || fresh(pq.arr);
-      assert child != bs;
-      assert child.itemsAssign != bs.itemsAssign;
-      assert (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length);
     }
-    else {
+    else {      
       pq.Insert(child);
       assert pq.Valid();
       assert pq.DisjointTrees(input);
@@ -297,7 +298,7 @@ ghost predicate LoopInvariant(pq: PriorityQueue, bs: Solution, input: Input)
   && bs.Valid(input)
   && bs !in pq.Model()
   && (forall s1 <- pq.Model() + multiset{bs}, s2 <- pq.Model() + multiset{bs} | s1 != s2 :: s1.itemsAssign != s2.itemsAssign)
-  && (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length) // no AÑADIDO EN ALLPARTIAL
+  && (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length)
 }
 
 
