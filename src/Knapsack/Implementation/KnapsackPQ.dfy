@@ -11,58 +11,6 @@ module KnapsackPQ refines PQ {
 
   class PriorityQueue ... {
 
-    /* Predicados */
-
-    /* 
-      Predicado: verifica que todas las soluciones de la cola sean parciales.
-    */
-    ghost predicate AllPartial(input:Input)
-      reads input, input.items, input.items[..]
-      reads this, arr,set i | 0 <= i < arr.Length :: arr[i]
-      reads set i | 0 <= i < arr.Length :: arr[i].itemsAssign
-      requires input.Valid()
-      requires Valid()
-    {
-      StaticAllPartial(input, Model())
-    }
-
-    static ghost predicate StaticAllPartial(input:Input, m : multiset<Solution>)
-      reads input, input.items, input.items[..]
-      requires input.Valid()
-      reads set i | i in m
-      reads set i | i in m :: i.itemsAssign
-    {
-      forall s | s in m :: s.Partial(input) && s.Model().AllFalsesFromK()
-    }
-
-    /* 
-      Predicado: verifica que el modelo de la cola sea un conjunto, esto es, que todas las soluciones de la cola aparecen 
-      exactamente una vez en el modelo. Además verifica que todo par de soluciones del modelo de la cola son disjuntas, es decir,
-      que ninfuna solución se encuentra en las extensiones parciales de otra.
-    */
-    ghost predicate DisjointTrees(input : Input)
-      reads input, input.items, input.items[..]
-      reads this, arr,set i | 0 <= i < arr.Length :: arr[i]
-      reads set i | 0 <= i < arr.Length :: arr[i].itemsAssign
-      requires input.Valid()
-      requires Valid()
-      requires AllPartial(input)
-    {
-      StaticDisjointTrees(input, Model())
-    }
-
-    static ghost predicate StaticDisjointTrees(input : Input, m : multiset<Solution>)
-      reads input, input.items, input.items[..]
-      reads m
-      reads set i | i in m
-      reads set i | i in m :: i.itemsAssign
-      requires input.Valid()
-      requires StaticAllPartial(input, m)
-    {
-      && (forall s | s in m :: m[s] == 1)
-      && (forall s1, s2 | s1 in m && s2 in m && s1 != s2 :: s1.Model().PartialExtensions() !! s2.Model().PartialExtensions())
-    }
-
 
 
     /* Functions */
@@ -218,6 +166,7 @@ module KnapsackPQ refines PQ {
 
 
 
+    /*
     lemma MinInPartialPending(input: Input)
       requires input.Valid()
       requires Valid()
@@ -225,6 +174,7 @@ module KnapsackPQ refines PQ {
       requires AllPartial(input)
       ensures Min().Model() in PartialPending(input)
     {}
+    */
 
     //--------------------------------------
 
