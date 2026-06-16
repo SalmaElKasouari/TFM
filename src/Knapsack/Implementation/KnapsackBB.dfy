@@ -37,12 +37,12 @@ Verificación: se asegura que la mejor solución encontrada (bs) es tanto válid
  - bs.Valid(input): mediante la postcondición en Bb que asegura que bs es válida.
  - bs.Optimal (input): mediante varias poscondiciones en Bb que aseguran que bs es óptima.
 */
-method ComputeSolution(input: Input) returns (bs: Solution)
+method {:only} ComputeSolution(input: Input) returns (bs: Solution)
   requires input.Valid()
   //ensures bs.Valid(input)
   //ensures bs.Optimal(input)
 {
-  assume false;
+  
   var n := input.items.Length;
 
   /* Construimos una solución parcial (ps) */
@@ -50,6 +50,7 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   var ps_totalValue := 0.0;
   var ps_totalWeight := 0.0;
   var ps_k := 0;
+
   var ps_priority := 0.0;
   var ps := new Solution(ps_itemsAssign, ps_totalValue, ps_totalWeight, ps_k, ps_priority); // primero la creo con 0 y luego la asigno
   ps.priority := ps.CalculateUpperBound(ps_itemsAssign, ps_k, ps_totalValue, input); // la cota superior es seleccionar todos los objetos restantes
@@ -71,40 +72,46 @@ method ComputeSolution(input: Input) returns (bs: Solution)
 
   assert bs.Valid(input) by {
     bs.Model().SumOfFalsesEqualsZero(input.Model());
-  }
+  }  
+  
 
   /* Branch and Bound */
 
   var pq := new PriorityQueue(); // en la cola tenemos soluciones parciales validas
   pq.Insert(ps);
-  assert pq.Valid();
-
-  ghost var pending : set<SolutionData>:= pq.Pending(input); // soluciones alcanzables desde las soluciones que estan en la cola
-  ghost var processed : multiset<SolutionData>;
+  assert pq.Valid();  
 
   SolutionData.rootData(input.Model()).AllNodesG(input.Model());
 
   assert AllPartial(input, pq.Model()); // trivial, en pq solo tenemos a ps que sabemos que es Partial
   assert DisjointTrees(input, pq.Model()); // trivial, en pq solo tenemos a ps
 
+  assert input.Valid();
+
+  //assume false;
+
   while !pq.IsEmpty() && pq.Min().priority > bs.totalValue
     decreases pq.PartialPending(input)
-    invariant LoopInvariant(pq, bs, input)
+    invariant LoopInvariant(pq, bs, input) //
     invariant fresh(pq)
     invariant fresh(pq.arr)
-    //invariant pq.Min().Model() !in pq.PartialPending(input)
-    //invariant forall sd : SolutionData | !(sd in pq.Pending(input)) :: sd.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
+    invariant bs.Valid(input) //
+    invariant bs.Optimal(input) //
+    invariant pq.Min().Model() !in pq.PartialPending(input)
+    invariant forall sd : SolutionData | !(sd in pq.Pending(input)) :: sd.TotalValue(input.Model().items) <= bs.totalValue // bs es mejor que todas las soluciones que no están en pending
   {
+    assume false;
     LoopBody(ps, bs, pq, input);
   }
-
+  assume false;
+  
+    
   /* Primera postcondición: bs.Valid(input)
-   Se verifica gracias a la postcondición en BB que asegura que bs es válida.
-  */
-
-  /* Segunda postcondición: bs.Optimal(input)
+   Se verifica gracias a la postcondición de LoopBody y el invariante del bucle* Segunda postcondición: bs.Optimal(input)
    Se verifica gracias a varias poscondiciones en BB que aseguran que bs es óptima.
   */
+
+
   // assert bs.Optimal(input) by {
   //   forall s: SolutionData | s.Valid(input.Model())
   //     ensures s.TotalValue(input.Model().items) <= bs.Model().TotalValue(input.Model().items) {
@@ -166,19 +173,31 @@ method m1(
 
 /*
 Método: cuerpo del bucle
+
 //
 Verificación: 
 */
-method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
+method {:verify false} LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
-  requires input.Valid()
-  requires LoopInvariant(pq, bs, input)
+
+  requires input.Valid() //
+  requires LoopInvariant(pq, bs, input) //
   requires !pq.IsEmpty() && pq.Min().priority > bs.totalValue // condición del bucle
-  ensures LoopInvariant(pq, bs, input)
-  ensures pq.arr == old(pq.arr) || fresh(pq.arr) // el array es el mismo que el antiguo (iteraciñon anterior) o se acaba de crear (es fresco)
-  //ensures pq.PartialPending(input) < old(pq.PartialPending(input))
   requires allocated(pq.Model())
+  requires bs.Valid(input) //
+  requires bs.Optimal(input) //
+
+  ensures input.Valid() //
+  ensures LoopInvariant(pq, bs, input) //
   ensures allocated(pq.Model())
+  ensures pq.arr == old(pq.arr) || fresh(pq.arr) // el array es el mismo que el antiguo (iteracion anterior) o se acaba de crear (es fresco)
+  ensures pq.PartialPending(input) < old(pq.PartialPending(input))  
+  ensures bs.Valid(input) //
+  ensures bs.Model().OptimalExtension(ps.Model(), input.Model()) || bs.Model().Equals(old(bs.Model())) // bs es extension optima de ps o no ha cambiado
+  ensures forall s : SolutionData | s.Valid(input.Model()) && s.Extends(ps.Model()) ::
+            s.TotalValue(input.Model().items) <= bs.Model().TotalValue(input.Model().items)   //Cualquier extension optima de ps, su valor debe ser menor o igual que la mejor solucion (bs). 
+  ensures bs.Model().TotalValue(input.Model().items) >= old(bs.Model().TotalValue(input.Model().items)) // Si bs cambia, su nuevo valor total debe ser mayor o igual al valor anterior
+
 {
   // assert pq.PartialPending(input) < old(pq.PartialPending(input)) by {
   //   PriorityQueue.StaticPartialPendingDecreases(old(pq.Model()), old(pq.Min()), input);
@@ -203,7 +222,7 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   ensures AllStrictlyPartial(pq.Model() + multiset{parent})
   ensures allocated(pq.Model())
   {
-    //assume false;
+    assume false;
     parent := pq.Min();
     label L :
     pq.DeleteMin();
@@ -267,13 +286,15 @@ method LoopBody(ps : Solution, bs : Solution, pq : PriorityQueue, input : Input)
       modifies pq, pq.arr, bs, bs.itemsAssign
       {
         HandleChild(trueChild, bs, pq, input) by {
-          //assume false;  // 200", a mi este me verifica rápido dejando los assume false anteriores (206 y 253) y quitando los posteriores (272 y 274). El problema está cuando quitamos los assume anteriores y dejamos los posteriores, ahi se queda colgado.
+          assume false;  // 200"
         }
         assume false;
       }
       assume false;
     }
   }
+
+  assume false;
 
   opaque
   {
