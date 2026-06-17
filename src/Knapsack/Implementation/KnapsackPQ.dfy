@@ -505,7 +505,7 @@ module KnapsackPQ refines PQ {
       falseChild.k := falseChild.k + 1;
 
       SolutionData.AddFalsePreservesWeightValue(Model(), falseChild.Model(), input.Model()); // necesaria para poder llamar a CalculateUpperBound que exige: SolutionData(itemsAssign[..], k).TotalValue(input.Model().items) == totalValue, propiedad que garantiza Partial()
-      falseChild.priority := falseChild.CalculateUpperBound(falseChild.itemsAssign, falseChild.k, falseChild.totalValue, input);
+      falseChild.CalculateUpperBound(input);
     }
 
 
@@ -514,34 +514,44 @@ module KnapsackPQ refines PQ {
     //
     Verificación: usando el lema AllTruesIsUpperBoundForAll.
     */
-    method CalculateUpperBound(itemsAssign : array<bool>, k : int, totalValue : real, input : Input) returns (upperBound : real)
+    method CalculateUpperBound(input : Input)
+      modifies `priority
       requires input.Valid()
+      requires 0 <= k <= input.items.Length == itemsAssign.Length
+      requires Model().Partial(input.Model())
+      requires Model().TotalWeight(input.Model().items) == totalWeight
+      requires Model().TotalValue(input.Model().items) == totalValue
+      ensures Partial(input)
+      /*
       requires 0 <= k <= itemsAssign.Length
       requires 0 <= k <= input.items.Length == itemsAssign.Length
       requires SolutionData(itemsAssign[..], k).TotalValue(input.Model().items) == totalValue
-      ensures forall s : SolutionData | && |s.itemsAssign| == |SolutionData(itemsAssign[..], k).itemsAssign|
-                                        && s.k == |s.itemsAssign|
-                                        && k <= s.k
-                                        && s.Extends(SolutionData(itemsAssign[..], k))
-                                        && s.Valid(input.Model())
-                :: s.TotalValue(input.Model().items) <= upperBound
+      ensures
+        forall s : SolutionData
+          | && |s.itemsAssign| == |SolutionData(itemsAssign[..], k).itemsAssign|
+            && s.k == |s.itemsAssign|
+            && k <= s.k
+            && s.Extends(SolutionData(itemsAssign[..], k))
+            && s.Valid(input.Model())
+          :: s.TotalValue(input.Model().items) <= upperBound
+          */
     {
       ghost var ps' := SolutionData(itemsAssign[..], k);
       assert |ps'.itemsAssign| == |itemsAssign[..]|;
-      upperBound := totalValue;
+      priority := totalValue;
 
-      assert upperBound == ps'.TotalValue(input.Model().items);
+      assert priority == ps'.TotalValue(input.Model().items);
 
       for i := k to itemsAssign.Length
         invariant k <= ps'.k <= |ps'.itemsAssign| == |itemsAssign[..]|
         invariant ps'.Extends(SolutionData(itemsAssign[..], k))
         invariant forall j | k <= j < i :: ps'.itemsAssign[j]
         invariant i == ps'.k
-        invariant upperBound == ps'.TotalValue(input.Model().items)
+        invariant priority == ps'.TotalValue(input.Model().items)
       {
         var oldps' := ps';
         ps' := SolutionData(ps'.itemsAssign[ps'.k := true], ps'.k+1);
-        upperBound := upperBound + input.items[i].value;
+        priority := priority + input.items[i].value;
         SolutionData.AddTrueMaintainsSumConsistency(oldps', ps', input.Model());
       }
       SolutionData.AllTruesIsUpperBoundForAll(SolutionData(itemsAssign[..], k), ps', input.Model());
