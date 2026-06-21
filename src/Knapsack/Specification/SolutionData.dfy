@@ -273,7 +273,7 @@ module SolutionData {
     //
     Demostración: por inducción en f.
     */
-    lemma ExtendsInExtensions(input : InputData, s : SolutionData, f : SolutionData)
+    static lemma ExtendsInExtensions(input : InputData, s : SolutionData, f : SolutionData)
       decreases |input.items| - f.k
       requires input.Valid()
       requires s.Valid(input) && f.Partial(input)
