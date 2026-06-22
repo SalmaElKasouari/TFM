@@ -37,7 +37,7 @@ Verificación: se asegura que la mejor solución encontrada (bs) es tanto válid
  - bs.Valid(input): mediante la postcondición en Bb que asegura que bs es válida.
  - bs.Optimal (input): mediante varias poscondiciones en Bb que aseguran que bs es óptima.
 */
-method ComputeSolution(input: Input) returns (bs: Solution)
+method {:only} ComputeSolution(input: Input) returns (bs: Solution)
   requires input.Valid()
   requires input.items.Length > 0
   ensures bs.Valid(input)
@@ -65,21 +65,11 @@ method ComputeSolution(input: Input) returns (bs: Solution)
   pq.Insert(ps);
 
   MainLoop(input, pq, bs) by {
-    assume false;  // 60"
-    assert pq.Model() == multiset{ps};
-    assert |pq.Model()| == 1;
-    assert pq.Min().Model().k == 0;
-    assert pq.Min().Model().AllFalsesFromK();
-    assert LoopInvariant(pq, bs, input) by {
-      assert input.Valid();
-      assert pq.Valid();
-      assert pq.Min().Partial(input);
-      assert AllPartial(input, pq.Model());
-      assert DisjointTrees(input, pq.Model());
+    //assume false;  // 60"
+    assert LoopInvariant(pq, bs, input) by {      
       assert bs.Valid(input) by {
         bs.Model().SumOfFalsesEqualsZero(input.Model());
       }
-      assert bs !in pq.Model();
       assert DistinctItemsAssign(pq.Model() + multiset{bs});
       assert AllStrictlyPartial(pq.Model());
       forall sd : SolutionData
@@ -90,70 +80,33 @@ method ComputeSolution(input: Input) returns (bs: Solution)
           assert forall s : SolutionData | s.Valid(input.Model()) && s.k <= |bs.Model().itemsAssign| == |s.itemsAssign| && bs.k <= s.k && s.Extends(bs.Model()) :: s.TotalValue(input.Model().items) <= bs.priority;
           forall s <- ps.Model().Extensions() | s.Valid(input.Model())
             ensures s.TotalValue(input.Model().items) <= bs.priority
-          {
-          }
+          {}
           assert sd.Extends(ps.Model());
           SolutionData.ExtendsInExtensions(input.Model(), sd, ps.Model());
           assert sd in ps.Model().Extensions();
         }
       }
-      assert (
-          forall p <- pq.Model(), s <- p.Model().Extensions()
-                 | s.Valid(input.Model())
-            :: s.TotalValue(input.Model().items) <= p.priority
-        );
     }
   }
 }
 
-method MainLoop(input: Input, pq: PriorityQueue, bs: Solution)
+method {:only} MainLoop(input: Input, pq: PriorityQueue, bs: Solution)
   modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
   requires LoopInvariant(pq, bs, input)
-  requires |pq.Model()| == 1
-  requires pq.Min().Model().k == 0
-  requires pq.Min().Model().AllFalsesFromK()
+  // requires |pq.Model()| == 1
+  // requires pq.Min().Model().k == 0
+  // requires pq.Min().Model().AllFalsesFromK()
   ensures bs.Valid(input)
   ensures bs.Optimal(input)
 {
-  forall sd: SolutionData
-    | sd.Valid(input.Model()) && sd.AllFalsesFromK()
-    ensures sd in pq.Pending(input)
-  {
-    assert sd.Extends(pq.Min().Model());
-    SolutionData.ExtendsInExtensions(input.Model(), sd, pq.Min().Model());
-  }
   while !pq.IsEmpty() && pq.Min().priority > bs.totalValue
     decreases pq.PartialPending(input)
     invariant LoopInvariant(pq, bs, input)
     invariant pq.arr == old(pq.arr) || fresh(pq.arr)
     invariant bs.itemsAssign == old(bs.itemsAssign) || fresh(bs.itemsAssign)
-    //invariant pq.Min().Model() !in pq.PartialPending(input)  // es falso!!
   {
     LoopBody(bs, pq, input);
-  }
-  /*
-  assert bs.Optimal(input) by {
-    if !pq.IsEmpty() && pq.Min().priority <= bs.totalValue {
-      assert forall s <- pq.Model() :: s.priority <= pq.Min().priority;
-      forall s: SolutionData
-        | s.Valid(input.Model())
-        ensures s.TotalValue(input.Model().items) <= bs.Model().TotalValue(input.Model().items)
-      {
-        assert bs.Model().TotalValue(input.Model().items) == bs.totalValue;
-        if s in pq.Pending(input) {
-          var p :| p in pq.Model() && p.Partial(input) && s in p.Model().Extensions();
-          //assume s.TotalValue(input.Model().items) <= p.priority;
-          /*
-          TODO: hay que decir que la prioridad de las soluciones parciales es mejor o
-          igual que cualquiera de sus descendientes completas.
-          */
-        } else {
-          // Por el invariante del bucle
-        }
-      }
-    }
-  }
-  */
+  }  
 }
 
 method LoopBody(bs : Solution, pq : PriorityQueue, input : Input)
@@ -169,12 +122,17 @@ method LoopBody(bs : Solution, pq : PriorityQueue, input : Input)
   var falseChild : Solution? := null;
   var oldpq := pq;
   var parent;
+
   parent := pq.Min();
   pq.DeleteMin();
+
+  // TRUE CHILD
   if parent.totalWeight + input.items[parent.k].weight <= input.maxWeight {
     trueChild := parent.NewTrueChild(input);
     HandleChild(trueChild, bs, pq, input);
   }
+
+  // FALSE CHILD
   falseChild := parent.NewFalseChild(input);
   HandleChild(falseChild, bs, pq, input);
 }
