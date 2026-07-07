@@ -161,11 +161,6 @@ module KnapsackPQ refines PQ {
     // }
 
 
-
-
-
-
-
     /*
     lemma MinInPartialPending(input: Input)
       requires input.Valid()

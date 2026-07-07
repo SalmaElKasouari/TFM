@@ -249,6 +249,86 @@ module SolutionData {
 
     /* Lemas */
 
+    /*
+Lema: todas las extensiones de una solucion tienen el mismo tamaño de itemsAssign
+//
+Propósito: demostrar el lema DisjointTreesPropertiesTwoChildren.
+//
+Verificación: 
+*/
+static lemma itemsAssignSize(input:InputData, parent:SolutionData,s:SolutionData)
+  decreases |input.items| - parent.k
+  requires input.Valid()
+  requires parent.k <= |parent.itemsAssign|==|input.items|
+  requires s in parent.PartialExtensions()
+  ensures |s.itemsAssign| == |parent.itemsAssign|
+{
+  if (s == parent){}
+  else if (parent.k == |parent.itemsAssign|){}
+  else {
+    assert s in SolutionData(parent.itemsAssign[parent.k := false], parent.k + 1).PartialExtensions() ||
+            s in SolutionData(parent.itemsAssign[parent.k := true], parent.k + 1).PartialExtensions();
+
+    if (s in SolutionData(parent.itemsAssign[parent.k := false], parent.k + 1).PartialExtensions()) {
+      itemsAssignSize(input,SolutionData(parent.itemsAssign[parent.k := false],parent.k+1),s);
+    }
+    else { 
+      itemsAssignSize(input,SolutionData(parent.itemsAssign[parent.k := true],parent.k+1),s);
+    }      
+  }
+}
+
+
+/*
+Lema: si s extiende a un hijo true o false entonces extiende al padre.
+//
+Propósito: demostrar el lema DisjointTreesPropertiesTwoChildren.
+//
+Verificación: 
+*/
+static lemma inPartialExtensions(input:InputData,parent:SolutionData,s:SolutionData)
+    decreases |input.items| - parent.k
+    requires input.Valid()
+    requires parent.k < |parent.itemsAssign|==|input.items|
+    requires s in SolutionData(parent.itemsAssign[parent.k := false], parent.k + 1).PartialExtensions() ||
+            s in SolutionData(parent.itemsAssign[parent.k := true], parent.k + 1).PartialExtensions()
+    ensures  s in parent.PartialExtensions() 
+    ensures s.k > parent.k
+    ensures |s.itemsAssign| == |parent.itemsAssign|
+    { itemsAssignSize(input,parent,s);
+      if s.k == parent.k+1{
+        
+        }
+      else {
+        if s in SolutionData(parent.itemsAssign[parent.k := false], parent.k + 1).PartialExtensions()
+         {inPartialExtensions(input,SolutionData(parent.itemsAssign[parent.k := false],parent.k+1),s);}
+        else 
+          {
+            inPartialExtensions(input,SolutionData(parent.itemsAssign[parent.k := true],parent.k+1),s);
+          } 
+        
+        
+        }
+    }
+
+
+/*
+Lema: todas las extensiones con false tienen false en k y lo mismo con true.
+//
+Propósito: demostrar el lema DisjointTreesPropertiesTwoChildren.
+//
+Verificación: 
+*/
+static lemma itemsAssignkth(input:InputData,parent:SolutionData,s:SolutionData)
+  decreases |input.items| - parent.k
+  requires input.Valid()
+  requires parent.k < |parent.itemsAssign|==|input.items|
+  requires s in parent.PartialExtensions()
+  ensures |s.itemsAssign| == |parent.itemsAssign|
+  ensures s in SolutionData(parent.itemsAssign[parent.k := false], parent.k + 1).PartialExtensions() ==> s.itemsAssign[parent.k]==false
+  ensures s in SolutionData(parent.itemsAssign[parent.k := false], parent.k + 1).PartialExtensions() ==> s.itemsAssign[parent.k]==true
+
+
     /* 
     Lema: todas las SolutionData válidas extienden a la raiz del arbol y por tanto estan en sus extensiones.
     //

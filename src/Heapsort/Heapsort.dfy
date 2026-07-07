@@ -1,32 +1,37 @@
-include "../Knapsack/Implementation/KnapsackPQ.dfy"
+include "ValuePQ.dfy"
 
-import opened KnapsackPQ
-import opened Item
+import opened ValuePQ
 
 
-predicate Sorted(v : array<real>)
-reads  v
+predicate Sorted(v : seq<real>)
 {
-  forall i | 0 <= i < v.Length - 1 :: v[i] <= v[i + 1]
+  forall i | 0 <= i < |v| - 1 :: v[i] <= v[i + 1]
 }
 
-ghost function Values(v: array<real>, n:int): multiset<real>
-reads v
-requires 0 <= n <= v.Length
+// ghost function Values(v: array<real>, n:int): multiset<real>
+// reads v
+// requires 0 <= n <= v.Length
+// {
+//   multiset(v[0..n])
+// }
+
+function Values(pq : multiset<Solution>) : multiset<real>
+ensures forall i | i in pq :: pq[i] == Values(pq)[i.value]
+// {
+//   if pq == multiset{} then
+//     multiset{}
+//   else {
+//     var s := pick();
+//     Values(pq) + multiset{s.totalValue}
+//   }  
+// }
+
+method hola(pq : PriorityQueue, sol : Solution)
+modifies pq
 {
-    multiset(v[0..n])
+ pq.Insert(sol);
 }
 
-method NewSolution(n : int, value : real) returns (s : Solution)
-  requires n > 0
-{
-  var s_itemsAssign := new bool[n](i => false);
-  var s_totalValue := value;
-  var s_totalWeight := 0.0;
-  var s_k := 0;
-  var s_priority := 0.0;
-  s := new Solution(s_itemsAssign, s_totalValue, s_totalWeight, s_k, s_priority);
-}
 
 method Heapsort(v : array<real>) returns (w : array<real>)
   requires v.Length > 0
@@ -36,15 +41,19 @@ method Heapsort(v : array<real>) returns (w : array<real>)
   
   // Crear objetos solucion y meterlos a la cola de prioridad
   var pq := new PriorityQueue();
+  assert pq.Valid();
+  //assume false;
   var i := 0;
   while i < v.Length
     decreases v.Length - i
     invariant 0 <= i <= v.Length
     invariant pq.Valid()
+    invariant Values(pq.Model()) == multiset(v[..i])
     //invariant pq.Model() == Values(v, i)
-    invariant forall j | 0 <= j < i :: (exists k : Solution | k in pq.Model() :: v[j] == k.totalValue)
+    //invariant forall j | 0 <= j < i :: (exists k : Solution | k in pq.Model() :: v[j] == k.totalValue)
   {
-    var sol := NewSolution(10, v[i]); // creamos una solucion con itemsAssign.Length = 10 y totalValue = v[i]
+    var sol := new Solution(v[i]); // creamos una solucion con itemsAssign.Length = 10 y totalValue = v[i]
+    assume pq.Valid();
     pq.Insert(sol);
     i := i + 1;
   }
@@ -57,9 +66,11 @@ method Heapsort(v : array<real>) returns (w : array<real>)
     decreases v.Length - i
     invariant 0 <= i <= v.Length
     invariant pq.Valid()
+    invariant Sorted(w[..i])
+    //los que estan en w..i son  o iguales que los que estan en la cola
   {
     var min := pq.Min();
-    w[i] := min.totalValue;
+    w[i] := min.value;
     pq.DeleteMin();
   }
 
