@@ -61,10 +61,9 @@ method Heapsort(v : array<real>) returns (w : array<real>)
     pq.DeleteMin();
     i := i + 1;
   }
-
 }
 
-
+// separar metodo
 method BuildPriorityQueue(v: array<real>) returns (pq: PriorityQueue)
   requires v.Length > 0
   ensures pq.Valid()
