@@ -57,97 +57,437 @@ module KnapsackPQ refines PQ {
         && s in m && s.Partial(input) && sd.Partial(input.Model())
         && sd in s.Model().PartialExtensions() :: sd
     }
+  }
 
 
-    /*
-      Lema: garantiza que al eliminar una solución s (el mínimo) de modelo de la cola, el conjunto de soluciones parciales 
-      pendientes decrece. 
-      //
-      Propósito: para demostrar la terminación del algoritmo RyP cuando se saca el mínimo de la cola y se añaden sus hijos.
-      //
-      Demostración: 
-    */
-    // static lemma StaticPartialPendingWithSonsDecreases2(m: multiset<Solution>, s: Solution, input : Input)
-    //   requires s in m
-    //   requires 0 <= s.k <= |s.Model().itemsAssign|
-    //   requires input.Valid()
-    //   requires forall s <- m :: s.Partial(input)
-    //   requires assert (forall s <- m :: s.Partial(input) && s.Model().Partial(input.Model()) && s.Model().k <= |s.Model().itemsAssign|); true
-    //   requires (forall s | s in m :: m[s] == 1)
-    //   requires (forall s1 <- m, s2 <- m | s1 != s2 :: s1.Model() !in s2.Model().PartialExtensions())
+  /* Predicados */
 
-    //   ensures StaticPartialPending(m - multiset{s} + multiset(s.Model().PartialExtensions()), input)
-    //         < StaticPartialPending(m, input)
-    // {
-    //   assert StaticPartialPending(m - multiset{s}, input) <= StaticPartialPending(m, input);
-    //   assert s.Model() in StaticPartialPending(m, input);
-    //   PriorityQueue.StaticPartialPendingDecreases(m, s, input);
-    //   assert leftSon.Model() !in StaticPartialPending(m, input);
-    //   assert rightSon.Model() !in StaticPartialPending(m, input);
-
-    //   assert StaticPartialPending(m - multiset{s} + multiset{leftSon} + multiset{rightSon}, input) <= StaticPartialPending(m, input);
-    //   assert s.Model() in StaticPartialPending(m, input);
-    //   forall S
-    //     | S in m - multiset{s} && S.Partial(input) && s.Model().Partial(input.Model())
-    //     ensures s.Model() !in S.Model().PartialExtensions()
-    //   {
-    //     assert s != S;
-    //   }
-    //   assert s.Model() !in StaticPartialPending(m - multiset{s}, input);
-    // }
+  /* Predicado: el tamaño de itemsAssign de cualquier solución siempre es igual al numero de items que tenemos de entrada.*/
+  ghost predicate SameSizeItemsAssign(input : Input, m : multiset<Solution>)
+    reads input, input.items, input.items[..]
+    requires input.Valid()
+    reads set i | i in m
+    reads set i | i in m :: i.itemsAssign
+  {
+    forall s | s in m :: s.itemsAssign.Length == input.items.Length
+  }
 
 
-    /*
-    lemma MinInPartialPending(input: Input)
-      requires input.Valid()
-      requires Valid()
-      requires !IsEmpty()
-      requires AllPartial(input)
-      ensures Min().Model() in PartialPending(input)
-    {}
-    */
+  /* Predicado: todas las soluciones son parciales y tienen todas las pocisiones desde k a false.*/
+  ghost predicate AllPartial(input : Input, m : multiset<Solution>)
+    reads input, input.items, input.items[..]
+    requires input.Valid()
+    reads set i | i in m
+    reads set i | i in m :: i.itemsAssign
+  {
+    forall s | s in m :: s.Partial(input) && s.Model().AllFalsesFromK()
+  }
 
-    //--------------------------------------
 
-    static ghost function RecPartialPending(input:Input, model:multiset<Solution>):set<SolutionData>
-      reads input, input.items, input.items[..]
-      reads model, set s:Solution | s in model ::s.itemsAssign
-      requires input.Valid()
-    {
-      if (model == multiset{}) then {}
-      else
-        var s:| s in model;
-        if (s.Partial(input)) then s.Model().PartialExtensions() + RecPartialPending(input,model-multiset{s})
-        else RecPartialPending(input,model-multiset{s})
-    }
+  /* Predicado: las extensiones de un nodo del modelo no pertenecen a otras extensiones de otro nodo del modelo.*/
+  ghost predicate DisjointTrees(input : Input, m : multiset<Solution>)
+    reads input, input.items, input.items[..]
+    reads m
+    reads set i | i in m
+    reads set i | i in m :: i.itemsAssign
+    requires input.Valid()
+    requires AllPartial(input, m)
+  {
+    && (forall s | s in m :: m[s] == 1)
+    && (forall s1, s2 | s1 in m && s2 in m && s1 != s2 :: s1.Model().PartialExtensions() !! s2.Model().PartialExtensions())
+  }
 
-    static ghost function RecMPartialPending(input:Input, model:multiset<Solution>):multiset<SolutionData>
-      reads input, input.items, input.items[..]
-      reads model, set s:Solution | s in model ::s.itemsAssign
-      requires input.Valid()
-    {
-      if (model == multiset{}) then multiset{}
-      else
-        var s:| s in model;
-        if (s.Partial(input)) then multiset(s.Model().PartialExtensions()) + RecMPartialPending(input,model-multiset{s})
-        else RecMPartialPending(input,model-multiset{s})
-    }
 
-    lemma NonEmpty(input:Input)
-      requires input.Valid()
-      requires Valid()
-      requires forall s:Solution | s in Model() :: s.Partial(input)
-      requires !IsEmpty()
-      ensures PartialPending(input) != {}
-      ensures RecPartialPending(input,Model()) != {}
-      ensures RecMPartialPending(input,Model()) != multiset{}
-    {
-      var s:Solution :| s in Model() && s.Partial(input);
-      var sd := s.Model();
-      assert sd in s.Model().PartialExtensions();
-      assert sd in PartialPending(input);
+  /* Predicado: todas las soluciones del modelo tienen itemsAssign diferentes.*/
+  ghost predicate DistinctItemsAssign(m : multiset<Solution>)
+    reads m
+  {
+    forall s1 <- m, s2 <- m | s1 != s2 :: s1.itemsAssign != s2.itemsAssign
+  }
+
+
+  /* Predicado: todas las soluciones del modelo son estrictamente parciales (no completas).*/
+  ghost predicate AllStrictlyPartial(m : multiset<Solution>)
+    reads m
+  {
+    forall s <- m :: s.k < s.itemsAssign.Length
+  }
+
+
+  /* Predicado: la prioridad de cada solución parcial es una cota superior del valor total de cualquier extensión válida de dicha solución. */
+  ghost predicate AllPrioritiesAreCorrect(input : Input, m : multiset<Solution>)
+    reads m
+    reads set i | i in m
+    reads set i | i in m :: i.itemsAssign
+    reads input, input.items, input.items[..]
+    requires input.Valid()
+    requires forall i : Solution | i in m :: i.k <= i.itemsAssign.Length
+  {
+    forall p <- m, s <- p.Model().Extensions() | s.Valid(input.Model())
+      :: s.TotalValue(input.Model().items) <= p.priority
+  }
+
+
+  /* Predicado: toda solución válida que ya no está pendiente tiene un valor total menor o igual que la mejor solución */
+  ghost predicate BestSolutionIsUpperBound(input : Input, bs : Solution, pq : PriorityQueue)
+    reads input, input.items, input.items[..]
+    reads pq, pq.arr, pq.arr[..]
+    reads set i | 0 <= i < pq.arr.Length :: pq.arr[i].itemsAssign
+    reads bs
+    requires input.Valid()
+    requires pq.Valid()
+  {
+    forall sd : SolutionData
+      | sd.Valid(input.Model()) && sd !in pq.Pending(input)
+      :: sd.TotalValue(input.Model().items) <= bs.totalValue
+  }
+
+
+  /* Lemas */
+
+  /*
+  Lema: garantiza que al eliminar una solución s (el mínimo) de modelo de la cola, el conjunto de soluciones parciales 
+  pendientes decrece. 
+  //
+  Propósito: para demostrar la terminación del algoritmo RyP cuando se saca el mínimo de la cola.
+  //
+  Demostración: StaticPartialPending decrece porque s pertenece al modelo original de la cola (m). Al eliminar s,
+  el nuevo modelo deja de incluirla, lo cual hace que sea estrictamente menor. Esto se verifica con la ayuda de la propiedad de 
+  disjunción que nos dice que ninguno de los hijos de s contiene a s.
+  */
+  lemma StaticPartialPendingDecreases(m: multiset<Solution>, parent: Solution, input : Input)
+    requires parent in m
+    requires input.Valid()
+    requires AllPartial(input,m)
+    requires DisjointTrees(input,m)
+    ensures PriorityQueue.StaticPartialPending(m - multiset{parent}, input)
+          < PriorityQueue.StaticPartialPending(m, input)
+  {
+    assert PriorityQueue.StaticPartialPending(m - multiset{parent}, input) == PriorityQueue.StaticPartialPending(m, input) - parent.Model().PartialExtensions();
+    assert parent.Model() in PriorityQueue.StaticPartialPending(m, input);
+  }
+
+
+  /*
+  Lema: garantiza que al eliminar una solución parcial s de la cola y añadir sus dos hijos (trueChild y falseChild),
+  el conjunto de soluciones parciales pendientes decrece.
+  //
+  Propósito: demostrar la terminación en RyP cuando los dos hijos se añadena  a la cola.
+  //
+  Demostración: usando los lemas ExtendsInPartialExtensions y ParentNotInChildPartialExtensions.
+  */
+  lemma StaticPartialPendingWithSonsDecreases(m: multiset<Solution>, parent: Solution, trueChild: Solution, falseChild: Solution, input : Input)
+    requires input.Valid()
+    requires parent in m
+    requires 0 <= parent.k < |parent.Model().itemsAssign|
+    requires parent.Partial(input)
+    requires trueChild.Partial(input)
+    requires falseChild.Partial(input)
+    requires trueChild.Model().AllFalsesFromK()
+    requires falseChild.Model().AllFalsesFromK()
+    requires parent.Model().AllFalsesFromK()
+
+    requires trueChild.IsTrueChild(parent,input)
+    requires falseChild.IsFalseChild(parent,input)
+
+    requires AllPartial(input,m)
+    requires DisjointTrees(input,m)
+    ensures PriorityQueue.StaticPartialPending((m - multiset{parent}) + multiset{trueChild, falseChild}, input)
+          < PriorityQueue.StaticPartialPending(m, input)
+  {
+    assert PriorityQueue.StaticPartialPending(m - multiset{parent}, input) == PriorityQueue.StaticPartialPending(m, input) - parent.Model().PartialExtensions();
+    assert parent.Model() in PriorityQueue.StaticPartialPending(m, input);
+
+    SolutionData.ExtendsInPartialExtensions(input.Model(),trueChild.Model(),parent.Model());
+    SolutionData.ExtendsInPartialExtensions(input.Model(),falseChild.Model(),parent.Model());
+
+    assert  trueChild.Model() in parent.Model().PartialExtensions();
+    assert  falseChild.Model() in parent.Model().PartialExtensions();
+
+    ParentNotInChildPartialExtensions(input, parent, trueChild);
+    ParentNotInChildPartialExtensions(input, parent, falseChild);
+
+    // assert parent.Model() !in trueChild.Model().PartialExtensions();
+    // assert parent.Model() !in falseChild.Model().PartialExtensions();
+
+    // assert trueChild.Model().PartialExtensions() < parent.Model().PartialExtensions();
+    // assert falseChild.Model().PartialExtensions() < parent.Model().PartialExtensions();
+
+    // ChildrenAreDisjoint(parent,trueChild,falseChild,input);
+    // assert trueChild.Model().PartialExtensions() !! falseChild.Model().PartialExtensions();
+
+    // assert PriorityQueue.StaticPartialPending((m - multiset{parent}) + multiset{trueChild, falseChild}, input)
+    //     == PriorityQueue.StaticPartialPending(m - multiset{parent}, input) +
+    //        (set sd:SolutionData | sd.Partial(input.Model()) && sd in trueChild.Model().PartialExtensions()) +
+    //        (set sd:SolutionData | sd.Partial(input.Model()) && sd in falseChild.Model().PartialExtensions());
+    // assert PriorityQueue.StaticPartialPending((m - multiset{parent}) + multiset{trueChild, falseChild}, input)  <= PriorityQueue.StaticPartialPending(m, input);
+    // assert parent.Model() !in PriorityQueue.StaticPartialPending(m - multiset{parent}, input);
+    // assert parent.Model() !in PriorityQueue.StaticPartialPending((m - multiset{parent}) + multiset{trueChild, falseChild}, input);
+  }
+
+
+  /*
+  Lema: el padre no pertenece a las extensiones de sus hijos.
+  //
+  Propósito: demostrar el lema StaticPartialPendingWithSonsDecreases.
+  //
+  Demostración: por reducción al absurdo.
+  */
+  lemma ParentNotInChildPartialExtensions(input: Input, parent: Solution, child : Solution)
+    requires input.Valid()
+    requires parent.Partial(input) && parent.Model().AllFalsesFromK()
+    requires child.Partial(input) && child.Model().AllFalsesFromK()
+    requires child.IsTrueChild(parent, input) || child.IsFalseChild(parent,input)
+    ensures parent.Model() !in child.Model().PartialExtensions()
+  {
+    if parent.Model() in child.Model().PartialExtensions() {
+      SolutionData.InPartialExtensions(input.Model(), child.Model(), parent.Model());
+      assert false;
     }
   }
+
+  //------
+  lemma ParentNotInChildExtensions(parent : Solution, child : Solution, input : Input)
+    requires input.Valid()
+    requires parent.Partial(input) && parent.Model().AllFalsesFromK()
+    requires child.Partial(input) && child.Model().AllFalsesFromK()
+    requires child.IsTrueChild(parent, input) || child.IsFalseChild(parent,input)
+    ensures parent.Model() !in child.Model().PartialExtensions()
+  {
+    assert parent.k == child.k - 1 < |child.Model().itemsAssign|;
+    if parent.Model() in child.Model().PartialExtensions()
+    {
+      SolutionData.InPartialExtensions(input.Model(),child.Model(),parent.Model());
+      assert parent.k > child.k;
+      assert false;
+    }
+  }
+
+  lemma ChildrenAreDisjoint(parent : Solution, trueChild : Solution, falseChild: Solution, input : Input)
+    requires input.Valid()
+    requires parent.Partial(input) && parent.Model().AllFalsesFromK()
+    requires trueChild.Partial(input) && trueChild.Model().AllFalsesFromK()
+    requires trueChild.IsTrueChild(parent, input)
+    requires falseChild.Partial(input) && falseChild.Model().AllFalsesFromK()
+    requires trueChild.IsTrueChild(parent, input)
+    requires falseChild.IsFalseChild(parent, input)
+    ensures trueChild.Model().PartialExtensions() !! falseChild.Model().PartialExtensions()
+  {
+    if !(trueChild.Model().PartialExtensions() !! falseChild.Model().PartialExtensions())
+    {
+      assert trueChild.Model().PartialExtensions() * falseChild.Model().PartialExtensions() != {};
+      ghost var s:| s in trueChild.Model().PartialExtensions() && s in falseChild.Model().PartialExtensions();
+
+      assert parent.k == trueChild.k - 1 < |trueChild.Model().itemsAssign|;
+      assert trueChild.Model() == SolutionData(parent.Model().itemsAssign[parent.k := true], parent.Model().k + 1);
+      assert falseChild.Model() == SolutionData(parent.Model().itemsAssign[parent.k := false], parent.Model().k + 1);
+      SolutionData.ItemsAssignSize(input.Model(),parent.Model(),s);
+      SolutionData.InPartialExtensions(input.Model(),parent.Model(),s);
+      assert |s.itemsAssign| == |parent.Model().itemsAssign|;
+      SolutionData.ItemsAssignkth(input.Model(),parent.Model(),s,true);
+      SolutionData.ItemsAssignkth(input.Model(),parent.Model(),s,false);
+      assert s.itemsAssign[parent.k]==true;
+      assert s.itemsAssign[parent.k]==false;
+      assert false;
+    }
+  }
+  //---------------
+
+
+  /*
+  Lema: garantiza que al eliminar una solución parcial s de la cola y añadir únicamente uno
+  de sus hijos, el conjunto de soluciones parciales pendientes decrece.
+  //
+  Propósito: 
+  //
+  Demostración: 
+  */
+  lemma StaticPartialPendingWithSonDecreases(m: multiset<Solution>, parent: Solution, child: Solution, input : Input)
+    requires input.Valid()
+    requires parent in m
+    requires 0 <= parent.k < |parent.Model().itemsAssign|
+    requires parent.Partial(input)
+    requires child.Partial(input)
+    requires child.IsFalseChild(parent,input) || child.IsTrueChild(parent,input)
+
+    requires AllPartial(input,m)
+    requires child.Model().AllFalsesFromK()
+    requires parent.Model().AllFalsesFromK()
+    requires DisjointTrees(input,m)
+    ensures PriorityQueue.StaticPartialPending((m - multiset{parent}) + multiset{child}, input)
+          < PriorityQueue.StaticPartialPending(m, input)
+  {
+    assert PriorityQueue.StaticPartialPending(m - multiset{parent}, input) <= PriorityQueue.StaticPartialPending(m, input);
+    assert parent.Model() in PriorityQueue.StaticPartialPending(m, input);
+
+    SolutionData.ExtendsInPartialExtensions(input.Model(),child.Model(),parent.Model());
+    assert  child.Model() in parent.Model().PartialExtensions();
+
+    ParentNotInChildPartialExtensions(input, parent, child);
+    assert parent.Model() !in child.Model().PartialExtensions();
+    assert child.Model().PartialExtensions() < parent.Model().PartialExtensions();
+
+    // assume PriorityQueue.StaticPartialPending((m - multiset{parent}) + multiset{child}, input)
+    //     == PriorityQueue.StaticPartialPending(m - multiset{parent}, input) +
+    //        child.Model().PartialExtensions();
+    // assert PriorityQueue.StaticPartialPending((m - multiset{parent}) + multiset{child}, input)  <= PriorityQueue.StaticPartialPending(m, input);
+    // assert parent.Model() !in PriorityQueue.StaticPartialPending(m - multiset{parent}, input);
+    // assert parent.Model() !in PriorityQueue.StaticPartialPending((m - multiset{parent}) + multiset{child}, input);
+
+  }
+
+
+  /*
+  Lema: si un conjunto s cumple la propiedad de DisjointTrees y s' esta contenido en s, 
+  entonces s' también cumple la propiedad de DisjointTrees.
+  //
+  Propósito: demsotrar el lema DisjointTreesPropertiesOneChild.
+  //
+  Verificación: trivial
+  */
+  lemma SubsetDisjointTrees(input : Input, s : multiset<Solution>, s' : multiset<Solution>)
+    requires input.Valid()
+    requires AllPartial(input, s)
+    requires DisjointTrees(input, s)
+    requires s' <= s
+    ensures AllPartial(input, s')
+    ensures DisjointTrees(input, s')
+  {}
+
+
+  /*
+  Lema: añadir un hijo true o false a una cola de soluciones parciales hace que la cola siga siendo de soluciones parciales.
+  //
+  Propósito: Este lema se puede usar tanto cuando pretendemos añadir el hijo true como cuando después de añadir el true pretendemos añadir el false, ya que solo requiere que la cola sea de parciales
+  //
+  Verificación: trivial.
+  */
+  lemma AllPartialProperties(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
+    requires input.Valid()
+    requires parent.Partial(input) && parent.Model().AllFalsesFromK()
+    requires child.Partial(input) && child.Model().AllFalsesFromK()
+    requires (child.IsFalseChild(parent, input) || child.IsTrueChild(parent, input))
+    requires pq.Valid()
+    requires child !in pq.Model()
+    requires AllPartial(input, pq.Model())
+    ensures AllPartial(input, pq.Model() + multiset{child})
+  {}
+
+
+  /*
+  Lema: si el padre era disjunto del resto de la cola (y los de la cola entre sí) entonces al quitar el padre y añadir el hijo true sigue cumpliendo esa propiedad.
+  //
+  Propósito: solo se puede usar cuando se añade a la cola uno de los dos hijos, es decir, en la rama true y en la rama false solo si no se ha añadido el true antes. 
+  //
+  Verificación: usando los lemas AllPartialProperties, SubsetDisjointTrees y ExtendsInPartialExtensions.
+  */
+  lemma DisjointTreesPropertiesOneChild(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
+    requires input.Valid()
+    requires parent.Partial(input) && parent.Model().AllFalsesFromK()
+    requires child.Partial(input) && child.Model().AllFalsesFromK()
+    requires child.IsTrueChild(parent, input) || child.IsFalseChild(parent, input)
+    requires pq.Valid()
+    requires child !in pq.Model()
+    requires AllPartial(input,pq.Model() + multiset{parent})
+    requires DisjointTrees(input,pq.Model() + multiset{parent})
+    ensures DisjointTrees(input,pq.Model() + multiset{child})
+  {
+    AllPartialProperties(parent,child,pq,input);
+
+    forall s | s in pq.Model() + multiset{child}
+      ensures (pq.Model() + multiset{child})[s] == 1
+    {
+      if (s == parent) {}
+      else if (s == child) {}
+      else {
+        SubsetDisjointTrees(input, pq.Model() + multiset{parent}, pq.Model());
+      }
+    }
+
+    forall z | z in pq.Model()
+      ensures child.Model().PartialExtensions() !! z.Model().PartialExtensions()
+    {
+      SolutionData.ExtendsInPartialExtensions(input.Model(), child.Model(), parent.Model());
+      assert child.Model() in parent.Model().PartialExtensions();
+      assert forall s | s in pq.Model() :: parent.Model().PartialExtensions() !! s.Model().PartialExtensions();
+    }
+  }
+
+
+  /*
+  Lema: si añadimos los dos hijos a la cola se sigue cumpliendo la propiedad DisjointTrees. 
+  //
+  Propósito: Este hay que usarle en la rama false si en la rama true se añadió
+  el hijo true.
+  //
+  Verificación:
+  */
+  lemma DisjointTreesPropertiesTwoChildren(parent : Solution, trueChild : Solution, falseChild: Solution, pq : PriorityQueue, input : Input)
+    requires input.Valid()
+    requires parent.Partial(input) && parent.Model().AllFalsesFromK()
+    requires trueChild.Partial(input) && trueChild.Model().AllFalsesFromK()
+    requires trueChild.IsTrueChild(parent, input)
+    requires falseChild.Partial(input) && falseChild.Model().AllFalsesFromK()
+    requires trueChild.IsTrueChild(parent, input)
+    requires falseChild.IsFalseChild(parent, input)
+
+    requires pq.Valid()
+    requires trueChild !in pq.Model()
+    requires falseChild !in pq.Model()
+    requires AllPartial(input, pq.Model() + multiset{parent})
+    requires DisjointTrees(input, pq.Model() + multiset{parent})
+
+    ensures DisjointTrees(input, pq.Model() + multiset{trueChild} + multiset{falseChild})
+  {
+    AllPartialProperties(parent, trueChild, pq, input);
+
+    forall s | s in pq.Model() + multiset{trueChild} + multiset{falseChild}
+      ensures (pq.Model() + multiset{trueChild} + multiset{falseChild})[s] == 1
+    {
+      if (s == parent) {}
+      else if (s == trueChild) {}
+      else if (s == falseChild) {}
+      else {
+        SubsetDisjointTrees(input, pq.Model() + multiset{parent}, pq.Model());
+      }
+    }
+
+    assert trueChild.Model().PartialExtensions() !! falseChild.Model().PartialExtensions() by {
+      if !(trueChild.Model().PartialExtensions() !! falseChild.Model().PartialExtensions()) {
+        assert trueChild.Model().PartialExtensions() * falseChild.Model().PartialExtensions() != {};
+        ghost var s:| s in trueChild.Model().PartialExtensions() && s in falseChild.Model().PartialExtensions();
+
+        assert parent.k == trueChild.k - 1 < |trueChild.Model().itemsAssign|;
+        assert trueChild.Model() == SolutionData(parent.Model().itemsAssign[parent.k := true], parent.Model().k + 1);
+        assert falseChild.Model() == SolutionData(parent.Model().itemsAssign[parent.k := false], parent.Model().k + 1);
+        SolutionData.ItemsAssignSize(input.Model(), parent.Model(), s);
+        SolutionData.InPartialExtensions(input.Model(), parent.Model(), s);
+        assert |s.itemsAssign| == |parent.Model().itemsAssign|;
+
+        SolutionData.ItemsAssignkth(input.Model(), parent.Model(), s, true);
+        assert s.itemsAssign[parent.k] == true;
+
+        SolutionData.ItemsAssignkth(input.Model(), parent.Model(), s, false);
+        assert s.itemsAssign[parent.k] == false;
+
+        assert false;
+      }
+    }
+
+    forall z | z in pq.Model()
+      ensures trueChild.Model().PartialExtensions() !! z.Model().PartialExtensions()
+              && falseChild.Model().PartialExtensions() !! z.Model().PartialExtensions()
+    {
+      SolutionData.ExtendsInPartialExtensions(input.Model(), trueChild.Model(), parent.Model());
+      SolutionData.ExtendsInPartialExtensions(input.Model(), falseChild.Model(), parent.Model());
+
+      assert trueChild.Model() in parent.Model().PartialExtensions();
+      assert falseChild.Model() in parent.Model().PartialExtensions();
+
+      assert forall s | s in pq.Model() :: parent.Model().PartialExtensions() !! s.Model().PartialExtensions();
+    }
+  }
+
 
 
   class Solution ... {
