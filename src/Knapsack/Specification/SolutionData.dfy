@@ -10,11 +10,11 @@ Estructura del fichero:
     valor almacenado indica si el objeto ha sido seleccionado (true) o no (false).
   - k: etapa del árbol de exploración de la solución. Denota el número de objetos tratados de itemsAssign. 
 
-  Functions
+  Funciones
     - TotalWeight: suma total de los pesos de los objetos seleccionados.
     - TotalValue: suma total de los valores de los objetos seleccionados.
   
-  Predicates
+  Predicados
     - Explicit: restricciones explícitas del problema.
     - Implicit: restricciones implícitas del problema.
     - Partial: una solución parcial es válida.
@@ -48,12 +48,12 @@ module SolutionData {
 
   datatype SolutionData = SolutionData(itemsAssign: seq<bool>, k: nat) {
 
-    /* Functions */
+    /* Funciones */
 
     /*
-      Function: calcula el peso total de los objetos seleccionados hasta el índice k. Si el objeto está seleccionado
+      function: calcula el peso total de los objetos seleccionados hasta el índice k. Si el objeto está seleccionado
       se añade su peso al peso total acumulado de la solución. Si no está seleccionado, se mantiene el peso acumulado 
-      sin incluirlo. La Function es recursiva y depende de las decisiones tomadas hasta el índice k-1.
+      sin incluirlo. La function es recursiva y depende de las decisiones tomadas hasta el índice k-1.
     */
     ghost function TotalWeight(items: seq<ItemData>): real
       decreases k
@@ -69,9 +69,9 @@ module SolutionData {
 
 
     /*
-      Function: calcula el valor total de los objetos seleccionados hasta el índice k. Si el objeto está seleccionado
+      function: calcula el valor total de los objetos seleccionados hasta el índice k. Si el objeto está seleccionado
       se añade su valor al valor total acumulado de la solución. Si no está seleccionado, se mantiene el valor 
-      acumulado sin incluirlo. La Function es recursiva y depende de las decisiones tomadas hasta el índice k-1.
+      acumulado sin incluirlo. La function es recursiva y depende de las decisiones tomadas hasta el índice k-1.
     */
     ghost function TotalValue(items: seq<ItemData>): real
       decreases k
@@ -86,10 +86,10 @@ module SolutionData {
     }
 
 
-    /* Predicates */
+    /* Predicados */
 
     /*
-      Predicate: restricciones explícitas del problema.
+      Predicado: restricciones explícitas del problema.
     */
     ghost predicate Explicit (items: seq<ItemData>){
       && 0 <= k <= |items| == |itemsAssign|
@@ -97,7 +97,7 @@ module SolutionData {
 
 
     /*
-      Predicate: restricciones implícitas del problema.
+      Predicado: restricciones implícitas del problema.
     */
     ghost predicate Implicit(items: seq<ItemData>, maxWeight : real)
       requires Explicit(items)
@@ -107,7 +107,7 @@ module SolutionData {
 
 
     /*
-      Predicate: verifica que una solución parcial sea válida hasta el índice k, respetando todas las restricciones 
+      Predicado: verifica que una solución parcial sea válida hasta el índice k, respetando todas las restricciones 
       sdel problema.
     */
     ghost predicate Partial (input: InputData)
@@ -119,7 +119,7 @@ module SolutionData {
 
 
     /*
-      Predicate: verifica que la solución esté completa (hemos tratado todos los objetos) y sea válida, respetando 
+      Predicado: verifica que la solución esté completa (hemos tratado todos los objetos) y sea válida, respetando 
       todas las restricciones del problema.
     */
     ghost predicate Valid(input: InputData)
@@ -131,7 +131,7 @@ module SolutionData {
 
 
     /*
-      Predicate: 
+      Predicado: 
     */
     ghost predicate IsUpperBound(priority : real, input : InputData)
       requires input.Valid()
@@ -143,7 +143,7 @@ module SolutionData {
 
 
     /*
-      Predicate: asegura que una solución válida (this) sea óptima, es decir, que no exista ninguna otra solución 
+      Predicado: asegura que una solución válida (this) sea óptima, es decir, que no exista ninguna otra solución 
       válida con un mayor valor total.
     */
     ghost predicate Optimal(input: InputData)
@@ -155,10 +155,10 @@ module SolutionData {
 
 
     /*
-      Predicate: verifica una solución es una extensión de la solución parcial (ps), manteniendo la igualdad 
+      Predicado: verifica una solución es una extensión de la solución parcial (ps), manteniendo la igualdad 
       hasta el índice k.
     */
-    ghost predicate Extends(ps : SolutionData) // ps es prefijo de ps' (el que llama a la Function), (ps y ps' iguales hasta k)
+    ghost predicate Extends(ps : SolutionData) // ps es prefijo de ps' (el que llama a la function), (ps y ps' iguales hasta k)
       requires k <= |itemsAssign| == |ps.itemsAssign|
       requires ps.k <= k
     {
@@ -167,7 +167,7 @@ module SolutionData {
 
 
     /*
-      Predicate: verifica que una solución (this) es una extensión óptima de la solución parcial ps, garantizando que no haya 
+      Predicado: verifica que una solución (this) es una extensión óptima de la solución parcial ps, garantizando que no haya 
       soluciones válidas con un mayor valor total que 
     */
     ghost predicate OptimalExtension(ps : SolutionData, input : InputData)
@@ -181,7 +181,7 @@ module SolutionData {
 
 
     /*
-      Predicate: verifica que dos soluciones this y s sean iguales hasta el índice k, es decir, que cuentan con la 
+      Predicado: verifica que dos soluciones this y s sean iguales hasta el índice k, es decir, que cuentan con la 
       misma asignación de objetos seleccionados.
     */
     ghost predicate Equals(s : SolutionData)
@@ -194,7 +194,7 @@ module SolutionData {
     }
 
     /*
-      Predicate: verifica que una solución tenga a partir de k todos sus elementos a false.
+      Predicado: verifica que una solución tenga a partir de k todos sus elementos a false.
     */
     ghost predicate AllFalsesFromK()
     {
@@ -203,11 +203,11 @@ module SolutionData {
 
 
 
-    /* Functions */
+    /* Funciones */
 
 
-    /* 
-      Function: devuelve el nodo raíz cuyos componentes son false 
+    /*
+    Función: devuelve el nodo raíz cuyos componentes son false 
     */
     static ghost function rootData(input : InputData) : SolutionData
     {
@@ -215,8 +215,8 @@ module SolutionData {
     }
 
 
-    /* 
-      Function: devuelve el conjunto de las soluciones completas (hojas) que son extensiones de this 
+    /*
+    Función: devuelve el conjunto de las soluciones completas (hojas) que son extensiones de this 
     */
     ghost function Extensions() : set<SolutionData>
       decreases |itemsAssign| - k
@@ -230,8 +230,8 @@ module SolutionData {
     }
 
 
-    /* 
-      Function: devuelve el conjunto de las soluciones parciales que son extensiones de this 
+    /*
+    Función: devuelve el conjunto de las soluciones parciales que son extensiones de this 
     */
     ghost function PartialExtensions() : set<SolutionData>
       decreases |itemsAssign| - k

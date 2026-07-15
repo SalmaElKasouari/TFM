@@ -1,7 +1,7 @@
 # Trabajo de Fin de Máster
 
 **Título:** Verificación de algoritmos de ramificación y poda en Dafny  
-**Programa:** Máster Interuniversitario en Methods Formales en Ingeniería Informática  
+**Programa:** Máster Interuniversitario en Métodos Formales en Ingeniería Informática  
 **Universidades:** Universidad Complutense de Madrid (UCM) y Universidad Politécnica de Madrid (UPM)  
 **Curso académico:** 2025–2026  
 

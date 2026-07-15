@@ -7,10 +7,10 @@ Estructura del fichero:
 
   Atributos y constructor
 
-  Predicates
+  Predicados
     - Valid: un item es válido.
 
-  Functions
+  Funciones
     - Model: devuelve el modelo de un Item.
     - ValuePerWeight: devuelve el valor por unidad de peso.
 
@@ -38,10 +38,10 @@ module Item {
     }
 
 
-    /* Predicates */
+    /* Predicados */
 
     /*
-    Predicate: verifica si un Item es válido.
+    Predicado: verifica si un Item es válido.
     */
     ghost predicate Valid()
       reads this
@@ -50,10 +50,10 @@ module Item {
     }
 
 
-    /* Functions */
+    /* Funciones */
 
     /*
-    Function: devuelve un ItemData, el modelo de un Item.
+    Función: devuelve un ItemData, el modelo de un Item.
     */
     ghost function Model() : ItemData
       reads this
@@ -63,7 +63,7 @@ module Item {
 
 
     /*
-    Function: devuelve el valor por unidad de peso.
+    Función: devuelve el valor por unidad de peso.
     */
     ghost function ValuePerWeight() : real
       reads this

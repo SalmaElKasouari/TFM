@@ -3,10 +3,10 @@ abstract module PQ {
 
   class Solution {
 
-    /* Predicates */
+    /* Predicados */
 
     /* 
-    Predicate: defines the non-strict ordering (<=) between two solutions. Returns true if this solution 
+    Predicado: defines the non-strict ordering (<=) between two solutions. Returns true if this solution 
     has a priority less than or equal to the other. This predicate is defined in 
     terms of 'lt', so that le(other) <==> Not(other.lt(this)).
     */
@@ -17,7 +17,7 @@ abstract module PQ {
     }
 
     /* 
-    Predicate: defines the strict order relation between two solutions.
+    Predicado: defines the strict order relation between two solutions.
     Must be implemented by refined modules to define the comparison criterion.
     */
     predicate lt (other: Solution)
@@ -25,7 +25,7 @@ abstract module PQ {
 
 
     /* 
-    Predicate: incomparable property
+    Predicado: incomparable property
     */
     predicate eq (y : Solution)
       reads this, y
@@ -122,9 +122,9 @@ abstract module PQ {
     }
 
 
-    /* Predicates */
+    /* Predicados */
 
-    /* Predicate: true if the segment [x, y) of the array satisfies the heap property*/
+    /* Predicado: true if the segment [x, y) of the array satisfies the heap property*/
     ghost predicate IsHeap(x : int, y : int)
       reads this, arr, set i | 0 <= i < arr.Length :: arr[i]
     {
@@ -133,7 +133,7 @@ abstract module PQ {
     }
 
 
-    /* Predicate: true if the array satisfies the heap property */
+    /* Predicado: true if the array satisfies the heap property */
     ghost predicate Valid()
       reads this, arr, set i | 0 <= i < arr.Length :: arr[i]
     {
@@ -142,7 +142,7 @@ abstract module PQ {
     }
 
 
-    /* Predicate: true if the heap has no elements */
+    /* Predicado: true if the heap has no elements */
     predicate IsEmpty()
       reads this, arr, set i | 0 <= i < arr.Length :: arr[i]
       requires Valid()
@@ -152,7 +152,7 @@ abstract module PQ {
     }
 
 
-    /* Predicate: true if s is the node with the minimum priority in the heap, i.e., no other node in the heap has a lower priority. */
+    /* Predicado: true if s is the node with the minimum priority in the heap, i.e., no other node in the heap has a lower priority. */
     ghost predicate IsMin(s : Solution)
       reads this, arr, s, set i | i in Model(),  set i | 0 <= i < arr.Length :: arr[i]
       requires Valid()
@@ -164,9 +164,9 @@ abstract module PQ {
 
 
 
-    /* Functions */
+    /* Funciones */
 
-    /* Function: returns the model of the heap */
+    /* function: returns the model of the heap */
     ghost function Model() : multiset<Solution>
       reads this, arr, set i | 0 <= i < arr.Length :: arr[i]
       requires Valid()
@@ -175,7 +175,7 @@ abstract module PQ {
     }
 
 
-    /* Function: returns the element with the minimum priority in the heap */
+    /* function: returns the element with the minimum priority in the heap */
     function Min() : Solution
       reads this, arr, set i | i in Model(), set i | 0 <= i < arr.Length :: arr[i]
       requires Valid()
@@ -188,7 +188,7 @@ abstract module PQ {
     }
     
 
-    /* Methods */
+    /* Métodos */
 
     /* Method: returns the current number of elements in the heap */
     method Size() returns (c : int)

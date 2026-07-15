@@ -8,11 +8,11 @@ Estructura del fichero:
     - items: lista de objetos.
     - maxWeight: peso máximo de la mochila.
 
-  Predicates
+  Predicados
     - Valid: una entrada es válida.
     - SortedItems: el array items esta ordenado de manera decreciente según valor por unidad de peso.
 
-  Functions
+  Funciones
     - ModelAt: devuelve el modelo del objeto en la posición i del array items.
     - ItemsUntil: devuelve una secuencia con los k primeros elementos (Item) del array items convertidos a ItemData.
     - Model: devuelve el modelo de un Input.
@@ -50,10 +50,10 @@ module Input {
 
 
 
-    /* Predicates */
+    /* Predicados */
 
     /* 
-    Predicate: verifica que una entrada sea válida, es decir, que su modelo sea válido.
+    Predicado: verifica que una entrada sea válida, es decir, que su modelo sea válido.
     */
     ghost predicate Valid()
       reads this, items, set i | 0 <= i < items.Length :: items[i]
@@ -63,7 +63,7 @@ module Input {
 
 
     /* 
-    Predicate: verifica que el array items esta ordenado de manera decreciente según valor por unidad de peso.
+    Predicado: verifica que el array items esta ordenado de manera decreciente según valor por unidad de peso.
     */
     ghost predicate SortedItems()
       reads this, items, set i | 0 <= i < items.Length :: items[i]
@@ -74,10 +74,10 @@ module Input {
 
 
 
-    /* Functions */
+    /* Funciones */
 
     /* 
-    Function: devuelve el modelo del objeto en la posición i del array items.
+    function: devuelve el modelo del objeto en la posición i del array items.
     */
     ghost function ModelAt (i : nat) : ItemData
       reads this, items, items[i]
@@ -88,7 +88,7 @@ module Input {
 
 
     /* 
-    Function: devuelve una secuencia con los k primeros elementos del array items convertidos a ItemData.
+    function: devuelve una secuencia con los k primeros elementos del array items convertidos a ItemData.
     */
     ghost function ItemsUntil(k: nat): seq<ItemData>
       reads this, items, set i | 0 <= i < k :: items[i]
@@ -105,7 +105,7 @@ module Input {
 
 
     /* 
-    Function: devuelve el modelo de un Input (entrada del problema).
+    function: devuelve el modelo de un Input (entrada del problema).
     */
     ghost function Model() : InputData
       reads this, items, set i | 0 <= i < items.Length :: items[i]
