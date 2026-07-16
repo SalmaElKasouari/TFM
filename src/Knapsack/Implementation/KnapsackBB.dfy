@@ -250,7 +250,7 @@ lemma StaticPartialPendingWithSonDecreases(m: multiset<Solution>, parent: Soluti
   //
   Verificación: usando los lemas AllPartialProperties, SubsetDisjointTrees, ItemsAssignSize, InPartialExtensions y ItemsAssignkth.
   */
-  lemma {:only} DisjointTreesPropertiesTwoChildren(parent : Solution, trueChild : Solution, falseChild: Solution, pq : PriorityQueue, input : Input)
+  lemma DisjointTreesPropertiesTwoChildren(parent : Solution, trueChild : Solution, falseChild: Solution, pq : PriorityQueue, input : Input)
     requires input.Valid()
     requires parent.Partial(input) && parent.Model().AllFalsesFromK()
     requires trueChild.Partial(input) && trueChild.Model().AllFalsesFromK()
@@ -667,6 +667,28 @@ method {:only} HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, 
   }
 }
 
+/*
+f (child.priority > bs.totalValue) {
+    if (child.k == child.itemsAssign.Length) {
+      bs.Copy(child);
+      assert pq.Valid();
+      assert if (child.k != child.itemsAssign.Length && child.priority > bs.totalValue)
+        then pq.Model() == old(pq.Model()) + multiset{child}
+        else pq.Model() == old(pq.Model());
+      assert pq.arr == old(pq.arr) || fresh(pq.arr);
+      assert child != bs;
+      assert child.itemsAssign != bs.itemsAssign;
+      assert (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length);
+    }
+    else {
+      pq.Insert(child);
+      assert pq.Valid();
+      assert pq.DisjointTrees(input);
+      assert PriorityQueue.StaticDisjointTrees(input, old(pq.Model()) + multiset{child});
+      assert PriorityQueue.StaticDisjointTrees(input, pq.Model());
+    }
+  }
+*/
 
 /*
 Método: main que ejecuta el programa principal resolviendo el problema de la mochila con una lista de objetos
