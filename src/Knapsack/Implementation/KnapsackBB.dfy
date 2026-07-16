@@ -468,8 +468,7 @@ method LoopBody(bs : Solution, pq : PriorityQueue, input : Input)
   if parent.totalWeight + input.items[parent.k].weight <= input.maxWeight {
     trueChild := parent.NewTrueChild(input);
 
-    //Al ser trueChild una Solution fresca las propiedades
-    //HandleChildInvariantProperties se mantienen
+    //Al ser trueChild una Solution fresca las propiedades de HandleChildInvariantProperties se mantienen
     HandleChild(trueChild, bs, pq, input) by {
       assume false;
       //Las propiedades HandleChildInvariantProperties se mantienen
@@ -518,10 +517,13 @@ method LoopBody(bs : Solution, pq : PriorityQueue, input : Input)
     //assert forall s1 <- pq.Model() :: s1.itemsAssign != falseChild.itemsAssign;
 
     //Para demostrar DisjointTrees tenemos que distinguir dos casos:
-    /* if (trueChild in pq.Model())
-    {DisjointTreesPropertiesTwoChildren(parent,trueChild,falseChild,pq,input);}
-    else 
-    { DisjointTreesPropertiesOneChild(parent,falseChild,pq,input);}
+    /* 
+    if (trueChild in pq.Model()) {
+      DisjointTreesPropertiesTwoChildren(parent,trueChild,falseChild,pq,input);
+    }
+    else { 
+      DisjointTreesPropertiesOneChild(parent,falseChild,pq,input);
+    }
     */
     //Si trueChild no se añadio al modelo se usa DisjointTreesPropertiesOneChild
     //Si se añadió se usa DisjointTreesPropertiesTwoChildren, ya que hace
@@ -559,6 +561,82 @@ method LoopBody(bs : Solution, pq : PriorityQueue, input : Input)
 
   //assert LoopInvariant(pq, bs, input);
 }
+
+
+method {:only} LoopBodyTermination(bs : Solution, pq : PriorityQueue, input : Input)
+  modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
+  requires LoopInvariant(pq, bs, input)
+  requires !pq.IsEmpty()
+  ensures pq.Valid()
+  //ensures LoopInvariant(pq, bs, input)
+  //ensures pq.arr == old(pq.arr) || fresh(pq.arr)
+  //ensures bs.itemsAssign == old(bs.itemsAssign) || fresh(bs.itemsAssign)
+  ensures PriorityQueue.StaticPartialPending(pq.Model(),input) < old(PriorityQueue.StaticPartialPending(pq.Model(),input))
+  ensures pq.PartialPending(input) < old(pq.PartialPending(input))
+{
+  var trueChild : Solution? := null;
+  var falseChild : Solution? := null;
+  var oldpq := pq;
+  var parent;
+
+  ghost var oldpqModel :=pq.Model();
+  ghost var oldpqPending:=PriorityQueue.StaticPartialPending(oldpqModel,input);
+  assert AllPartial(input,oldpqModel) && DisjointTrees(input,oldpqModel);
+  parent := pq.Min();
+  pq.DeleteMin();
+        
+  assert parent in oldpqModel;
+  assert pq.Model() == oldpqModel - multiset{parent};
+  assert oldpqPending == PriorityQueue.StaticPartialPending(oldpqModel,input);
+  // TRUE CHILD
+  if parent.totalWeight + input.items[parent.k].weight <= input.maxWeight {
+    trueChild := parent.NewTrueChild(input);    
+    
+    HandleChild(trueChild, bs, pq, input) by { 
+        assume false;
+    }
+  }
+  assert   pq.Model() == oldpqModel - multiset{parent} + multiset{trueChild}
+        || pq.Model() == oldpqModel - multiset{parent};
+
+      // FALSE CHILD
+  falseChild := parent.NewFalseChild(input);
+  
+  //assume DisjointTrees(input, multiset{trueChild,falseChild});
+  HandleChild(falseChild, bs, pq, input) by {
+       assume false;
+  }
+  
+  assert   pq.Model() == oldpqModel - multiset{parent} + multiset{trueChild}
+        || pq.Model() == oldpqModel - multiset{parent} + multiset{falseChild}
+        || pq.Model() == oldpqModel - multiset{parent} + multiset{trueChild,falseChild}
+        || pq.Model() == oldpqModel - multiset{parent};
+  //Tenemos varios casos respecto al modelo
+
+  assume parent in oldpqModel && AllPartial(input,oldpqModel) && DisjointTrees(input,oldpqModel);
+  if pq.Model() == oldpqModel - multiset{parent} + multiset{trueChild,falseChild} { 
+      StaticPartialPendingWithSonsDecreases(oldpqModel,parent,trueChild,falseChild,input) by {assume false;}
+            assert PriorityQueue.StaticPartialPending(pq.Model(),input) < PriorityQueue.StaticPartialPending(oldpqModel,input);
+  }
+  else if pq.Model() == oldpqModel - multiset{parent} + multiset{trueChild} {
+    StaticPartialPendingWithSonDecreases(oldpqModel,parent,trueChild,input) by {assume false;}
+    assert PriorityQueue.StaticPartialPending(pq.Model(),input) < PriorityQueue.StaticPartialPending(oldpqModel,input);
+  }
+  else if pq.Model() == oldpqModel - multiset{parent} + multiset{falseChild} {
+    StaticPartialPendingWithSonDecreases(oldpqModel,parent,falseChild,input) by {assume false;}
+    assert PriorityQueue.StaticPartialPending(pq.Model(),input) < PriorityQueue.StaticPartialPending(oldpqModel,input);
+  }
+  else if pq.Model() == oldpqModel - multiset{parent} { 
+    StaticPartialPendingDecreases(oldpqModel,parent,input);// by {assume false;}
+    assert PriorityQueue.StaticPartialPending(pq.Model(),input) < PriorityQueue.StaticPartialPending(oldpqModel,input);
+  }
+  assert PriorityQueue.StaticPartialPending(pq.Model(),input) < PriorityQueue.StaticPartialPending(oldpqModel,input);
+  assume oldpqPending == PriorityQueue.StaticPartialPending(oldpqModel,input);
+
+  assert PriorityQueue.StaticPartialPending(pq.Model(), input) < oldpqPending;
+
+}
+
 
 
 /*

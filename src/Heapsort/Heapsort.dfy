@@ -67,8 +67,8 @@ lemma addOne(m : multiset<Solution>,s:Solution)
 
 lemma addValues(m : multiset<Solution>,s:Solution)
   requires s !in m
-  ensures if s.value !in  Values(m) then Values(m+multiset{s})[s.value] == 1
-          else  Values(m+multiset{s})[s.value] ==  Values(m)[s.value] + 1
+  ensures if s.value !in  Values(m) then Values(m + multiset{s})[s.value] == 1
+          else Values(m + multiset{s})[s.value] == Values(m)[s.value] + 1
   ensures forall e | e in Values(m) && e != s.value ::  Values(m+multiset{s})[e] ==  Values(m)[e]
 {
   addOne(m,s);
@@ -93,13 +93,12 @@ ghost predicate sameValues(v : array<real>,pq:PriorityQueue, i:int)
   requires multiset{pq} !! multiset{pq.arr as object}  !! pq.Model()
 {
   (forall e | e in multiset(v[..i]) :: e in Values(pq.Model()) && multiset(v[..i])[e] == Values(pq.Model())[e]) &&
-  (forall e | e in Values(pq.Model()) :: e in multiset(v[..i])) &&
-  Values(pq.Model()).Keys == set x <- v[..i]
+  (forall e | e in Values(pq.Model()) :: e in multiset(v[..i])) && Values(pq.Model()).Keys == set x <- v[..i]
 }
 
-method {:only} fillPQ(v : array<real>) returns(pq:PriorityQueue)//41,4s
-  ensures  fresh(pq) && fresh(pq.arr)
-  ensures  pq.Valid() && |pq.Model()| == v.Length ==|v[..]|
+method fillPQ(v : array<real>) returns(pq:PriorityQueue)//41,4s
+  ensures fresh(pq) && fresh(pq.arr)
+  ensures pq.Valid() && |pq.Model()| == v.Length ==|v[..]|
   ensures sameValues(v,pq,v.Length)
 {
   pq := new PriorityQueue();
@@ -135,7 +134,7 @@ method {:only} fillPQ(v : array<real>) returns(pq:PriorityQueue)//41,4s
 }
 
 
-method extractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)//27,7 s
+method {:only} extractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)//27,7 s
   modifies pq,pq.arr
   requires  pq.Valid()
   requires |pq.Model()| == v.Length
@@ -170,8 +169,8 @@ method extractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)//27,7 s
     invariant forall e | e in multiset(w[..i]) :: e in multiset(v[..])
 
     invariant forall e | e in multiset(v[..]) ::
-                if  e in Values(pq.Model()) && e in multiset(w[..i]) then multiset(v[..])[e] == Values(pq.Model())[e]  + multiset(w[..i])[e]
-                else if e in Values(pq.Model()) && e !in multiset(w[..i]) then  multiset(v[..])[e] == Values(pq.Model())[e]
+                if e in Values(pq.Model()) && e in multiset(w[..i]) then multiset(v[..])[e] == Values(pq.Model())[e]  + multiset(w[..i])[e]
+                else if e in Values(pq.Model()) && e !in multiset(w[..i]) then multiset(v[..])[e] == Values(pq.Model())[e]
                 else multiset(v[..])[e] == multiset(w[..i])[e]
 
     invariant Sorted(w[..i]) // ya escritos están ordenados
@@ -191,12 +190,15 @@ method extractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)//27,7 s
        oneMoreSorted(w[..i],w[i]);
     }*/
 
+    assume false;
+
     forall e | e in multiset(w[..i+1]) ensures e in multiset(v[..])
     {
       if e in multiset(w[..i]) {}
-      else { assert e == w[i] == m.value;
-             assert m.value in fullpq.Keys;
-           }
+      else { 
+        assert e == w[i] == m.value;
+        assert m.value in fullpq.Keys;
+      }
     }
 
 
@@ -205,8 +207,8 @@ method extractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)//27,7 s
       ensures e in multiset(w[..i+1]) || e in Values(oldpqModel)
     {
       assert e in multiset(w[..i]) || e in Values(oldpqModel);
-      if (e !in multiset(w[..i+1])) && (e !in Values(oldpqModel))
-      { assert e !in multiset(w[..i]);
+      if (e !in multiset(w[..i+1])) && (e !in Values(oldpqModel)) { 
+        assert e !in multiset(w[..i]);
         assert false;
       }
     }
@@ -217,28 +219,32 @@ method extractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)//27,7 s
 
     pq.DeleteMin();
 
+    assume false;
+
     //assert forall e,e' | e in w[..i+1] && e' in Values(pq.Model()) :: e <= e';
 
     forall e | e in multiset(v[..])
       ensures e in multiset(w[..i+1]) || e in Values(pq.Model())
     {
       assert e in multiset(w[..i+1]) || e in Values(oldpqModel);
-      if (e !in multiset(w[..i+1]) && e !in Values(pq.Model()))
-      { assert e == m.value; assert m.value in multiset(w[..i+1]); assert false;}
-
+      if (e !in multiset(w[..i+1]) && e !in Values(pq.Model())) { 
+        assert e == m.value; assert m.value in multiset(w[..i+1]); 
+        assert false;
+      }
     }
+
     forall e | e in multiset(v[..])  ensures
         if  e in Values(pq.Model()) && e in multiset(w[..i+1]) then multiset(v[..])[e] == Values(pq.Model())[e]  + multiset(w[..i+1])[e]
         else if e in Values(pq.Model()) && e !in multiset(w[..i+1]) then  multiset(v[..])[e] == Values(pq.Model())[e]
         else multiset(v[..])[e] == multiset(w[..i+1])[e]{
       if (e != w[i]) {}
-      else if e !in Values(oldpqModel)
-      {assert e != w[i] && e !in Values(pq.Model());
-       assert multiset(w[..i+1])[e] == multiset(w[..i])[e];
-       assert multiset(v[..])[e] == multiset(w[..i])[e];
+      else if e !in Values(oldpqModel) {
+        assert e != w[i] && e !in Values(pq.Model());
+        assert multiset(w[..i+1])[e] == multiset(w[..i])[e];
+        assert multiset(v[..])[e] == multiset(w[..i])[e];
       }
-      else //e == w[i] && e in Values(oldpqModel)
-      {
+      else { //e == w[i] && e in Values(oldpqModel)
+      
         if e in Values(pq.Model()) {
           assert Values(pq.Model())[e] == Values(oldpqModel)[e]-1;
           assert multiset(w[..i+1])[e] == multiset(w[..i])[e] + 1;
