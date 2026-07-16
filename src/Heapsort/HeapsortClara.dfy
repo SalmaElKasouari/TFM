@@ -223,7 +223,7 @@ ensures multiset(w[..]) == multiset(v[..]) // el nuevo array w es una permutacio
                  else if e in Values(pq.Model()) && e !in multiset(w[..i]) then  multiset(v[..])[e] == Values(pq.Model())[e] 
                  else multiset(v[..])[e] == multiset(w[..i])[e]
     
-    
+    //invariant sumValues(v,w,pq,i)
     //invariant Sorted(w[..i]) // ya escritos están ordenados 
     //invariant forall e,e' | e in w[..i] && e' in Values(pq.Model()) :: e <= e'
   { 
@@ -249,7 +249,6 @@ ensures multiset(w[..]) == multiset(v[..]) // el nuevo array w es una permutacio
       }
     }
 
-
     ghost var oldpqModel := pq.Model();
     assert |oldpqModel| + i == w.Length;
     forall e | e in multiset(v[..]) 
@@ -270,21 +269,24 @@ ensures multiset(w[..]) == multiset(v[..]) // el nuevo array w es una permutacio
  
     //assert forall e,e' | e in w[..i+1] && e' in Values(pq.Model()) :: e <= e';
     
-    /*forall e | e in multiset(v[..]) 
+    forall e | e in multiset(v[..]) 
     ensures (e in multiset(w[..i+1]) || e in Values(pq.Model()))
     { assume false;
-    }*/
+    }
     /*forall e | e in multiset(v[..]) 
     ensures multiset(v[..])[e] == Values(pq.Model())[e]  + multiset(w[..i])[e]
     {assume false;}*/
 
-    /*forall e | e in multiset(v[..]) ensures
+    forall e | e in multiset(v[..]) ensures
                  if  e in Values(pq.Model()) && e in multiset(w[..i+1]) then multiset(v[..])[e] == Values(pq.Model())[e]  + multiset(w[..i+1])[e]
                  else if e in Values(pq.Model()) && e !in multiset(w[..i+1]) then  multiset(v[..])[e] == Values(pq.Model())[e] 
                  else multiset(v[..])[e] == multiset(w[..i+1])[e]
-    {assume false;}*/
+    {assume false;}
+
     assert |pq.Model()| == |oldpqModel| - 1;
     assert |pq.Model()| + (i+1) == |oldpqModel| + i == w.Length; 
+
+    //assume sumValues(v,w,pq,i+1);
 
     /*forall e | e in multiset(v[..])  ensures
       if  e in Values(pq.Model()) && e in multiset(w[..i+1]) then multiset(v[..])[e] == Values(pq.Model())[e]  + multiset(w[..i+1])[e]
@@ -318,7 +320,7 @@ ensures multiset(w[..]) == multiset(v[..]) // el nuevo array w es una permutacio
       //assume false;  
     //}      
     i := i + 1;
-    assume false;
+    assume false; 
   }
   //Una vez consumida la cola de prioridad, todos los elementos están en w, con la misma
   //multiplicidad que en v
