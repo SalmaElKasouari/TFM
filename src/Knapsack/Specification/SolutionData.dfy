@@ -221,6 +221,7 @@ module SolutionData {
     ghost function Extensions() : set<SolutionData>
       decreases |itemsAssign| - k
       requires 0 <= k <= |itemsAssign|
+      ensures Extensions() <= PartialExtensions()
     {
       if k == |itemsAssign| then
         {this}
@@ -248,6 +249,18 @@ module SolutionData {
 
 
     /* Lemas */
+
+    static lemma InExtensionsExtends(input:InputData, parent:SolutionData, s:SolutionData)
+      decreases |input.items| - parent.k
+      requires input.Valid()
+      requires parent.k <= |parent.itemsAssign|==|input.items|
+      requires s in parent.Extensions()
+      ensures parent.k <= s.k <= |s.itemsAssign| == |parent.itemsAssign| && s.Extends(parent)
+    {      
+      assert s in parent.PartialExtensions();
+      ItemsAssignSize(input,parent,s);
+    }
+    
 
     /*
     Lema: todas las extensiones de una solucion tienen el mismo tamaño de itemsAssign
@@ -330,7 +343,7 @@ module SolutionData {
           InPartialExtensions(input,SolutionData(parent.itemsAssign[parent.k := b], parent.k+1),s);
           assert false;
         }
-      }      
+      }
       else {
         if parent.k + 1 == |parent.itemsAssign| {}
         else {
@@ -338,7 +351,7 @@ module SolutionData {
             PartialExtensionsEqualUntilK(input, SolutionData(parent.itemsAssign[parent.k := b], parent.k+1), s);
           }
         }
-      }      
+      }
     }
 
     /*

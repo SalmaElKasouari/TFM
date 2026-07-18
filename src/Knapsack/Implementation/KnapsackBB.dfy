@@ -65,7 +65,7 @@ ghost predicate HandleChildInvariantProperties(pq : PriorityQueue, bs : Solution
   && SameSizeItemsAssign(input, pq.Model() + multiset{bs})
   && DistinctItemsAssign(pq.Model() + multiset{bs})
   && AllStrictlyPartial(pq.Model())
-  && AllPrioritiesAreCorrect(input, pq.Model())
+  //&& AllPrioritiesAreCorrect(input, pq.Model())
 }
 
 
@@ -84,15 +84,37 @@ ghost predicate LoopInvariant(pq : PriorityQueue, bs : Solution, input : Input)
 /* Lemas */
 
 /*
-  Lema: garantiza que al eliminar una solución s (el mínimo) de modelo de la cola, el conjunto de soluciones parciales 
-  pendientes decrece. 
-  //
-  Propósito: para demostrar la terminación del algoritmo RyP cuando se saca el mínimo de la cola.
-  //
-  Demostración: StaticPartialPending decrece porque s pertenece al modelo original de la cola (m). Al eliminar s,
-  el nuevo modelo deja de incluirla, lo cual hace que sea estrictamente menor. Esto se verifica con la ayuda de la propiedad de 
-  disjunción que nos dice que ninguno de los hijos de s contiene a s.
-  */
+Lema: garantiza que AllPrioritiesAreCorrect se deduce de AllPartial.
+//
+Propósito: 
+Demostración: usando el lema InExtensionsExtends.
+*/
+lemma PartialIncludePriority(pq : PriorityQueue, input : Input)
+  requires input.Valid()
+  requires pq.Valid() && AllPartial(input, pq.Model())
+  ensures AllPrioritiesAreCorrect(input, pq.Model())
+{
+  forall p, s | p in pq.Model() &&  s in p.Model().Extensions() && s.Valid(input.Model())
+    ensures s.TotalValue(input.Model().items) <= p.priority
+  {
+    assert s.Partial(input.Model());
+    assert p.Model().IsUpperBound(p.priority,input.Model());
+    SolutionData.InExtensionsExtends(input.Model(),p.Model(),s);
+    assert s.Extends(p.Model());
+  }
+}
+
+
+/*
+Lema: garantiza que al eliminar una solución s (el mínimo) de modelo de la cola, el conjunto de soluciones parciales 
+pendientes decrece. 
+//
+Propósito: para demostrar la terminación del algoritmo RyP cuando se saca el mínimo de la cola.
+//
+Demostración: StaticPartialPending decrece porque s pertenece al modelo original de la cola (m). Al eliminar s,
+el nuevo modelo deja de incluirla, lo cual hace que sea estrictamente menor. Esto se verifica con la ayuda de la propiedad de 
+disjunción que nos dice que ninguno de los hijos de s contiene a s.
+*/
 lemma StaticPartialPendingDecreases(m: multiset<Solution>, parent: Solution, input : Input)
   requires parent in m
   requires input.Valid()
@@ -210,128 +232,158 @@ lemma StaticPartialPendingWithSonDecreases(m: multiset<Solution>, parent: Soluti
   //
   Verificación: usando los lemas AllPartialProperties, SubsetDisjointTrees y ExtendsInPartialExtensions.
   */
-  lemma DisjointTreesPropertiesOneChild(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
-    requires input.Valid()
-    requires parent.Partial(input) && parent.Model().AllFalsesFromK()
-    requires child.Partial(input) && child.Model().AllFalsesFromK()
-    requires child.IsTrueChild(parent, input) || child.IsFalseChild(parent, input)
-    requires pq.Valid()
-    requires child !in pq.Model()
-    requires AllPartial(input,pq.Model() + multiset{parent})
-    requires DisjointTrees(input,pq.Model() + multiset{parent})
-    ensures DisjointTrees(input,pq.Model() + multiset{child})
+lemma DisjointTreesPropertiesOneChild(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
+  requires input.Valid()
+  requires parent.Partial(input) && parent.Model().AllFalsesFromK()
+  requires child.Partial(input) && child.Model().AllFalsesFromK()
+  requires child.IsTrueChild(parent, input) || child.IsFalseChild(parent, input)
+  requires pq.Valid()
+  requires child !in pq.Model()
+  requires AllPartial(input,pq.Model() + multiset{parent})
+  requires DisjointTrees(input,pq.Model() + multiset{parent})
+  ensures DisjointTrees(input,pq.Model() + multiset{child})
+{
+  AllPartialProperties(parent,child,pq,input);
+
+  forall s | s in pq.Model() + multiset{child}
+    ensures (pq.Model() + multiset{child})[s] == 1
   {
-    AllPartialProperties(parent,child,pq,input);
-
-    forall s | s in pq.Model() + multiset{child}
-      ensures (pq.Model() + multiset{child})[s] == 1
-    {
-      if (s == parent) {}
-      else if (s == child) {}
-      else {
-        SubsetDisjointTrees(input, pq.Model() + multiset{parent}, pq.Model());
-      }
-    }
-
-    forall z | z in pq.Model()
-      ensures child.Model().PartialExtensions() !! z.Model().PartialExtensions()
-    {
-      SolutionData.ExtendsInPartialExtensions(input.Model(), child.Model(), parent.Model());
-      assert child.Model() in parent.Model().PartialExtensions();
-      assert forall s | s in pq.Model() :: parent.Model().PartialExtensions() !! s.Model().PartialExtensions();
+    if (s == parent) {}
+    else if (s == child) {}
+    else {
+      SubsetDisjointTrees(input, pq.Model() + multiset{parent}, pq.Model());
     }
   }
 
-
-  /*
-  Lema: si añadimos los dos hijos a la cola se sigue cumpliendo la propiedad DisjointTrees. 
-  //
-  Propósito: usarlo en la rama false si en la rama true se añadióel hijo true.
-  //
-  Verificación: usando los lemas AllPartialProperties, SubsetDisjointTrees, ItemsAssignSize, InPartialExtensions y ItemsAssignkth.
-  */
-  lemma DisjointTreesPropertiesTwoChildren(parent : Solution, trueChild : Solution, falseChild: Solution, pq : PriorityQueue, input : Input)
-    requires input.Valid()
-    requires parent.Partial(input) && parent.Model().AllFalsesFromK()
-    requires trueChild.Partial(input) && trueChild.Model().AllFalsesFromK()
-    requires trueChild.IsTrueChild(parent, input)
-    requires falseChild.Partial(input) && falseChild.Model().AllFalsesFromK()
-    requires trueChild.IsTrueChild(parent, input)
-    requires falseChild.IsFalseChild(parent, input)
-
-    requires pq.Valid()
-    requires trueChild !in pq.Model()
-    requires falseChild !in pq.Model()
-    requires AllPartial(input, pq.Model() + multiset{parent})
-    requires DisjointTrees(input, pq.Model() + multiset{parent})
-
-    ensures DisjointTrees(input, pq.Model() + multiset{trueChild} + multiset{falseChild})
+  forall z | z in pq.Model()
+    ensures child.Model().PartialExtensions() !! z.Model().PartialExtensions()
   {
-    AllPartialProperties(parent, trueChild, pq, input);
+    SolutionData.ExtendsInPartialExtensions(input.Model(), child.Model(), parent.Model());
+    assert child.Model() in parent.Model().PartialExtensions();
+    assert forall s | s in pq.Model() :: parent.Model().PartialExtensions() !! s.Model().PartialExtensions();
+  }
+}
 
-    forall s | s in pq.Model() + multiset{trueChild} + multiset{falseChild}
-      ensures (pq.Model() + multiset{trueChild} + multiset{falseChild})[s] == 1
-    {
-      if (s == parent) {}
-      else if (s == trueChild) {}
-      else if (s == falseChild) {}
-      else {
-        SubsetDisjointTrees(input, pq.Model() + multiset{parent}, pq.Model());
-      }
-    }
 
-    ChildrenAreDisjoint(parent,trueChild,falseChild,input);
+/*
+Lema: si añadimos los dos hijos a la cola se sigue cumpliendo la propiedad DisjointTrees. 
+//
+Propósito: usarlo en la rama false si en la rama true se añadióel hijo true.
+//
+Verificación: usando los lemas AllPartialProperties, SubsetDisjointTrees, ItemsAssignSize, InPartialExtensions y ItemsAssignkth.
+*/
+lemma DisjointTreesPropertiesTwoChildren(parent : Solution, trueChild : Solution, falseChild: Solution, pq : PriorityQueue, input : Input)
+  requires input.Valid()
+  requires parent.Partial(input) && parent.Model().AllFalsesFromK()
+  requires trueChild.Partial(input) && trueChild.Model().AllFalsesFromK()
+  requires trueChild.IsTrueChild(parent, input)
+  requires falseChild.Partial(input) && falseChild.Model().AllFalsesFromK()
+  requires trueChild.IsTrueChild(parent, input)
+  requires falseChild.IsFalseChild(parent, input)
 
-    forall z | z in pq.Model()
-      ensures trueChild.Model().PartialExtensions() !! z.Model().PartialExtensions()
-              && falseChild.Model().PartialExtensions() !! z.Model().PartialExtensions()
-    {
-      SolutionData.ExtendsInPartialExtensions(input.Model(), trueChild.Model(), parent.Model());
-      SolutionData.ExtendsInPartialExtensions(input.Model(), falseChild.Model(), parent.Model());
+  requires pq.Valid()
+  requires trueChild !in pq.Model()
+  requires falseChild !in pq.Model()
+  requires AllPartial(input, pq.Model() + multiset{parent})
+  requires DisjointTrees(input, pq.Model() + multiset{parent})
 
-      assert trueChild.Model() in parent.Model().PartialExtensions();
-      assert falseChild.Model() in parent.Model().PartialExtensions();
+  ensures DisjointTrees(input, pq.Model() + multiset{trueChild} + multiset{falseChild})
+{
+  AllPartialProperties(parent, trueChild, pq, input);
 
-      assert forall s | s in pq.Model() :: parent.Model().PartialExtensions() !! s.Model().PartialExtensions();
+  forall s | s in pq.Model() + multiset{trueChild} + multiset{falseChild}
+    ensures (pq.Model() + multiset{trueChild} + multiset{falseChild})[s] == 1
+  {
+    if (s == parent) {}
+    else if (s == trueChild) {}
+    else if (s == falseChild) {}
+    else {
+      SubsetDisjointTrees(input, pq.Model() + multiset{parent}, pq.Model());
     }
   }
 
+  ChildrenAreDisjoint(parent,trueChild,falseChild,input);
 
-   /*
-  Lema: si un conjunto s cumple la propiedad de DisjointTrees y s' esta contenido en s, 
-  entonces s' también cumple la propiedad de DisjointTrees.
-  //
-  Propósito: demsotrar el lema DisjointTreesPropertiesOneChild.
-  //
-  Verificación: trivial
-  */
-  lemma SubsetDisjointTrees(input : Input, s : multiset<Solution>, s' : multiset<Solution>)
-    requires input.Valid()
-    requires AllPartial(input, s)
-    requires DisjointTrees(input, s)
-    requires s' <= s
-    ensures AllPartial(input, s')
-    ensures DisjointTrees(input, s')
-  {}
+  forall z | z in pq.Model()
+    ensures trueChild.Model().PartialExtensions() !! z.Model().PartialExtensions()
+            && falseChild.Model().PartialExtensions() !! z.Model().PartialExtensions()
+  {
+    SolutionData.ExtendsInPartialExtensions(input.Model(), trueChild.Model(), parent.Model());
+    SolutionData.ExtendsInPartialExtensions(input.Model(), falseChild.Model(), parent.Model());
+
+    assert trueChild.Model() in parent.Model().PartialExtensions();
+    assert falseChild.Model() in parent.Model().PartialExtensions();
+
+    assert forall s | s in pq.Model() :: parent.Model().PartialExtensions() !! s.Model().PartialExtensions();
+  }
+}
 
 
-  /*
-  Lema: añadir un hijo true o false a una cola de soluciones parciales hace que la cola siga siendo de soluciones parciales.
-  //
-  Propósito: Este lema se puede usar tanto cuando pretendemos añadir el hijo true como cuando después de añadir el true pretendemos añadir el false, ya que solo requiere que la cola sea de parciales
-  //
-  Verificación: trivial.
-  */
-  lemma AllPartialProperties(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
-    requires input.Valid()
-    requires parent.Partial(input) && parent.Model().AllFalsesFromK()
-    requires child.Partial(input) && child.Model().AllFalsesFromK()
-    requires (child.IsFalseChild(parent, input) || child.IsTrueChild(parent, input))
-    requires pq.Valid()
-    requires child !in pq.Model()
-    requires AllPartial(input, pq.Model())
-    ensures AllPartial(input, pq.Model() + multiset{child})
-  {}
+ /*
+Lema: si un conjunto s cumple la propiedad de DisjointTrees y s' esta contenido en s, 
+entonces s' también cumple la propiedad de DisjointTrees.
+//
+Propósito: demsotrar el lema DisjointTreesPropertiesOneChild.
+//
+Verificación: trivial
+*/
+lemma SubsetDisjointTrees(input : Input, s : multiset<Solution>, s' : multiset<Solution>)
+  requires input.Valid()
+  requires AllPartial(input, s)
+  requires DisjointTrees(input, s)
+  requires s' <= s
+  ensures AllPartial(input, s')
+  ensures DisjointTrees(input, s')
+{}
+
+
+/*
+Lema: añadir un hijo true o false a una cola de soluciones parciales hace que la cola siga siendo de soluciones parciales.
+//
+Propósito: Este lema se puede usar tanto cuando pretendemos añadir el hijo true como cuando después de añadir el true pretendemos añadir el false, ya que solo requiere que la cola sea de parciales
+//
+Verificación: trivial.
+*/
+lemma AllPartialProperties(parent : Solution, child : Solution, pq : PriorityQueue, input : Input)
+  requires input.Valid()
+  requires parent.Partial(input) && parent.Model().AllFalsesFromK()
+  requires child.Partial(input) && child.Model().AllFalsesFromK()
+  requires (child.IsFalseChild(parent, input) || child.IsTrueChild(parent, input))
+  requires pq.Valid()
+  requires child !in pq.Model()
+  requires AllPartial(input, pq.Model())
+  ensures AllPartial(input, pq.Model() + multiset{child})
+{}
+
+
+
+lemma ChildrenAreDisjoint(parent : Solution, trueChild : Solution, falseChild: Solution, input : Input)
+  requires input.Valid()
+  requires parent.Partial(input) && parent.Model().AllFalsesFromK()
+  requires trueChild.Partial(input) && trueChild.Model().AllFalsesFromK()
+  requires trueChild.IsTrueChild(parent, input)
+  requires falseChild.Partial(input) && falseChild.Model().AllFalsesFromK()
+  requires trueChild.IsTrueChild(parent, input)
+  requires falseChild.IsFalseChild(parent, input)
+  ensures trueChild.Model().PartialExtensions() !! falseChild.Model().PartialExtensions()
+{
+  if !(trueChild.Model().PartialExtensions() !! falseChild.Model().PartialExtensions()) {
+    assert trueChild.Model().PartialExtensions() * falseChild.Model().PartialExtensions() != {};
+    ghost var s:| s in trueChild.Model().PartialExtensions() && s in falseChild.Model().PartialExtensions();
+
+    assert parent.k == trueChild.k - 1 < |trueChild.Model().itemsAssign|;
+    assert trueChild.Model() == SolutionData(parent.Model().itemsAssign[parent.k := true], parent.Model().k + 1);
+    assert falseChild.Model() == SolutionData(parent.Model().itemsAssign[parent.k := false], parent.Model().k + 1);
+    SolutionData.ItemsAssignSize(input.Model(),parent.Model(),s);
+    SolutionData.InPartialExtensions(input.Model(),parent.Model(),s);
+    assert |s.itemsAssign| == |parent.Model().itemsAssign|;
+    SolutionData.ItemsAssignkth(input.Model(),parent.Model(),s,true);
+    SolutionData.ItemsAssignkth(input.Model(),parent.Model(),s,false);
+    assert s.itemsAssign[parent.k]==true;
+    assert s.itemsAssign[parent.k]==false;
+    assert false;
+  }
+}
 
 
 /* Métodos */
@@ -414,6 +466,7 @@ method MainLoop(input: Input, pq: PriorityQueue, bs: Solution)
   {
     LoopBody(bs, pq, input);
   }
+  PartialIncludePriority(pq,input);
 }
 
 method {:verify false} LoopBody(bs : Solution, pq : PriorityQueue, input : Input)
@@ -564,42 +617,42 @@ method {:verify false} LoopBodyTermination(bs : Solution, pq : PriorityQueue, in
   assert AllPartial(input,oldpqModel) && DisjointTrees(input,oldpqModel);
   parent := pq.Min();
   pq.DeleteMin();
-        
+
   assert parent in oldpqModel;
   assert pq.Model() == oldpqModel - multiset{parent};
   assert AllPartial(input,oldpqModel) && DisjointTrees(input,oldpqModel);
   assert oldpqPending == PriorityQueue.StaticPartialPending(oldpqModel,input);
   // TRUE CHILD
   if parent.totalWeight + input.items[parent.k].weight <= input.maxWeight {
-    trueChild := parent.NewTrueChild(input); 
-            
-    HandleChild(trueChild, bs, pq, input) by { 
-        assume false;
+    trueChild := parent.NewTrueChild(input);
+
+    HandleChild(trueChild, bs, pq, input) by {
+      assume false;
     }
   }
   assert   pq.Model() == oldpqModel - multiset{parent} + multiset{trueChild}
-        || pq.Model() == oldpqModel - multiset{parent};
-    assert parent in oldpqModel;
+           || pq.Model() == oldpqModel - multiset{parent};
+  assert parent in oldpqModel;
 
-      // FALSE CHILD
+  // FALSE CHILD
   falseChild := parent.NewFalseChild(input);
-  
+
   //assume DisjointTrees(input, multiset{trueChild,falseChild});
   HandleChild(falseChild, bs, pq, input) by {
-       assume false;
+    assume false;
   }
-  
+
   assert   pq.Model() == oldpqModel - multiset{parent} + multiset{trueChild}
-        || pq.Model() == oldpqModel - multiset{parent} + multiset{falseChild}
-        || pq.Model() == oldpqModel - multiset{parent} + multiset{trueChild,falseChild}
-        || pq.Model() == oldpqModel - multiset{parent};
+           || pq.Model() == oldpqModel - multiset{parent} + multiset{falseChild}
+           || pq.Model() == oldpqModel - multiset{parent} + multiset{trueChild,falseChild}
+           || pq.Model() == oldpqModel - multiset{parent};
   //Tenemos varios casos respecto al modelo
-    assert parent in oldpqModel;
+  assert parent in oldpqModel;
 
   assume AllPartial(input,oldpqModel) && DisjointTrees(input,oldpqModel);
-  if pq.Model() == oldpqModel - multiset{parent} + multiset{trueChild,falseChild} { 
-      StaticPartialPendingWithSonsDecreases(oldpqModel,parent,trueChild,falseChild,input) by {assume false;}
-            assert PriorityQueue.StaticPartialPending(pq.Model(),input) < PriorityQueue.StaticPartialPending(oldpqModel,input);
+  if pq.Model() == oldpqModel - multiset{parent} + multiset{trueChild,falseChild} {
+    StaticPartialPendingWithSonsDecreases(oldpqModel,parent,trueChild,falseChild,input) by {assume false;}
+    assert PriorityQueue.StaticPartialPending(pq.Model(),input) < PriorityQueue.StaticPartialPending(oldpqModel,input);
   }
   else if pq.Model() == oldpqModel - multiset{parent} + multiset{trueChild} {
     StaticPartialPendingWithSonDecreases(oldpqModel,parent,trueChild,input) by {assume false;}
@@ -609,7 +662,7 @@ method {:verify false} LoopBodyTermination(bs : Solution, pq : PriorityQueue, in
     StaticPartialPendingWithSonDecreases(oldpqModel,parent,falseChild,input) by {assume false;}
     assert PriorityQueue.StaticPartialPending(pq.Model(),input) < PriorityQueue.StaticPartialPending(oldpqModel,input);
   }
-  else if pq.Model() == oldpqModel - multiset{parent} { 
+  else if pq.Model() == oldpqModel - multiset{parent} {
     StaticPartialPendingDecreases(oldpqModel,parent,input);// by {assume false;}
     assert PriorityQueue.StaticPartialPending(pq.Model(),input) < PriorityQueue.StaticPartialPending(oldpqModel,input);
   }
@@ -627,7 +680,7 @@ Método: inserta el hijo en la cola si este no es solución completa.
 //
 Verificación: 
 */
-method {:only} HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : Input) // tarda 197 segundos
+method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : Input) // tarda 197 segundos
   modifies pq, pq.arr, bs, bs.itemsAssign
 
   requires HandleChildInvariantProperties(pq,bs,input)
@@ -647,7 +700,7 @@ method {:only} HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, 
 
   // Postcondiciones sobre la cola
   ensures pq.arr == old(pq.arr) || fresh(pq.arr)
-  ensures if (child.k != child.itemsAssign.Length && child.priority > bs.totalValue)
+  ensures if (child.k < child.itemsAssign.Length && child.priority > bs.totalValue)
           then pq.Model() == old(pq.Model()) + multiset{child}
           else pq.Model() == old(pq.Model())
   ensures bs.itemsAssign == old(bs.itemsAssign) || fresh(bs.itemsAssign)
@@ -656,16 +709,41 @@ method {:only} HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, 
     if (child.k == child.itemsAssign.Length) {
       bs.Copy(child);
       assert pq.Valid();
+      assert if (child.k != child.itemsAssign.Length && child.priority > bs.totalValue)
+        then pq.Model() == old(pq.Model()) + multiset{child}
+        else pq.Model() == old(pq.Model());
+      assert pq.arr == old(pq.arr) || fresh(pq.arr);
+      assert child != bs;
+      assert child.itemsAssign != bs.itemsAssign;
+      assert (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length);
+
+
     }
     else {
+      assert child.priority > bs.totalValue && child.k < child.itemsAssign.Length;
+
       pq.Insert(child);
-      assert pq.Valid();
+
       assert DisjointTrees(input, pq.Model());
       assert DisjointTrees(input, old(pq.Model()) + multiset{child});
       assert DisjointTrees(input, pq.Model());
+
+
+      assert HandleChildInvariantProperties(pq,bs,input) by{
+        assert bs.Valid(input) && bs !in pq.Model();
+        assert  AllPartial(input, pq.Model());
+        assert SameSizeItemsAssign(input, pq.Model() + multiset{bs});
+        assert AllStrictlyPartial(pq.Model());
+        assume DistinctItemsAssign(pq.Model() + multiset{bs});//solo esta 170s
+        PartialIncludePriority(pq,input);
+        assert AllPrioritiesAreCorrect(input, pq.Model());
+      }
     }
   }
+  else {}
 }
+
+
 
 /*
 f (child.priority > bs.totalValue) {

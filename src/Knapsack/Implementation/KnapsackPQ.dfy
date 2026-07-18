@@ -124,58 +124,6 @@ module KnapsackPQ refines PQ {
   }
 
 
-
-  /* Lemas */
-
-
-  //------
-  lemma ParentNotInChildExtensions(parent : Solution, child : Solution, input : Input)
-    requires input.Valid()
-    requires parent.Partial(input) && parent.Model().AllFalsesFromK()
-    requires child.Partial(input) && child.Model().AllFalsesFromK()
-    requires child.IsTrueChild(parent, input) || child.IsFalseChild(parent,input)
-    ensures parent.Model() !in child.Model().PartialExtensions()
-  {
-    assert parent.k == child.k - 1 < |child.Model().itemsAssign|;
-    if parent.Model() in child.Model().PartialExtensions()
-    {
-      SolutionData.InPartialExtensions(input.Model(),child.Model(),parent.Model());
-      assert parent.k > child.k;
-      assert false;
-    }
-  }
-
-  lemma ChildrenAreDisjoint(parent : Solution, trueChild : Solution, falseChild: Solution, input : Input)
-    requires input.Valid()
-    requires parent.Partial(input) && parent.Model().AllFalsesFromK()
-    requires trueChild.Partial(input) && trueChild.Model().AllFalsesFromK()
-    requires trueChild.IsTrueChild(parent, input)
-    requires falseChild.Partial(input) && falseChild.Model().AllFalsesFromK()
-    requires trueChild.IsTrueChild(parent, input)
-    requires falseChild.IsFalseChild(parent, input)
-    ensures trueChild.Model().PartialExtensions() !! falseChild.Model().PartialExtensions()
-  {
-    if !(trueChild.Model().PartialExtensions() !! falseChild.Model().PartialExtensions())
-    {
-      assert trueChild.Model().PartialExtensions() * falseChild.Model().PartialExtensions() != {};
-      ghost var s:| s in trueChild.Model().PartialExtensions() && s in falseChild.Model().PartialExtensions();
-
-      assert parent.k == trueChild.k - 1 < |trueChild.Model().itemsAssign|;
-      assert trueChild.Model() == SolutionData(parent.Model().itemsAssign[parent.k := true], parent.Model().k + 1);
-      assert falseChild.Model() == SolutionData(parent.Model().itemsAssign[parent.k := false], parent.Model().k + 1);
-      SolutionData.ItemsAssignSize(input.Model(),parent.Model(),s);
-      SolutionData.InPartialExtensions(input.Model(),parent.Model(),s);
-      assert |s.itemsAssign| == |parent.Model().itemsAssign|;
-      SolutionData.ItemsAssignkth(input.Model(),parent.Model(),s,true);
-      SolutionData.ItemsAssignkth(input.Model(),parent.Model(),s,false);
-      assert s.itemsAssign[parent.k]==true;
-      assert s.itemsAssign[parent.k]==false;
-      assert false;
-    }
-  }
-  //---------------
-
-
   class Solution ... {
 
     /* Atributos y constructor */
