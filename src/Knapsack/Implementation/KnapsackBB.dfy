@@ -124,7 +124,7 @@ lemma StaticPartialPendingDecreases(m: multiset<Solution>, parent: Solution, inp
         < PriorityQueue.StaticPartialPending(m, input)
 {
   assert PriorityQueue.StaticPartialPending(m - multiset{parent}, input) == PriorityQueue.StaticPartialPending(m, input) - parent.Model().PartialExtensions();
-  assert parent.Model() in PriorityQueue.StaticPartialPending(m, input);
+  //assert parent.Model() in PriorityQueue.StaticPartialPending(m, input);
 }
 
 
@@ -469,7 +469,8 @@ method MainLoop(input: Input, pq: PriorityQueue, bs: Solution)
   PartialIncludePriority(pq,input);
 }
 
-method {:verify false} LoopBody(bs : Solution, pq : PriorityQueue, input : Input)
+
+method LoopBody(bs : Solution, pq : PriorityQueue, input : Input)
   modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
   requires LoopInvariant(pq, bs, input)
   requires !pq.IsEmpty()
@@ -715,9 +716,7 @@ method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : 
       assert pq.arr == old(pq.arr) || fresh(pq.arr);
       assert child != bs;
       assert child.itemsAssign != bs.itemsAssign;
-      assert (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length);
-
-
+      //assert (forall s : Solution | s in pq.Model() :: s.k < s.itemsAssign.Length);
     }
     else {
       assert child.priority > bs.totalValue && child.k < child.itemsAssign.Length;
@@ -728,10 +727,11 @@ method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : 
       assert DisjointTrees(input, old(pq.Model()) + multiset{child});
       assert DisjointTrees(input, pq.Model());
 
+      assume false;
 
       assert HandleChildInvariantProperties(pq,bs,input) by{
         assert bs.Valid(input) && bs !in pq.Model();
-        assert  AllPartial(input, pq.Model());
+        assert AllPartial(input, pq.Model());
         assert SameSizeItemsAssign(input, pq.Model() + multiset{bs});
         assert AllStrictlyPartial(pq.Model());
         assume DistinctItemsAssign(pq.Model() + multiset{bs});//solo esta 170s

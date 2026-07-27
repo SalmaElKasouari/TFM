@@ -1,11 +1,13 @@
 include "ValuePQ.dfy"
 import opened ValuePQ
 
+
 /* Predicado: comprueba que una secuencia este ordenada en orden creciente. */
 predicate Sorted(v : seq<real>)
 {
   forall i | 0 <= i < |v| - 1 :: v[i] <= v[i + 1]
 }
+
 
 /* Predicado: los valores que están en la cola coinciden con los valores de v (también se aplica a las ocurrencias) y viceversa. */
 ghost predicate SameValues(v : array<real>,pq:PriorityQueue, i:int)
@@ -14,8 +16,8 @@ ghost predicate SameValues(v : array<real>,pq:PriorityQueue, i:int)
   requires pq.Valid() //&& |pq.Model()| == v.Length
   requires multiset{pq} !! multiset{pq.arr as object}  !! pq.Model()
 {
-  && (forall e | e in multiset(v[..i]) :: e in Values(pq.Model()) 
-  && multiset(v[..i])[e] == Values(pq.Model())[e]) 
+  && (forall e | e in multiset(v[..i]) :: e in Values(pq.Model())
+                                          && multiset(v[..i])[e] == Values(pq.Model())[e])
   && (forall e | e in Values(pq.Model()) :: e in multiset(v[..i]))
   && Values(pq.Model()).Keys == set x <- v[..i]
 }
@@ -34,18 +36,19 @@ opaque ghost predicate SumValues(v : array<real>,w:array<real>,pqModel:multiset<
   && (forall e | e in multiset(w[..i]) :: e in multiset(v[..]))
 
   && forall e | e in multiset(v[..]) ::
-    if  e in Values(pqModel) && e in multiset(w[..i]) then multiset(v[..])[e] == Values(pqModel)[e]  + multiset(w[..i])[e]
-    else if e in Values(pqModel) && e !in multiset(w[..i]) then  multiset(v[..])[e] == Values(pqModel)[e]
-    else multiset(v[..])[e] == multiset(w[..i])[e]
+       if  e in Values(pqModel) && e in multiset(w[..i]) then multiset(v[..])[e] == Values(pqModel)[e]  + multiset(w[..i])[e]
+       else if e in Values(pqModel) && e !in multiset(w[..i]) then  multiset(v[..])[e] == Values(pqModel)[e]
+       else multiset(v[..])[e] == multiset(w[..i])[e]
 
 }
 
 
-lemma oneMoreSorted(v : seq<real>,e:real)
+lemma OneMoreSorted(v : seq<real>,e:real)
   requires Sorted(v)
   requires forall x | x in v :: x <= e
   ensures Sorted(v+[e])
-{ if v ==[]  {}
+{
+  if v == []  {}
   else { assert v[|v|-1] in v && v[|v|-1] <= e;}
 }
 
@@ -151,7 +154,7 @@ lemma DelOne(m : multiset<Solution>,s:Solution)
 
   if Values(m)[s.value] > 1 {
     assert |(set ss <- m | ss.value == s.value)| > 1;
-    if s.value !in (set r <- ms  :: r.value) { 
+    if s.value !in (set r <- ms  :: r.value) {
       assert (set ss <- m | ss.value == s.value) == {s};
       assert false;
     }
@@ -335,18 +338,18 @@ method FillPQ(v : array<real>) returns(pq:PriorityQueue)//41,4s -> 58,2s
 /* Método: extrae los elementos de la cola de prioridad añadiendolos en un vector w */
 method {:only} ExtractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)//27,7 s
   modifies pq,pq.arr
-  requires  pq.Valid()
+  requires pq.Valid()
   requires |pq.Model()| == v.Length
   requires SameValues(v,pq,v.Length)
   requires forall s | s in pq.Model() :: pq.Model()[s] == 1
   ensures pq.Valid() && pq.IsEmpty() && |pq.Model()| == 0
   ensures fresh(w) && w.Length == v.Length
+  ensures Sorted(w[..]) // el nuevo array esta ordenado
   ensures multiset(w[..]) == multiset(v[..]) // el nuevo array w es una permutacion de v
 {
   w := new real[v.Length];
   assert |pq.Model()| == v.Length == w.Length;
   var i := 0;
-  // Extracción ordenada
 
   //El invariante se cumple al principio
   assert multiset(w[..i]) == multiset{};
@@ -365,9 +368,12 @@ method {:only} ExtractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)
     invariant multiset{pq} !! multiset{pq.arr as object} !! multiset{w} !! multiset{v} !! pq.Model()
     invariant Values(pq.Model()).Keys <= fullpq.Keys
     invariant fullpq.Keys == set x <- v[..]
-
     invariant SumValues(v,w,pq.Model(),i)
+
+    invariant Sorted(w[..i]) // ordenacion
+    invariant forall e,e' | e in w[..i] && e' in Values(pq.Model()) :: e <= e' // ordenacion
   {
+    //assume false; 
     //El invariante se cumple al principio del cuerpo del bucle
     assert SumValues(v,w,pq.Model(),i);
     ghost var oldpqModel := pq.Model();
@@ -377,9 +383,19 @@ method {:only} ExtractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)
 
     var m := pq.Min();
 
-    assert SumValues(v,w,oldpqModel,i);
+    assert forall e | e in Values(pq.Model()) :: m.value <= e; //ord
+    assert m.value in Values(pq.Model()); //ord
+    assert forall e | e in   w[..i]:: e <= m.value; //ord
+
+    assert SumValues(v,w,oldpqModel,i); // multi
 
     w[i] := m.value;
+
+    assert w[..i+1] == w[..i] + [w[i]]; //ord
+    assert forall e | e in Values(pq.Model()) :: w[i] <= e; //ord
+    assert Sorted(w[..i+1]) by { //ord
+      OneMoreSorted(w[..i],w[i]);
+    }
 
     //Aunque w ha cambiado la parte de w[..i] no ha cambiado
     //porque solo ha cambiado la posicion i
@@ -388,6 +404,8 @@ method {:only} ExtractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)
     assert multiset(w[..i])==mi;
 
     pq.DeleteMin();
+
+    assert forall e,e' | e in w[..i+1] && e' in Values(pq.Model()) :: e <= e'; //ord
 
     //Como w[..i] no ha cambiado SumValues se sigue cumpliendo
     //para oldpqModel, igual que antes
@@ -423,6 +441,7 @@ method {:only} ExtractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)
 
 
 method Heapsort(v : array<real>) returns (w : array<real>)
+  ensures Sorted(w[..]) // el nuevo array esta ordenado
   ensures multiset(w[..]) == multiset(v[..]) // el nuevo array w es una permutacion de v
 {
   var pq := FillPQ(v);

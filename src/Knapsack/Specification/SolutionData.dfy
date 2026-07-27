@@ -131,7 +131,7 @@ module SolutionData {
 
 
     /*
-      Predicado: 
+      Predicado: la prioridad es una cota superior para todas las extensiones válidas de la solución parcial.
     */
     ghost predicate IsUpperBound(priority : real, input : InputData)
       requires input.Valid()

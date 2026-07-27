@@ -36,27 +36,27 @@ abstract module PQ {
 
     /* Lemas */
 
-    /* Lemma: proof that lt is irreflexive */
+    /* Lemma: verifica que lt is irreflexive */
     static lemma LtIrreflexive()
       ensures forall x : Solution :: !x.lt(x)
 
 
-    /* Lemma: proof that lt is antisymmetric */
+    /* Lemma: verifica que lt es antisimetrica */
     static lemma LtAntisymmetric()
       ensures forall x : Solution, y : Solution :: x.lt(y) ==> !y.lt(x)
 
 
-    /* Lemma: proof that lt is transitive */
+    /* Lemma: verifica que lt es transitiva */
     static lemma LtTransitive()
       ensures forall x : Solution, y : Solution, z : Solution :: x.lt(y) && y.lt(z) ==> x.lt(z)
 
 
-    /* Lemma: proof that le is transitive */
+    /* Lemma: verifica que le s transitiva */
     static lemma LeTransitive()
       ensures forall x : Solution, y : Solution, z : Solution :: x.le(y) && y.le(z) ==> x.le(z)
 
 
-    /* Lemma: proof that lt is transitive */
+    /* Lemma: verifica que si x es menor o equivalente que y e y es menor estricto que z, entonces x es menor estricto que z */
     static lemma LeLtTransitive(x : Solution, y : Solution, z : Solution)
       requires x.le(y) && y.lt(z)
       ensures x.lt(z)
@@ -70,12 +70,12 @@ abstract module PQ {
       }
     }
 
-    /* Lemma: proof that lt satisfies transitive incomparability */
+    /* Lemma: verifica que lt satisface la transitividad de la incomparabilidad */
     static lemma LtTransitiveIncomparability()
       ensures forall x : Solution, y : Solution, z : Solution :: x.eq(y) && y.eq(z) ==> x.eq(z)
 
 
-    /* Lemma: proof that lt satisfies weak order */
+    /* Lemma: verifica que lt satisface weak order */
     static lemma LtWeakOrder()
       ensures forall x : Solution :: !x.lt(x)
       ensures forall x : Solution, y : Solution :: x.lt(y) ==> !y.lt(x)
@@ -347,7 +347,7 @@ abstract module PQ {
       requires !IsEmpty()
       ensures Valid()
       ensures Model() == old(Model()) - multiset{old(Min())}
-      //ensures arr == old(arr) || fresh(arr)
+      ensures arr == old(arr) || fresh(arr)
     {
       var oldMin := arr[0];
       assert oldMin == old(Min()) == Min();
@@ -526,7 +526,7 @@ abstract module PQ {
       // Precondiciones sobre la propiedad heap
       requires old(arr[m]).lt(old(arr[j])) // estado antiguo: el hijo era menor que su padre (no cumple heap)
       requires old(arr[m]).le(old(arr[2*j+1])) // y menor o igual que su hermano (o <= que él mismo)
-      requires 2*j+2 < count ==> old(arr[m]).le(old(arr[2*j + 2])) // si existe hijo derecho, m es menor que ese hijo derecho
+      requires 2*j+2 < count ==> old(arr[m]).le(old(arr[2*j+2])) // si existe hijo derecho, m es menor que ese hijo derecho
       
       requires forall i | 0 < i < count && (i-1)/2 != j:: old(arr[(i-1)/2]).le(old(arr[i])) // estado antiguo: todos excepto j y sus hijos, son menores que su padre
       requires j > 0 ==> old(arr[(j-1)/2]).le(old(arr[m])) // m es mayor que su abuelo

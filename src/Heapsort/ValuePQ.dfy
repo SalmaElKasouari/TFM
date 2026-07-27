@@ -15,12 +15,6 @@ module ValuePQ refines PQ {
     }
 
     
-    function GetValue() : real
-    reads this, this`value
-    {
-      value
-    }
-
     /* 
     Predicado: define el orden estricto (<) entre dos soluciones.
     */
