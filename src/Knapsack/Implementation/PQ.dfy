@@ -6,22 +6,23 @@ abstract module PQ {
     /* Predicados */
 
     /* 
-    Predicado: defines the non-strict ordering (<=) between two solutions. Returns true if this solution 
-    has a priority less than or equal to the other. This predicate is defined in 
-    terms of 'lt', so that le(other) <==> Not(other.lt(this)).
+    Predicado: define la relación de orden estricto entre dos soluciones.
+    Debe estar implementada por modulos refinados para definir el criterio de comparación
+    */
+    predicate lt (other: Solution)
+      reads this, other
+
+    
+    /* 
+    Predicado: define el orden no estricto (<=) entre dos soluciones. Devuelve true si this tiene 
+    menor o igual prioridad que other. Este predicado esta definido en terminos de 'lt', por lo tanto,
+    le(other) <==> Not(other.lt(this)).
     */
     predicate le (other : Solution)
       reads this, other
     {
       !other.lt(this)
-    }
-
-    /* 
-    Predicado: defines the strict order relation between two solutions.
-    Must be implemented by refined modules to define the comparison criterion.
-    */
-    predicate lt (other: Solution)
-      reads this, other
+    }    
 
 
     /* 
@@ -367,12 +368,11 @@ abstract module PQ {
     /* Method: moves a node downward in the heap until the heap property is restored */
     method Sink()
       modifies arr
-      requires 0 <= 0 <= count <= arr.Length
+      requires 0 <= count <= arr.Length
       requires forall i | 0 < i < count && (i-1)/2 != 0 :: arr[(i-1)/2].le(arr[i])
       ensures Valid()
       ensures multiset(arr[0..count]) == old(multiset(arr[0..count]))
     {
-      var seguir := true;
       var j := 0;
 
       while (2*j+1 < count &&  ( arr[2*j+1].lt(arr[j]) || (2*j+2 < count && arr[2*j+2].lt(arr[j]))))//(if 2*j+2 < count && arr[2*j+2].le(arr[2*j+1]) then arr[2*j+2] else arr[2*j+1]).lt(arr[j])) // el bucle sigue si: j tiene hijos y el minimo de los dos es menor que j

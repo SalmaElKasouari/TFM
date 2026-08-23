@@ -41,11 +41,12 @@ opaque ghost predicate SumValues(v : array<real>,w:array<real>,pqModel:multiset<
 }
 
 
-lemma oneMoreSorted(v : seq<real>,e:real)
+lemma OneMoreSorted(v : seq<real>,e:real)
   requires Sorted(v)
   requires forall x | x in v :: x <= e
   ensures Sorted(v+[e])
-{ if v ==[]  {}
+{ 
+  if v ==[]  {}
   else { assert v[|v|-1] in v && v[|v|-1] <= e;}
 }
 
@@ -366,7 +367,7 @@ method {:only} ExtractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)
     invariant Values(pq.Model()).Keys <= fullpq.Keys
     invariant fullpq.Keys == set x <- v[..]
 
-    invariant SumValues(v,w,pq.Model(),i)
+    invariant SumValues(v,w,pq.Model(), i)
   {
     //El invariante se cumple al principio del cuerpo del bucle
     assert SumValues(v,w,pq.Model(),i);

@@ -87,7 +87,7 @@ ghost predicate SameValues(v : array<real>,pq:PriorityQueue, i:int)
   && Values(pq.Model()).Keys == set x <- v[..i]
 }
 
-method FillPQ(v : array<real>) returns(pq:PriorityQueue)//38s
+method FillPQ(v : array<real>) returns(pq:PriorityQueue)
   ensures fresh(pq) && fresh(pq.arr)
   ensures pq.Valid() && |pq.Model()| == v.Length ==|v[..]|
   ensures SameValues(v,pq,v.Length)
