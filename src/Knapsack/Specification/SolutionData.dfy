@@ -136,9 +136,10 @@ module SolutionData {
     ghost predicate IsUpperBound(priority : real, input : InputData)
       requires input.Valid()
     {
-      //forall s : SolutionData | s.Valid(input) && s.OptimalExtension(this, input) :: s.TotalValue(input.items) <= priority
-      forall s : SolutionData | s.Valid(input) && s.k <= |itemsAssign| == |s.itemsAssign| && k <= s.k && s.Extends(this) :: s.TotalValue(input.items) <= priority
-
+      forall s : SolutionData | s.Valid(input) 
+                                && s.k <= |itemsAssign| == |s.itemsAssign| 
+                                && k <= s.k && s.Extends(this) 
+                              :: s.TotalValue(input.items) <= priority
     }
 
 
@@ -216,22 +217,6 @@ module SolutionData {
 
 
     /*
-    Función: devuelve el conjunto de las soluciones completas (hojas) que son extensiones de this 
-    */
-    ghost function Extensions() : set<SolutionData>
-      decreases |itemsAssign| - k
-      requires 0 <= k <= |itemsAssign|
-      ensures Extensions() <= PartialExtensions()
-    {
-      if k == |itemsAssign| then
-        {this}
-      else
-        SolutionData(itemsAssign[k := false], k + 1).Extensions() +
-        SolutionData(itemsAssign[k := true], k + 1).Extensions()
-    }
-
-
-    /*
     Función: devuelve el conjunto de las soluciones parciales que son extensiones de this 
     */
     ghost function PartialExtensions() : set<SolutionData>
@@ -247,9 +232,32 @@ module SolutionData {
     }
 
 
+    /*
+    Función: devuelve el conjunto de las soluciones completas (hojas) que son extensiones de this 
+    */
+    ghost function Extensions() : set<SolutionData>
+      decreases |itemsAssign| - k
+      requires 0 <= k <= |itemsAssign|
+      ensures Extensions() <= PartialExtensions()
+    {
+      if k == |itemsAssign| then
+        {this}
+      else
+        SolutionData(itemsAssign[k := false], k + 1).Extensions() +
+        SolutionData(itemsAssign[k := true], k + 1).Extensions()
+    }    
+
+
 
     /* Lemas */
 
+    /*
+    Lema: si una solución s pertenece a las extensiones de parent, entonces s estiende de parent.
+    //
+    Propósito: demostrar el lema PartialIncludePriority.
+    //
+    Verificación: utilizando el lema ItemsAssignSize.
+    */
     static lemma InExtensionsExtends(input:InputData, parent:SolutionData, s:SolutionData)
       decreases |input.items| - parent.k
       requires input.Valid()
@@ -267,7 +275,7 @@ module SolutionData {
     //
     Propósito: demostrar el lema DisjointTreesPropertiesTwoChildren.
     //
-    Verificación: 
+    Verificación: por inducción.
     */
     static lemma ItemsAssignSize(input:InputData, parent:SolutionData, s:SolutionData)
       decreases |input.items| - parent.k
@@ -297,7 +305,7 @@ module SolutionData {
     //
     Propósito: demostrar el lema DisjointTreesPropertiesTwoChildren.
     //
-    Verificación: 
+    Verificación: por inducción.
     */
     static lemma InPartialExtensions(input:InputData, parent:SolutionData, s:SolutionData)
       decreases |input.items| - parent.k

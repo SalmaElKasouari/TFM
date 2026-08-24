@@ -16,20 +16,20 @@ Estructura del fichero:
 
   Lemas sobre la estructura de los árboles de búsqueda:
   - ParentNotInChildPartialExtensions: el padre no pertenece a las extensiones de sus hijos.
-  - ChildrenAreDisjoint
+  - ChildrenAreDisjoint: las extensiones parciales del hijo true y del hijo false de una solución son disjuntas.
 
   Lemas sobre la preservación de DisjointTrees:
-  - DisjointTreesPropertiesOneChild
-  - DisjointTreesPropertiesTwoChildren
-  - SubsetDisjointTrees
+  - DisjointTreesPropertiesOneChild: si el padre era disjunto del resto de la cola (y los de la cola entre sí) entonces al quitar el padre y añadir un hijo se sigue cumpliendo esa propiedad.
+  - DisjointTreesPropertiesTwoChildren: si añadimos los dos hijos a la cola se sigue cumpliendo la propiedad DisjointTrees.
+  - SubsetDisjointTrees: si un conjunto s cumple la propiedad de DisjointTrees y s' esta contenido en s, entonces s' también cumple la propiedad de DisjointTrees.
 
   Lemas que demuestran la terminación:
-  - StaticPartialPendingDecreases
-  - StaticPartialPendingWithSonDecreases
-  - StaticPartialPendingWithSonsDecreases
+  - StaticPartialPendingDecreases: al eliminar una solución del modelo de la cola, el conjunto de soluciones parciales pendientes decrece.
+  - StaticPartialPendingWithSonDecreases: al eliminar una solución parcial de la cola y añadir uno de sus hijos, el conjunto de soluciones parciales pendientes decrece.
+  - StaticPartialPendingWithSonsDecreases: al eliminar una solución parcial de la cola y añadir sus dos hijos, el conjunto de soluciones parciales pendientes decrece.
 
   Lemas para la corrección de prioridades:
-  - PartialIncludePriority
+  - PartialIncludePriority: las prioridades de las soluciones parciales pendientes son cotas superiores de las soluciones que pueden derivarse de ellas
 
 
   Métodos:
@@ -191,7 +191,7 @@ lemma ChildrenAreDisjoint(parent : Solution, trueChild : Solution, falseChild: S
 /* Lemas de preservación de DisjointTrees */
 
 /*
-Lema: si el padre era disjunto del resto de la cola (y los de la cola entre sí) entonces al quitar el padre y añadir el hijo true sigue cumpliendo esa propiedad.
+Lema: si el padre era disjunto del resto de la cola (y los de la cola entre sí) entonces al quitar el padre y añadir un hijo se sigue cumpliendo esa propiedad.
 //
 Propósito: demostrar la terminación de RyP cuando se añade a la cola solo uno de los dos hijos. 
 //
@@ -283,8 +283,8 @@ lemma DisjointTreesPropertiesTwoChildren(parent : Solution, trueChild : Solution
 }
 
 /*
-Lema: si un conjunto s cumple la propiedad de DisjointTrees y s' esta contenido en s, 
-entonces s' también cumple la propiedad de DisjointTrees.
+Lema: si un conjunto s cumple la propiedad de DisjointTrees y s' esta contenido en s, entonces s' también cumple la propiedad
+de DisjointTrees.
 //
 Propósito: demsotrar el lema DisjointTreesPropertiesOneChild.
 //
@@ -403,8 +403,8 @@ lemma StaticPartialPendingWithSonDecreases(m: multiset<Solution>, parent: Soluti
 /* Lemas para la corrección de las prioridades */
 
 /*
-Lema: AllPrioritiesAreCorrect se deduce de AllPartial para emostrar que las prioridades de las soluciones parciales pendientes 
-son cotas superiores de las soluciones que pueden derivarse de ellas
+Lema: AllPrioritiesAreCorrect se deduce de AllPartial para demostrar que las prioridades de las soluciones parciales pendientes 
+son cotas superiores de las soluciones que pueden derivarse de ellas.
 //
 Propósito: verificar el método MainLoop.
 // 
@@ -493,11 +493,10 @@ method ComputeSolution(input: Input) returns (bs: Solution)
 
 
 /*
-Método: implementa el bucle principal del algoritmo de ramificación y poda. Mientras que la cola de 
-prioridad no esté vacía y su Min() sea superior al valor de la mejor solución encontrada, se 
-continúa explorando el espacio de búsqueda mediante llamadas a LoopBody.
-El bucle utiliza como terminación el número de soluciones parciales pendientes,
-pq.PartialPending(input), que debe disminuir estrictamente en cada iteración.
+Método: implementa el bucle principal del algoritmo de ramificación y poda. Mientras que la cola de prioridad no esté vacía y su Min() 
+sea superior al valor de la mejor solución encontrada, se continúa explorando el espacio de búsqueda mediante llamadas a LoopBody. 
+El bucle utiliza como terminación el número de soluciones parciales pendientes, pq.PartialPending(input), que debe disminuir 
+estrictamente en cada iteración.
 //
 Verificación: usando las postcondiciones de LoopBody y el lema PartialIncludePriority.
 */

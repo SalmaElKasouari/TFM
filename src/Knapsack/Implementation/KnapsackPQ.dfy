@@ -12,7 +12,6 @@ module KnapsackPQ refines PQ {
 
   class PriorityQueue ... {
 
-
     /* Funciones */
 
     /*
