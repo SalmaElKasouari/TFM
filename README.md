@@ -16,6 +16,7 @@ Para compilar y verificar se recomienda usar **Visual Studio Code** con la exten
 * `README.md`: este archivo
 * src/: contiene los ficheros principales del proyecto.
 
+```
 📄 README.md
 
 📁 src/
@@ -35,3 +36,4 @@ Para compilar y verificar se recomienda usar **Visual Studio Code** con la exten
           ├── ItemData.dfy
           └── SolutionData.dfy
 
+```
