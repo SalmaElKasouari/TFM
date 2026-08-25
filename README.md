@@ -20,20 +20,20 @@ Para compilar y verificar se recomienda usar **Visual Studio Code** con la exten
 📄 README.md
 
 📁 src/
-  ├── 📁 Heapsort/
-  │   ├── ValuePQ.dfy
-  │   ├── Heapsort2.dfy
-  │   └── Heapsort.dfy
-  └── 📁 Knapsack/
-      ├── 📁 Implementation/
-      │   ├── Input.dfy
-      │   ├── Item.dfy
-      │   ├── KnapsackBB.dfy
-      │   ├── KnapsackPQ.dfy
-      │   └── PQ.dfy
-      └── 📁 Specification/
-          ├── InputData.dfy
-          ├── ItemData.dfy
-          └── SolutionData.dfy
+├── 📁 Heapsort/
+│   ├── ValuePQ.dfy
+│   ├── Heapsort2.dfy
+│   └── Heapsort.dfy
+└── 📁 Knapsack/
+    ├── 📁 Implementation/
+    │   ├── Input.dfy
+    │   ├── Item.dfy
+    │   ├── KnapsackBB.dfy
+    │   ├── KnapsackPQ.dfy
+    │   └── PQ.dfy
+    └── 📁 Specification/
+        ├── InputData.dfy
+        ├── ItemData.dfy
+        └── SolutionData.dfy
 
 ```
