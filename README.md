@@ -2,7 +2,7 @@
 
 **Título:** Verificación de algoritmos de ramificación y poda en Dafny  
 **Programa:** Máster Interuniversitario en Métodos Formales en Ingeniería Informática  
-**Universidades:** Universidad Complutense de Madrid (UCM) y Universidad Politécnica de Madrid (UPM)  
+**Universidad:** Universidad Complutense de Madrid (UCM).  
 **Curso académico:** 2025–2026  
 
 ## Colaboradores
@@ -14,3 +14,24 @@ Para compilar y verificar se recomienda usar **Visual Studio Code** con la exten
 
 ## Estructura del proyecto
 * `README.md`: este archivo
+* src/: contiene los ficheros principales del proyecto.
+
+📄 README.md
+
+📁 src/
+  ├── 📁 Heapsort/
+  │   ├── ValuePQ.dfy
+  │   ├── Heapsort2.dfy
+  │   └── Heapsort.dfy
+  └── 📁 Knapsack/
+      ├── 📁 Implementation/
+      │   ├── Input.dfy
+      │   ├── Item.dfy
+      │   ├── KnapsackBB.dfy
+      │   ├── KnapsackPQ.dfy
+      │   └── PQ.dfy
+      └── 📁 Specification/
+          ├── InputData.dfy
+          ├── ItemData.dfy
+          └── SolutionData.dfy
+
