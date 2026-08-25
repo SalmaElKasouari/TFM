@@ -334,7 +334,7 @@ method FillPQ(v : array<real>) returns(pq:PriorityQueue)//41,4s -> 58,2s
 
 
 /* Método: extrae los elementos de la cola de prioridad añadiendolos en un vector w */
-method {:only} ExtractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)//27,7 s
+method ExtractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)//27,7 s
   modifies pq,pq.arr
   requires  pq.Valid()
   requires |pq.Model()| == v.Length

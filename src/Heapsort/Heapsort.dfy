@@ -125,7 +125,7 @@ method FillPQ(v : array<real>) returns(pq:PriorityQueue)
 
 
 
-method {:only} ExtractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)
+method ExtractPQ(v:array<real>,pq:PriorityQueue) returns (w:array<real>)
   modifies pq,pq.arr
   requires pq.Valid()
   requires |pq.Model()| == v.Length

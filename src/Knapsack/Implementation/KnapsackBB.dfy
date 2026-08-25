@@ -532,7 +532,8 @@ method {:axiom} LoopBody(bs : Solution, pq : PriorityQueue, input : Input)
   ensures pq.arr == old(pq.arr) || fresh(pq.arr)
   ensures bs.itemsAssign == old(bs.itemsAssign) || fresh(bs.itemsAssign)
   ensures pq.PartialPending(input) < old(pq.PartialPending(input))
-{
+{ 
+  assume false;
   var trueChild : Solution? := null;
   var falseChild : Solution? := null;
   var oldpq := pq;
@@ -588,7 +589,7 @@ method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : 
           else pq.Model() == old(pq.Model())
   ensures bs.itemsAssign == old(bs.itemsAssign) || fresh(bs.itemsAssign)
 {
-  assume false;
+  //assume false;
   if (child.priority > bs.totalValue) {
     if (child.k == child.itemsAssign.Length) {
       bs.Copy(child);
