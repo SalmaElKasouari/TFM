@@ -3,7 +3,7 @@
 **Título:** Verificación de algoritmos de ramificación y poda en Dafny  
 **Programa:** Máster Interuniversitario en Métodos Formales en Ingeniería Informática  
 **Universidad:** Universidad Complutense de Madrid (UCM).  
-**Curso académico:** 2025–2026  
+**Curso académico:** 2025-2026  
 
 ## Colaboradores
 **Autor:** Salma El Kasouari Qessouri  
