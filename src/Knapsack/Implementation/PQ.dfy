@@ -89,6 +89,7 @@ abstract module PQ {
       LtTransitiveIncomparability();
     }
 
+    /* Lema: si x es menor que y entonces x es menor o igual que y */
     static lemma LtImpliesLe(x : Solution, y : Solution)
       requires x.lt(y) // x < y
       ensures x.le(y) // x <= y
@@ -96,6 +97,7 @@ abstract module PQ {
       LtWeakOrder();
     }
 
+     /* Lema: todo elemento x es menor o igual que sí mismo */
     static lemma LeReflexive()
       ensures forall x : Solution :: x.le(x)
     {
