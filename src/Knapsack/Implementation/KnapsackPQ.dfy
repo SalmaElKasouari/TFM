@@ -150,7 +150,6 @@ module KnapsackPQ refines PQ {
 
     /* Predicados */
 
-
     /* 
     Predicado: define el orden estricto (<) entre dos soluciones. Devuelve true si this tiene una 
     prioridad estrictamente menor que other.
@@ -160,23 +159,6 @@ module KnapsackPQ refines PQ {
     {
       priority > other.priority
     }
-
-
-    /* Lema: demuestra que lt is irreflexivo */
-    static lemma LtIrreflexive(){}
-
-    /* Lema: demuestra que lt is asimetrico */
-    static lemma LtAntisymmetric(){}
-
-    /* Lema: demuestra que lt is transitivo */
-    static lemma LtTransitive(){}
-
-    /* Lema: demuestra que le is transitivo */
-    static lemma LeTransitive() {}
-
-    /* Lema: demuestra que lt cumple la incomparabilidad transitiva */
-    static lemma LtTransitiveIncomparability(){}
-
 
 
     /* 
@@ -270,14 +252,127 @@ module KnapsackPQ refines PQ {
     }
 
 
-    /*
-    Función: devuelve la prioridad del nodo.
+
+    /* Lemas */
+
+    /* Lema: demuestra que lt is irreflexivo */
+    static lemma LtIrreflexive(){}
+
+    /* Lema: demuestra que lt is asimetrico */
+    static lemma LtAntisymmetric(){}
+
+    /* Lema: demuestra que lt is transitivo */
+    static lemma LtTransitive(){}
+
+    /* Lema: demuestra que le is transitivo */
+    static lemma LeTransitive() {}
+
+    /* Lema: demuestra que lt cumple la incomparabilidad transitiva */
+    static lemma LtTransitiveIncomparability(){}
+
+
+    /* 
+    Lema: dada una solución s que es válida por un input dado, y this tiene el mismo modelo, peso acumulado 
+    y valor acumulado que s, entonces this también será válida para el mismo input. 
+    //
+    Propósito: demostrar que el TotalValue de ps es igual al TotalValue de bs en KnapsackBTBaseCase de BT.dfy.
+    //
+    Demostración: trivial.
     */
-    function Priority() : real
-      reads this
+    lemma CopyModel (s : Solution, input : Input)
+      requires input.Valid()
+      requires s.Valid(input)
+      requires s.Model() == Model()
+      requires s.totalWeight == totalWeight
+      requires s.totalValue == totalValue
+      requires s.priority == priority
+      ensures Valid(input)
+    {}
+
+
+    /*
+    Lema: si extendemos una solución parcial (parent) añadiendo un elemento asignado como (true) 
+    dando lugar a una nueva solución parcial (trueChild), entonces ps también cumple con las propiedades de consistencia 
+    parcial definidas por el método Partial. 
+    //
+    Propósito: garantizar que ps sigue siendo Partial en KnapsackBTTrueBranch después de añadirle un objeto cuyo peso 
+    no hacía exceder el peso maximo.
+    //
+    Verificación: se realizan cálculos formales para demostrar que el valor y peso de ps son consistentes con oldps:
+      - Primer calc: Se usa el lema AddTrueMaintainsSumConsistency para garantizar que el peso total de ps es la suma 
+        del peso de parent mas el nuevo Item. Se usa el lema InputDataItems para garantizar que el peso total de ps es la suma 
+        del peso de parent mas el nuevo ItemData. Finalmente se garantiza que el peso total es menor que el peso máximo.
+      - Segundo calc: se parte de ps.totalWeight y se reescribe como la suma de oldtotalWeight y el nuevo Item. Se 
+        asegura que oldtotalWeight es igual a parent.TotalWeight(input.Model().items). Y se usan los lemas InputDataItems 
+        y AddTrueMaintainsSumConsistency para demostrar que la transición de parent a ps es válida. Se asegura que la 
+        suma se puede reescribir como ps.Model().TotalWeight(input.Model().items).
+      - Tercer calc: análogo al anterior pero aplicado al valor total en lugar del peso.
+    */
+    static lemma PartialConsistency(ps: Solution, parent: Solution, input: Input)
+      requires input.Valid()
+      requires 1 <= ps.k <= ps.itemsAssign.Length
+      requires 0 <= parent.k <= parent.itemsAssign.Length
+      requires ps.k == parent.k + 1
+      requires ps.itemsAssign.Length == parent.itemsAssign.Length == input.items.Length
+      requires parent.itemsAssign[..parent.k] + [true] == ps.itemsAssign[..ps.k]
+      requires parent.Partial(input)
+      requires parent.totalWeight + input.items[ps.k - 1].weight <= input.maxWeight
+      requires parent.totalWeight == ps.totalWeight - input.items[parent.k].weight
+      requires parent.totalValue == ps.totalValue - input.items[parent.k].value
+      requires ps.IsTrueChild(parent, input)
+      requires ps.priority == parent.priority
+      ensures ps.Partial(input)
     {
-      priority
+      calc {
+         ps.totalWeight;
+        { SolutionData.AddTrueMaintainsSumConsistency(parent.Model(), ps.Model(), input.Model()); }
+         parent.totalWeight + input.Model().items[ps.k - 1].weight;
+        { input.InputDataItems(ps.k - 1); }
+         parent.totalWeight + input.items[ps.k - 1].weight;
+      <= input.maxWeight;
+      }
+
+      calc {
+        ps.totalWeight;
+        parent.totalWeight + input.items[ps.k - 1].weight;
+        parent.Model().TotalWeight(input.Model().items) + input.items[ps.k - 1].weight;
+        { input.InputDataItems(ps.k - 1);
+          SolutionData.AddTrueMaintainsSumConsistency(parent.Model(), ps.Model(), input.Model());
+        }
+        ps.Model().TotalWeight(input.Model().items);
+      }
+
+      calc {
+        ps.totalValue;
+        parent.totalValue + input.items[ps.k - 1].value;
+        parent.Model().TotalValue(input.Model().items) + input.items[ps.k - 1].value;
+        { input.InputDataItems(ps.k - 1);
+          SolutionData.AddTrueMaintainsSumConsistency(parent.Model(), ps.Model(), input.Model());
+        }
+        ps.Model().TotalValue(input.Model().items);
+      }
+
+      Solution.EqualPriorityImpliesPartial(parent, ps, input);
+      assert ps.Model().IsUpperBound(ps.priority, input.Model());
+      assert ps.Partial(input);
     }
+
+
+    /*
+    Lema: si una solución parent es Partial (su prioridad es cota superior) y su hijo trueChild extendido con true tiene la misma 
+    prioridad que su padre, entonces la prioridad del hijo es cota superior.
+    //
+    Propósito: demostrar que ps es Partial en el lema PartialConsistency
+    //
+    Verificación: trivial.
+    */
+    static lemma EqualPriorityImpliesPartial(parent : Solution, trueChild : Solution, input : Input)
+      requires input.Valid()
+      requires parent.Partial(input)
+      requires trueChild.IsTrueChild(parent, input)
+      requires trueChild.priority == parent.priority
+      ensures trueChild.IsUpperBound(input)
+    {}
 
 
 
@@ -415,19 +510,6 @@ module KnapsackPQ refines PQ {
       requires Model().TotalWeight(input.Model().items) == totalWeight
       requires Model().TotalValue(input.Model().items) == totalValue
       ensures Partial(input)
-      /*
-      requires 0 <= k <= itemsAssign.Length
-      requires 0 <= k <= input.items.Length == itemsAssign.Length
-      requires SolutionData(itemsAssign[..], k).TotalValue(input.Model().items) == totalValue
-      ensures
-        forall s : SolutionData
-          | && |s.itemsAssign| == |SolutionData(itemsAssign[..], k).itemsAssign|
-            && s.k == |s.itemsAssign|
-            && k <= s.k
-            && s.Extends(SolutionData(itemsAssign[..], k))
-            && s.Valid(input.Model())
-          :: s.TotalValue(input.Model().items) <= upperBound
-          */
     {
       ghost var ps' := SolutionData(itemsAssign[..], k);
       assert |ps'.itemsAssign| == |itemsAssign[..]|;
@@ -449,115 +531,6 @@ module KnapsackPQ refines PQ {
       }
       SolutionData.AllTruesIsUpperBoundForAll(SolutionData(itemsAssign[..], k), ps', input.Model());
     }
-
-
-
-    /* Lemas */
-
-    /* 
-    Lema: dada una solución s que es válida por un input dado, y this tiene el mismo modelo, peso acumulado 
-    y valor acumulado que s, entonces this también será válida para el mismo input. 
-    //
-    Propósito: demostrar que el TotalValue de ps es igual al TotalValue de bs en KnapsackBTBaseCase de BT.dfy.
-    //
-    Demostración: trivial.
-    */
-    lemma CopyModel (s : Solution, input : Input)
-      requires input.Valid()
-      requires s.Valid(input)
-      requires s.Model() == Model()
-      requires s.totalWeight == totalWeight
-      requires s.totalValue == totalValue
-      requires s.priority == priority
-      ensures Valid(input)
-    {}
-
-
-    /*
-    Lema: si extendemos una solución parcial (parent) añadiendo un elemento asignado como (true) 
-    dando lugar a una nueva solución parcial (trueChild), entonces ps también cumple con las propiedades de consistencia 
-    parcial definidas por el método Partial. 
-    //
-    Propósito: garantizar que ps sigue siendo Partial en KnapsackBTTrueBranch después de añadirle un objeto cuyo peso 
-    no hacía exceder el peso maximo.
-    //
-    Verificación: se realizan cálculos formales para demostrar que el valor y peso de ps son consistentes con oldps:
-      - Primer calc: Se usa el lema AddTrueMaintainsSumConsistency para garantizar que el peso total de ps es la suma 
-        del peso de parent mas el nuevo Item. Se usa el lema InputDataItems para garantizar que el peso total de ps es la suma 
-        del peso de parent mas el nuevo ItemData. Finalmente se garantiza que el peso total es menor que el peso máximo.
-      - Segundo calc: se parte de ps.totalWeight y se reescribe como la suma de oldtotalWeight y el nuevo Item. Se 
-        asegura que oldtotalWeight es igual a parent.TotalWeight(input.Model().items). Y se usan los lemas InputDataItems 
-        y AddTrueMaintainsSumConsistency para demostrar que la transición de parent a ps es válida. Se asegura que la 
-        suma se puede reescribir como ps.Model().TotalWeight(input.Model().items).
-      - Tercer calc: análogo al anterior pero aplicado al valor total en lugar del peso.
-    */
-    static lemma PartialConsistency(ps: Solution, parent: Solution, input: Input)
-      requires input.Valid()
-      requires 1 <= ps.k <= ps.itemsAssign.Length
-      requires 0 <= parent.k <= parent.itemsAssign.Length
-      requires ps.k == parent.k + 1
-      requires ps.itemsAssign.Length == parent.itemsAssign.Length == input.items.Length
-      requires parent.itemsAssign[..parent.k] + [true] == ps.itemsAssign[..ps.k]
-      requires parent.Partial(input)
-      requires parent.totalWeight + input.items[ps.k - 1].weight <= input.maxWeight
-      requires parent.totalWeight == ps.totalWeight - input.items[parent.k].weight
-      requires parent.totalValue == ps.totalValue - input.items[parent.k].value
-      requires ps.IsTrueChild(parent, input)
-      requires ps.priority == parent.priority
-      ensures ps.Partial(input)
-    {
-      calc {
-         ps.totalWeight;
-        { SolutionData.AddTrueMaintainsSumConsistency(parent.Model(), ps.Model(), input.Model()); }
-         parent.totalWeight + input.Model().items[ps.k - 1].weight;
-        { input.InputDataItems(ps.k - 1); }
-         parent.totalWeight + input.items[ps.k - 1].weight;
-      <= input.maxWeight;
-      }
-
-      calc {
-        ps.totalWeight;
-        parent.totalWeight + input.items[ps.k - 1].weight;
-        parent.Model().TotalWeight(input.Model().items) + input.items[ps.k - 1].weight;
-        { input.InputDataItems(ps.k - 1);
-          SolutionData.AddTrueMaintainsSumConsistency(parent.Model(), ps.Model(), input.Model());
-        }
-        ps.Model().TotalWeight(input.Model().items);
-      }
-
-      calc {
-        ps.totalValue;
-        parent.totalValue + input.items[ps.k - 1].value;
-        parent.Model().TotalValue(input.Model().items) + input.items[ps.k - 1].value;
-        { input.InputDataItems(ps.k - 1);
-          SolutionData.AddTrueMaintainsSumConsistency(parent.Model(), ps.Model(), input.Model());
-        }
-        ps.Model().TotalValue(input.Model().items);
-      }
-
-      Solution.EqualPriorityImpliesPartial(parent, ps, input);
-      assert ps.Model().IsUpperBound(ps.priority, input.Model());
-      assert ps.Partial(input);
-    }
-
-
-    /*
-    Lema: si una solución parent es Partial (su prioridad es cota superior) y su hijo trueChild extendido con true tiene la misma 
-    prioridad que su padre, entonces la prioridad del hijo es cota superior.
-    //
-    Propósito: demostrar que ps es Partial en el lema PartialConsistency
-    //
-    Verificación: trivial.
-    */
-    static lemma EqualPriorityImpliesPartial(parent : Solution, trueChild : Solution, input : Input)
-      requires input.Valid()
-      requires parent.Partial(input)
-      requires trueChild.IsTrueChild(parent, input)
-      requires trueChild.priority == parent.priority
-      ensures trueChild.IsUpperBound(input)
-    {}
-
-
   }
 
 }

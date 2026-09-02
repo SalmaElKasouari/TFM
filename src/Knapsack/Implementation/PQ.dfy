@@ -56,6 +56,10 @@ abstract module PQ {
     static lemma LeTransitive()
       ensures forall x : Solution, y : Solution, z : Solution :: x.le(y) && y.le(z) ==> x.le(z)
 
+    /* Lemma: verifica que lt satisface la transitividad de la incomparabilidad */
+    static lemma LtTransitiveIncomparability()
+      ensures forall x : Solution, y : Solution, z : Solution :: x.eq(y) && y.eq(z) ==> x.eq(z)
+
 
     /* Lemma: verifica que si x es menor o equivalente que y e y es menor estricto que z, entonces x es menor estricto que z */
     static lemma LeLtTransitive(x : Solution, y : Solution, z : Solution)
@@ -69,11 +73,7 @@ abstract module PQ {
         assert x.eq(z) && x.eq(y) && y.eq(z);
         assert false;
       }
-    }
-
-    /* Lemma: verifica que lt satisface la transitividad de la incomparabilidad */
-    static lemma LtTransitiveIncomparability()
-      ensures forall x : Solution, y : Solution, z : Solution :: x.eq(y) && y.eq(z) ==> x.eq(z)
+    }  
 
 
     /* Lemma: verifica que lt satisface weak order */
@@ -89,6 +89,7 @@ abstract module PQ {
       LtTransitiveIncomparability();
     }
 
+
     /* Lema: si x es menor que y entonces x es menor o igual que y */
     static lemma LtImpliesLe(x : Solution, y : Solution)
       requires x.lt(y) // x < y
@@ -97,23 +98,22 @@ abstract module PQ {
       LtWeakOrder();
     }
 
-     /* Lema: todo elemento x es menor o igual que sí mismo */
+
+    /* Lema: todo elemento x es menor o igual que sí mismo */
     static lemma LeReflexive()
       ensures forall x : Solution :: x.le(x)
     {
       LtIrreflexive();
     }
-
-
   }
 
-  /* The following priority queue is implemented with a williams heap (binary heap) */
+  /* La sigueinte cola de prioridad está implementada mediante un montículo binario */
   class PriorityQueue {
 
-    /* Atributes and constructor */
+    /* Atributos y constructor */
 
     var arr : array<Solution>
-    var count : int  // current number of elements, if count == arr.Length, array must grow
+    var count : int  // número de elementis, if count == arr.Length, el array debe aumentar de tamaño
 
     constructor ()
       ensures Valid()
@@ -127,7 +127,7 @@ abstract module PQ {
 
     /* Predicados */
 
-    /* Predicado: true if the segment [x, y) of the array satisfies the heap property*/
+    /* Predicado: comprueba si el segmento [x, y) del array cumple la propiedad de heap*/
     ghost predicate IsHeap(x : int, y : int)
       reads this, arr, set i | 0 <= i < arr.Length :: arr[i]
     {
@@ -136,7 +136,7 @@ abstract module PQ {
     }
 
 
-    /* Predicado: true if the array satisfies the heap property */
+    /* Predicado: comprueba si el array cumple la propiedad de heap */
     ghost predicate Valid()
       reads this, arr, set i | 0 <= i < arr.Length :: arr[i]
     {
@@ -145,7 +145,7 @@ abstract module PQ {
     }
 
 
-    /* Predicado: true if the heap has no elements */
+    /* Predicado: comprueba si el array está vacío */
     predicate IsEmpty()
       reads this, arr, set i | 0 <= i < arr.Length :: arr[i]
       requires Valid()
@@ -155,21 +155,21 @@ abstract module PQ {
     }
 
 
-    /* Predicado: true if s is the node with the minimum priority in the heap, i.e., no other node in the heap has a lower priority. */
+    /* Predicado: comprueba si s es el mínimo nodo del montículo, es decir, que ningún otro nodo en el monticulo tiene menor prioridad */
     ghost predicate IsMin(s : Solution)
       reads this, arr, s, set i | i in Model(),  set i | 0 <= i < arr.Length :: arr[i]
       requires Valid()
       requires !IsEmpty()
     {
-      && s in Model()// s belongs to the model
-      && forall i : Solution | i in Model() :: s.le(i) // the priority of s is not greater than any element of the set
+      && s in Model()
+      && forall i : Solution | i in Model() :: s.le(i)
     }
 
 
 
     /* Funciones */
 
-    /* function: returns the model of the heap */
+    /* function: devuelve el modelo de la cola */
     ghost function Model() : multiset<Solution>
       reads this, arr, set i | 0 <= i < arr.Length :: arr[i]
       requires Valid()
@@ -178,7 +178,7 @@ abstract module PQ {
     }
 
 
-    /* function: returns the element with the minimum priority in the heap */
+    /* function: devuelve el elemento de menor prioridad del monticulo */
     function Min() : Solution
       reads this, arr, set i | i in Model(), set i | 0 <= i < arr.Length :: arr[i]
       requires Valid()
@@ -193,7 +193,7 @@ abstract module PQ {
 
     /* Métodos */
 
-    /* Method: returns the current number of elements in the heap */
+    /* Method: devuelve el número de elementos del montículo */
     method Size() returns (c : int)
       requires Valid()
       ensures Valid()
@@ -203,7 +203,7 @@ abstract module PQ {
     }
 
 
-    /* Method: inserts an element to the heap */
+    /* Method: inserta un elemento en el montículo */
     method Insert(node : Solution)
       modifies this, arr
       requires Valid()
@@ -212,17 +212,17 @@ abstract module PQ {
       ensures Model() == old(Model()) + multiset{node}
       ensures arr == old(arr) || fresh(arr)
     {
-      if (count == 0) { // array is empty
+      if (count == 0) { // array vació
         var aux: array<Solution> := new Solution[1][node];
         arr := aux;
         count := count + 1;
       }
-      else if (count < arr.Length) { // array is not full
+      else if (count < arr.Length) { // array no lleno
         arr[count] := node;
         count := count + 1;
         Float();
       }
-      else { // array is full
+      else { // array lleno
         Grow();
         arr[count] := node;
         count := count + 1;
@@ -231,17 +231,17 @@ abstract module PQ {
     }
 
 
-    /* Method: duplicates space of the heap */
+    /* Method: duplica el tamaño del array */
     method Grow()
       modifies this, arr
       requires Valid()
       requires !IsEmpty()
-      ensures count == old(count) // the number of elements does not change in this method. The Method Insert increases it
-      ensures arr.Length > old(arr.Length) // the length of the array increases
-      ensures fresh(arr) // is new in memory
-      ensures arr[0..count] == old(arr[0..count]) // the elements that were already in the array are preserved
+      ensures count == old(count)
+      ensures arr.Length > old(arr.Length)
+      ensures fresh(arr)
+      ensures arr[0..count] == old(arr[0..count])
     {
-      // allocate new memory
+      // reservar memoria
       var last := arr[count-1];
       var aux: array<Solution> := new Solution[2 * arr.Length] (_ => last);
 
@@ -261,7 +261,7 @@ abstract module PQ {
     }
 
 
-    /* Method: this was the old swap method to verify float */
+    /* Method: era el antiguo método para hacer swap en float */
     method Swap(j : int, arr : array<Solution>)
       modifies arr
       requires 0 < j <= count - 1 < arr.Length
@@ -316,7 +316,7 @@ abstract module PQ {
     }
 
 
-    /* Method: moves the last inserted node upward in the heap until the heap property is restored */
+    /* Method: mueve el último nodo inertadi hacia arriba hasta que se cumpla la propiedad de heap */
     method Float()
       modifies arr
       requires 0 < count <= arr.Length
@@ -343,7 +343,7 @@ abstract module PQ {
     }
 
 
-    /* Method: deletes the element with the minimum priority of the heap */
+    /* Method: elimina el elemento con la mínima prioridad del montículo */
     method DeleteMin()
       modifies this, arr
       requires Valid()
@@ -367,7 +367,7 @@ abstract module PQ {
     }
 
 
-    /* Method: moves a node downward in the heap until the heap property is restored */
+    /* Method: mueve un nodo hacia abajo hasta que se cumpla la propiedad de heap */
     method Sink()
       modifies arr
       requires 0 <= count <= arr.Length
@@ -411,13 +411,26 @@ abstract module PQ {
 
     /*Lemmas*/
 
+
+    /* Lema: establece que todo nodo perteneciente al modelo se encuentra en alguna posición del array.
+    //
+    Propósito: demostrar lema FirstIsMin.
+    //
+    Verificación: trivial.
+    */
     lemma BelongsToArray(i : Solution)
       requires Valid()
       requires i in Model()
       ensures (exists j | 0 <= j < count :: arr[j] == i)
     {}
 
-    
+
+    /* Lema: establece que el primer elemento del array es el nodo mínimo.
+    //
+    Propósito: verificar IsMin.
+    //
+    Verificación: utilizando los lemas BelongsToArray y LtIrreflexive.
+    */
     lemma FirstIsMin()
       requires Valid()
       requires !IsEmpty()
@@ -447,6 +460,12 @@ abstract module PQ {
     }
     
 
+    /* Lema: establece que m corresponde al hijo de menor valor de su padre y, por tanto, es menor o igual que sus hermanos.
+    //
+    Propósito: verificar Sink.
+    //
+    Verificación: utilizando el lema LtWeakOrder.
+    */
     lemma SonIsSmaller(m : int, arr : array<Solution>)
       requires 0 < m < count <= arr.Length
       requires m == if 2*((m-1)/2)+2 < count && arr[2*((m-1)/2)+2].le(arr[2*((m-1)/2)+1]) then 2*((m-1)/2)+2 else 2*((m-1)/2)+1
@@ -457,7 +476,12 @@ abstract module PQ {
     }
 
 
-    /* Lemma: proves that after swaping the value between j and his father (j-1)/2 in the float process, the heap property holds (excepting the father with its ancestors) */
+    /* Lema: establece que, después de intercambiar un nodo con su padre durante el proceso de flotación, se mantiene la propiedad de heap, salvo posiblemente en el camino hacia los antecesores del padre.
+    //
+    Propósito: verificar Float.
+    //
+    Verificación: utilizando los lemas LtImpliesLe y LeTransitive. 
+    */
     twostate lemma SwapFloatPreservesHeapProperty(j : int, arr : array<Solution>)
       requires 0 < j <= count - 1 < arr.Length
 
@@ -513,8 +537,12 @@ abstract module PQ {
       }
     }
 
-
-    /* Lemma: proves that after swaping the value between m and his father j = (m-1)/2 in the sink process, the heap property holds (excepting the father with its ancestors) */
+    /* Lema: establece que, después de intercambiar un nodo con su padre durante el proceso de hundimiento, se mantiene la propiedad de heap, salvo posiblemente en el camino hacia los antecesores del padre.
+    //
+    Propósito: verificar Sink.
+    //
+    Verificación: utilizando el lemas LtImpliesLe. 
+    */
     twostate lemma SwapSinkPreservesHeapProperty(j:int, m : int, arr : array<Solution>)
       requires j == (m-1)/2 && (m == 2*j +1 || m == 2*j+2)
       requires 0 < m <= count - 1 < arr.Length

@@ -33,11 +33,11 @@ Estructura del fichero:
 
 
   Métodos:
-  - ComputeSolution: encuentra una solución óptima que resuelve el problema mediante al método algorítmico de ramificación y poda.
-  - Mainloop: implementa el bucle principal del algoritmo de ramificación y poda.
-  - LoopBody: implementa una iteración del bucle principal del algoritmo de ramificación y poda.
-  - HandleChild: inserta el hijo en la cola si este no es solución completa.
-  - Main: ejecuta el programa principal y muestra la solución.
+  - ComputeSolution: verificado. Encuentra una solución óptima que resuelve el problema mediante al método algorítmico de ramificación y poda.
+  - Mainloop: verificado. implementa el bucle principal del algoritmo de ramificación y poda.
+  - LoopBody: pendiente de verificar. Implementa una iteración del bucle principal del algoritmo de ramificación y poda.
+  - HandleChild: verificado. inserta el hijo en la cola si este no es solución completa.
+  - Main: verificado. Ejecuta el programa principal y muestra la solución.
 
 
 ---------------------------------------------------------------------------------------------------------------------*/
@@ -522,7 +522,7 @@ method MainLoop(input: Input, pq: PriorityQueue, bs: Solution)
 Método: representa una iteración del bucle principal del algoritmo de ramificación y poda. Parte de
 una cola no vacía, extrae de ella la solución parcial con mayor prioridad y genera sus dos hijos.
 //
-Verificación: sin verificar.
+Verificación: pendiente de verificar.
 */
 method {:axiom} LoopBody(bs : Solution, pq : PriorityQueue, input : Input)
   modifies pq, pq.arr, bs, bs`totalValue, bs`totalWeight, bs`k, bs`itemsAssign, bs`priority, bs.itemsAssign
