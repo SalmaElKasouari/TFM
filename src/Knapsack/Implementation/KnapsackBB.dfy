@@ -560,7 +560,7 @@ Método: inserta el hijo en la cola si este no es solución completa.
 //
 Verificación: utilizando el lema PartialIncludePriority y varios asertos.
 */
-method {:only} HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : Input)
+method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : Input)
   modifies pq, pq.arr, bs, bs.itemsAssign
 
   // Invariantes del bucle
