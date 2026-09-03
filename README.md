@@ -1,7 +1,6 @@
 # Trabajo de Fin de Máster
 
 **Título:** Verificación de colas de prioridad de objetos y aplicaciones en algoritmos en Dafny.
-
 **Programa:** Máster Interuniversitario en Métodos Formales en Ingeniería Informática.  
 **Universidad:** Universidad Complutense de Madrid (UCM).  
 **Curso académico:** 2025-2026.
