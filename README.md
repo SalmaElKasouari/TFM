@@ -22,7 +22,6 @@ Para compilar y verificar se recomienda usar **Visual Studio Code** con la exten
 📁 src/
 ├── 📁 Heapsort/
 │   ├── ValuePQ.dfy
-│   ├── Heapsort2.dfy
 │   └── Heapsort.dfy
 └── 📁 Knapsack/
     ├── 📁 Implementation/
