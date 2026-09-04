@@ -589,7 +589,6 @@ method HandleChild(child : Solution, bs : Solution, pq : PriorityQueue, input : 
           else pq.Model() == old(pq.Model())
   ensures bs.itemsAssign == old(bs.itemsAssign) || fresh(bs.itemsAssign)
 {
-  //assume false;
   if (child.priority > bs.totalValue) {
     if (child.k == child.itemsAssign.Length) {
       bs.Copy(child);
